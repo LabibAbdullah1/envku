@@ -1,0 +1,26 @@
+# ----------------------------------------------------------------------
+# Konfigurasi Keamanan Website Envku Subdomain (envku.subly.my.id)
+# ----------------------------------------------------------------------
+
+# 1. Mencegah directory listing (agar orang lain tidak bisa mengintip daftar file di folder website Anda)
+Options -Indexes
+
+# 2. Memaksa penggunaan HTTPS (enkripsi koneksi agar aman)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# 3. Mencegah Google dan mesin pencari lain mengindeks website ini agar tidak muncul di search bar Google
+<IfModule mod_headers.c>
+    Header set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+</IfModule>
+
+# 4. Opsional: Membatasi akses website hanya untuk IP Anda sendiri
+# PENTING: Jika diaktifkan, pengguna lain tidak akan bisa mengunduh aplikasi atau menerima pembaruan otomatis (auto-update).
+# Jika Anda hanya ingin Anda sendiri yang bisa membuka website ini, hapus tanda '#' pada 3 baris di bawah dan ganti IP-nya:
+# <RequireAll>
+#     Require all granted
+#     Require ip 123.123.123.123
+# </RequireAll>

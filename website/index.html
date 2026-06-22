@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envku - Portable Web Server Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-grid">
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="logo">
+            <span class="logo-box">E</span>
+            <span class="logo-text">ENVKU <span class="accent-text">ORCHESTRATOR</span></span>
+        </div>
+        <nav class="nav-links">
+            <a href="#features">Fitur</a>
+            <a href="#install">Panduan</a>
+            <a href="#download" class="btn-primary btn-nav">UNDUH SEKARANG</a>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <span class="badge">V1.2.1 STABLE</span>
+            <h1>KENDALIKAN WEB SERVER LOKAL TANPA RIBET</h1>
+            <p>Pengelola portable Apache, PHP Switcher, MySQL, phpMyAdmin, dan Node.js/NVM dalam satu aplikasi Windows yang cepat, aman, dan bergaya Neo-Brutalist.</p>
+            <div class="hero-actions">
+                <a href="#download" class="btn-primary btn-hero">UNDUH UNTUK WINDOWS</a>
+                <a href="#features" class="btn-secondary btn-hero">PELAJARI FITUR</a>
+            </div>
+        </div>
+        <div class="hero-preview">
+            <div class="preview-card">
+                <div class="card-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="window-title">ENVKU-PANEL</span>
+                </div>
+                <div class="card-body">
+                    <div class="terminal-line"><span class="cmd-prompt">C:\server></span> envku.exe --run</div>
+                    <div class="terminal-line success">[OK] Apache 2.4 server active on port 80</div>
+                    <div class="terminal-line success">[OK] MySQL-Kustom server active on port 3306</div>
+                    <div class="terminal-line success">[OK] PHP Engine configured on version 8.3</div>
+                    <div class="terminal-line info">[INFO] Symlink Node.js registered globally</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section">
+        <h2 class="section-title">FITUR UTAMA APLIKASI</h2>
+        <div class="features-grid">
+            <!-- Feature 1 -->
+            <div class="feature-card border-yellow">
+                <div class="icon-container bg-yellow">PHP</div>
+                <h3>PHP SWITCHER</h3>
+                <p>Ubah versi modul PHP di Apache dan PATH Windows CLI secara instan (mendukung versi 8.3 & 8.2).</p>
+            </div>
+            <!-- Feature 2 -->
+            <div class="feature-card border-blue">
+                <div class="icon-container bg-blue">JS</div>
+                <h3>NODE.JS & NVM INTEGRATION</h3>
+                <p>Pasang dan kelola beberapa versi Node.js secara global dengan bantuan NVM yang terintegrasi penuh.</p>
+            </div>
+            <!-- Feature 3 -->
+            <div class="feature-card border-violet">
+                <div class="icon-container bg-violet">DB</div>
+                <h3>MYSQL PORTABLE</h3>
+                <p>Instalasi otomatis database MySQL yang terisolasi dengan root akses tanpa password untuk kemudahan lokal.</p>
+            </div>
+            <!-- Feature 4 -->
+            <div class="feature-card border-emerald">
+                <div class="icon-container bg-emerald">PMA</div>
+                <h3>PHPMYADMIN</h3>
+                <p>Akses phpMyAdmin versi 5.2.3 terbaru dengan konfigurasi pmadb relasional otomatis dan login bebas error.</p>
+            </div>
+            <!-- Feature 5 -->
+            <div class="feature-card border-orange">
+                <div class="icon-container bg-orange">DNS</div>
+                <h3>PROJECT WIZARD</h3>
+                <p>Daftarkan virtual host Apache dan domain lokal (.test) secara otomatis langsung melalui aplikasi.</p>
+            </div>
+            <!-- Feature 6 -->
+            <div class="feature-card border-red">
+                <div class="icon-container bg-red">SVC</div>
+                <h3>SERVICE CONTROL</h3>
+                <p>Register dan kendalikan Apache/MySQL langsung sebagai Windows Services secara aman dalam satu dashboard.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Getting Started Section -->
+    <section id="install" class="section bg-dark-card">
+        <h2 class="section-title text-white">CARA MEMULAI</h2>
+        <div class="steps-container">
+            <div class="step-item">
+                <div class="step-num">1</div>
+                <div class="step-detail">
+                    <h4>Unduh Aplikasi</h4>
+                    <p>Unduh file executable `Envku_1.2.1_x64-setup.exe` terbaru dari bagian unduhan di bawah.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-num">2</div>
+                <div class="step-detail">
+                    <h4>Jalankan Sebagai Administrator</h4>
+                    <p>Klik kanan aplikasi lalu pilih **Run as Administrator** agar aplikasi dapat mengedit registry PATH dan berkas Hosts.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-num">3</div>
+                <div class="step-detail">
+                    <h4>Mulai Unduh Komponen</h4>
+                    <p>Buka tab **Downloader** untuk memasang Apache, PHP, MySQL, atau phpMyAdmin ke direktori portabel `C:\server` Anda secara otomatis.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="section text-center">
+        <h2 class="section-title">UNDUH VERSI TERBARU</h2>
+        <p class="section-desc">Pilih versi aplikasi stabil di bawah. Rilis yang diunduh dari aplikasi akan mendapatkan pemberitahuan pembaruan otomatis.</p>
+        
+        <div class="download-container">
+            <div class="download-card">
+                <div class="download-header bg-yellow">
+                    <h3>ENVKU ORCHESTRATOR</h3>
+                    <span class="version-tag">V1.2.1 (STABLE)</span>
+                </div>
+                <div class="download-body">
+                    <ul class="download-info">
+                        <li><strong>Platform:</strong> Windows 10 / 11 (x64)</li>
+                        <li><strong>Ukuran:</strong> ~3.6 MB</li>
+                        <li><strong>Rilis:</strong> 22 Juni 2026</li>
+                    </ul>
+                    <a href="downloads/Envku_1.2.1_x64-setup.exe" class="btn-primary btn-download">UNDUH INSTALLER (.EXE)</a>
+                    <div class="hash-box">
+                        SHA-256: <span class="hash-text">bde702e59d5b92fba6c1cd2d...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2026 Envku Orchestrator. Semua Hak Cipta Dilindungi.</p>
+        <p class="footer-sub">Pengembangan Lingkungan Lokal Lebih Cepat dan Modern.</p>
+    </footer>
+</body>
+</html>

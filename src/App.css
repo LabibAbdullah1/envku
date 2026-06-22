@@ -1,0 +1,424 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
+@import "tailwindcss";
+
+/* ─── Splash Screen Animations ─── */
+@keyframes splashFadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes splashPulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.08); }
+  50%       { box-shadow: 0 0 60px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.12); }
+}
+@keyframes splashShimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+@keyframes splashDot {
+  0%, 80%, 100% { transform: scale(1);   opacity: 0.3; }
+  40%           { transform: scale(1.5); opacity: 1; }
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0c0d10;
+  color: #f3f4f6;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Prevent text wrapping on buttons for better brutalist layout */
+button, .btn, .btn-primary, .btn-secondary {
+  white-space: nowrap !important;
+}
+
+/* Custom radial background grid - Brutalist Style dots */
+.bg-grid-glow {
+  background-color: #0c0d10 !important;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px) !important;
+  background-size: 24px 24px !important;
+}
+
+/* Redefining border radius to be completely boxy and brutalist */
+.rounded-2xl, .rounded-xl, .rounded-lg, .rounded-3xl, .rounded-full {
+  border-radius: 4px !important;
+}
+
+/* Make progress bar remain a bit rounded or blocky */
+.h-2.rounded-full, .h-full.rounded-full {
+  border-radius: 0px !important;
+}
+
+/* Overriding panel boxes to be Neobrutalist Cards */
+.bg-zinc-900\/50, 
+.bg-zinc-900\/20, 
+.bg-zinc-950\/80, 
+.bg-zinc-900\/30, 
+.bg-zinc-950\/40, 
+.bg-zinc-950\/30, 
+.bg-zinc-900\/70,
+.bg-zinc-900 {
+  background-color: #16171d !important;
+  opacity: 1 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 6px 6px 0px 0px #000000 !important;
+  border-radius: 4px !important;
+  backdrop-filter: none !important;
+}
+
+/* Overriding borders globally */
+.border, .border-zinc-800, .border-zinc-900, .border-zinc-850, .border-zinc-700\/60, .border-zinc-750, .border-zinc-800\/80 {
+  border: 3px solid #000000 !important;
+}
+
+/* Sidebar Styling */
+aside {
+  background-color: #111216 !important;
+  border-right: 4px solid #000000 !important;
+  border-radius: 0px !important;
+  padding: 24px !important;
+  box-shadow: none !important;
+}
+
+/* Brand header icon container */
+aside .bg-indigo-500\/10 {
+  background-color: #FFE600 !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 3px 3px 0px 0px #000000 !important;
+}
+
+/* Inactive Sidebar buttons */
+aside nav button {
+  background-color: #1a1b21 !important;
+  border: 3px solid #000000 !important;
+  color: #ffffff !important;
+  margin-bottom: 12px !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  border-radius: 4px !important;
+  font-weight: 600 !important;
+  transition: transform 0.1s, box-shadow 0.1s !important;
+}
+
+aside nav button:hover {
+  background-color: #38BDF8 !important; /* Neon Blue */
+  color: #000000 !important;
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 6px 6px 0px 0px #000000 !important;
+}
+
+/* Active Sidebar buttons */
+aside nav button.bg-zinc-800\/90 {
+  background-color: #FFE600 !important; /* Neo-brutal yellow */
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  font-weight: 800 !important;
+  transform: none !important;
+}
+
+/* Primary Action Buttons */
+.bg-indigo-600, 
+button[type="submit"], 
+button.bg-indigo-600,
+button.bg-indigo-600\/90 {
+  background-color: #8B5CF6 !important; /* Neon Violet */
+  color: #ffffff !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  font-weight: 800 !important;
+  border-radius: 4px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.1s !important;
+  cursor: pointer !important;
+}
+
+.bg-indigo-600:hover, 
+button[type="submit"]:hover, 
+button.bg-indigo-600:hover {
+  background-color: #a78bfa !important; /* Lighter Neon Violet */
+  color: #000000 !important;
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 6px 6px 0px 0px #000000 !important;
+}
+
+.bg-indigo-600:active, 
+button[type="submit"]:active, 
+button.bg-indigo-600:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+}
+
+/* Secondary Button Overrides (like refresh/switch etc) */
+button.bg-zinc-900, 
+button.bg-zinc-800,
+button.bg-zinc-950\/40,
+button.border-zinc-800 {
+  background-color: #1a1b21 !important;
+  color: #ffffff !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  font-weight: 700 !important;
+  border-radius: 4px !important;
+  transition: transform 0.1s, box-shadow 0.1s !important;
+  cursor: pointer !important;
+}
+
+button.bg-zinc-900:hover, 
+button.bg-zinc-800:hover {
+  background-color: #f97316 !important; /* Neon Orange */
+  color: #000000 !important;
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 6px 6px 0px 0px #000000 !important;
+}
+
+/* Installed/Already Installed state badge inside buttons */
+button.bg-indigo-950\/40 {
+  background-color: #22C55E !important; /* Neon Green */
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  font-weight: 800 !important;
+}
+
+/* Brutalist Red/Delete Buttons */
+.bg-red-600, 
+button.bg-red-600 {
+  background-color: #EF4444 !important; /* Neon Red */
+  color: #ffffff !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  font-weight: 800 !important;
+  border-radius: 4px !important;
+  text-transform: uppercase !important;
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.1s !important;
+  cursor: pointer !important;
+}
+
+.bg-red-600:hover, 
+button.bg-red-600:hover {
+  background-color: #f87171 !important; /* Lighter Neon Red */
+  color: #000000 !important;
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 6px 6px 0px 0px #000000 !important;
+}
+
+.bg-red-600:active, 
+button.bg-red-600:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+}
+
+/* Input, Select, and Textarea styling */
+input[type="text"], 
+input[type="number"], 
+select, 
+textarea {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  border-radius: 4px !important;
+  font-family: 'Poppins', sans-serif !important;
+  font-weight: 700 !important;
+  padding: 10px 14px !important;
+}
+
+input:focus, select:focus {
+  outline: 3px solid #FFE600 !important;
+}
+
+/* Directory status ada / tidak ada badges */
+span.bg-emerald-500\/15 {
+  background-color: #22C55E !important; /* Neon Green */
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  font-weight: 850 !important;
+}
+
+span.bg-red-500\/15 {
+  background-color: #EF4444 !important; /* Neon Red */
+  color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  font-weight: 850 !important;
+}
+
+/* Status Indicator Icons */
+.bg-emerald-500\/10 {
+  background-color: #22C55E !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 3px 3px 0px 0px #000000 !important;
+}
+
+.bg-zinc-850 {
+  background-color: #1a1b21 !important;
+  color: #555555 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 3px 3px 0px 0px #000000 !important;
+}
+
+/* Headings adjustment */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+  color: #ffffff !important;
+  text-shadow: 2px 2px 0px #000000;
+}
+
+h2 {
+  font-size: 1.6rem !important;
+  color: #FFE600 !important; /* Neobrutalist main color */
+}
+
+/* Secondary descriptions */
+.text-zinc-400, .text-sm.text-zinc-400 {
+  color: #d1d5db !important;
+  font-weight: 500 !important;
+}
+
+/* Labels and Subtitle headings */
+label, 
+.text-xs.font-bold, 
+span.text-xs.font-bold {
+  color: #38BDF8 !important; /* Neon Blue labels */
+  text-transform: uppercase !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.1em !important;
+  text-shadow: 1px 1px 0px #000000;
+}
+
+/* PHP Version Switcher active selection */
+button.bg-indigo-950\/35 {
+  background-color: #22C55E !important; /* Active green */
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 6px 6px 0px 0px #000000 !important;
+  transform: translate(-2px, -2px) !important;
+}
+
+button.bg-indigo-950\/35 h4 {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+button.bg-indigo-950\/35 p,
+button.bg-indigo-950\/35 span {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+/* Version description info labels */
+span.font-mono.bg-indigo-500\/10 {
+  background-color: #FFE600 !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  font-weight: 850 !important;
+  border-radius: 4px !important;
+}
+
+/* Log output boxes & terminals */
+.bg-zinc-950\/30, .bg-zinc-950\/40, .bg-zinc-950 {
+  background-color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  color: #34D399 !important; /* Green matrix output */
+  font-family: 'Consolas', 'Courier New', monospace !important;
+  border-radius: 4px !important;
+}
+
+/* Warnings and Alerts */
+.bg-amber-500\/5, .bg-red-500\/5 {
+  background-color: #f59e0b !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 6px 6px 0px 0px #000000 !important;
+  border-radius: 4px !important;
+}
+
+.bg-amber-500\/5 span, .bg-amber-500\/5 div, .bg-amber-500\/5 svg {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+/* Scrollbar customization for boxy brutalist look */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: #111216;
+  border-left: 3px solid #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #FFE600;
+  border: 3px solid #000000;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #facc15;
+}
+
+/* Global decorative glow overlay removal (neobrutalism is flat) */
+.absolute.top-0.left-1\/4.w-\[700px\].h-\[250px\] {
+  display: none !important;
+}
+
+/* Toast container override */
+.fixed.bottom-6.right-6 {
+  background-color: #FFE600 !important; /* Bright Yellow Toast */
+  border: 3px solid #000000 !important;
+  box-shadow: 8px 8px 0px 0px #000000 !important;
+  color: #000000 !important;
+  border-radius: 4px !important;
+}
+
+.fixed.bottom-6.right-6 * {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+.fixed.bottom-6.right-6 .bg-gradient-to-b {
+  display: none !important;
+}
+
+.fixed.bottom-6.right-6 .bg-indigo-500\/10,
+.fixed.bottom-6.right-6 .bg-red-500\/10 {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Custom Dropdown Options Styles */
+.absolute.z-30 button {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0px !important;
+  background-color: transparent !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  transform: none !important;
+}
+
+.absolute.z-30 button:hover {
+  background-color: #38BDF8 !important; /* Neon Blue on hover */
+  color: #000000 !important;
+}
+
+.absolute.z-30 button.bg-indigo-600 {
+  background-color: #8B5CF6 !important; /* Neon Purple active */
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
