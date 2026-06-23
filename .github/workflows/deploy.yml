@@ -1,0 +1,32 @@
+name: Deploy Folder ke Subdomain cPanel otomatis
+
+on:
+  push:
+    branches:
+      - main # Ganti ke 'master' jika branch utama kamu namanya master
+
+jobs:
+  web-deploy:
+    name: 🚀 Deploying to Subly...
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🚚 Ambil code terbaru dari GitHub
+      uses: actions/checkout@v4
+    
+    - name: 📂 Sinkronisasi folder spesifik ke cPanel
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        port: 21
+        
+        # 1. TANKAR FOLDER DI GITHUB YANG MAU DI-UPLOAD
+        local-dir: ./website/
+        
+        # 2. FOLDER TUJUAN DI CPANEL
+        # Karena FTP ini sudah dikunci ke direktori 'envku', cukup gunakan ./ 
+        server-dir: ./
+        
+        # Jika ingin file lama yang dihapus di GitHub juga ikut terhapus di cPanel, ubah jadi true
+        delete-clean: false
