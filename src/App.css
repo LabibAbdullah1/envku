@@ -236,22 +236,7 @@ input:focus, select:focus {
   outline: 3px solid #FFE600 !important;
 }
 
-/* Directory status ada / tidak ada badges */
-span.bg-emerald-500\/15 {
-  background-color: #22C55E !important; /* Neon Green */
-  color: #000000 !important;
-  border: 2px solid #000000 !important;
-  box-shadow: 2px 2px 0px 0px #000000 !important;
-  font-weight: 850 !important;
-}
 
-span.bg-red-500\/15 {
-  background-color: #EF4444 !important; /* Neon Red */
-  color: #ffffff !important;
-  border: 2px solid #000000 !important;
-  box-shadow: 2px 2px 0px 0px #000000 !important;
-  font-weight: 850 !important;
-}
 
 /* Status Indicator Icons */
 .bg-emerald-500\/10 {
@@ -421,4 +406,45 @@ span.font-mono.bg-indigo-500\/10 {
   background-color: #8B5CF6 !important; /* Neon Purple active */
   color: #ffffff !important;
   font-weight: 800 !important;
+}
+
+/* Status & State Badges (Moved to the end and chained with text-xs.font-bold for CSS specificity precedence) */
+span.bg-emerald-500\/15.text-xs.font-bold,
+span.bg-emerald-500\/15 {
+  background-color: #22C55E !important; /* Neon Green */
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  font-weight: 850 !important;
+  text-shadow: none !important;
+}
+
+span.bg-red-500\/15.text-xs.font-bold,
+span.bg-red-500\/15 {
+  background-color: #EF4444 !important; /* Neon Red */
+  color: #000000 !important; /* Changed from white to black for maximum Neobrutalist contrast */
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  font-weight: 850 !important;
+  text-shadow: none !important;
+}
+
+span.bg-indigo-500\/15.text-xs.font-bold,
+span.bg-indigo-500\/15 {
+  background-color: #a78bfa !important; /* Light Neon Violet */
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  font-weight: 850 !important;
+  text-shadow: none !important;
+}
+
+span.bg-zinc-800.text-xs.font-bold,
+span.bg-zinc-800 {
+  background-color: #e4e4e7 !important; /* Light Zinc/Gray */
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  font-weight: 850 !important;
+  text-shadow: none !important;
 }
