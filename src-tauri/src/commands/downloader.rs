@@ -339,5 +339,8 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
         None
     );
 
+    // Automatically register newly downloaded paths to system PATH
+    let _ = crate::commands::env::register_system_paths();
+
     Ok(format!("Komponen {} berhasil di-download dan di-ekstrak.", component_id.to_uppercase()))
 }

@@ -1,4 +1,5 @@
 import envkuLogo from "../assets/envku-logo.svg";
+import packageJson from "../../package.json";
 
 interface SplashscreenProps {
   isSplash: boolean;
@@ -57,7 +58,7 @@ export default function Splashscreen({ isSplash }: SplashscreenProps) {
             <p className="text-[11px] font-mono font-bold text-[#34D399] tracking-wider animate-pulse uppercase">
               {">> "}MEMPERSIAPKAN LINGKUNGAN...
             </p>
-            <span className="text-[9px] font-mono text-zinc-500 font-bold uppercase">VERSION v1.2.1</span>
+            <span className="text-[9px] font-mono text-zinc-500 font-bold uppercase">VERSION v{packageJson.version}</span>
           </div>
         </div>
 

@@ -37,34 +37,34 @@ export default function DashboardTab({
       <div className="grid grid-cols-2 gap-5">
         {dirsLoading
           ? Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="p-5 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl flex items-center justify-between shadow-xl">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-xl bg-zinc-800/60 animate-pulse">
+              <div key={i} className="p-5 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl flex items-center justify-between shadow-xl min-w-0">
+                <div className="flex items-center space-x-4 min-w-0 flex-1">
+                  <div className="p-3 rounded-xl bg-zinc-800/60 animate-pulse shrink-0">
                     <div className="w-6 h-6 rounded bg-zinc-700" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0 flex-1">
                     <div className="h-3.5 w-24 bg-zinc-700 rounded animate-pulse" />
                     <div className="h-2.5 w-36 bg-zinc-800 rounded animate-pulse" />
                   </div>
                 </div>
-                <div className="h-6 w-16 bg-zinc-800 rounded-full animate-pulse" />
+                <div className="h-6 w-16 bg-zinc-800 rounded-full animate-pulse shrink-0" />
               </div>
             ))
           : Object.entries(dirsStatus).map(([path, exists]) => (
             <div 
               key={path} 
-              className="p-5 bg-zinc-900/50 backdrop-blur-md border border-zinc-800/80 rounded-2xl flex items-center justify-between shadow-xl"
+              className="p-5 bg-zinc-900/50 backdrop-blur-md border border-zinc-800/80 rounded-2xl flex items-center justify-between shadow-xl min-w-0"
             >
-              <div className="flex items-center space-x-4">
-                <div className={`p-3 rounded-xl ${exists ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-850 text-zinc-500"}`}>
+              <div className="flex items-center space-x-4 min-w-0 flex-1 mr-2">
+                <div className={`p-3 rounded-xl shrink-0 ${exists ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-850 text-zinc-500"}`}>
                   {exists ? <FolderCheck className="w-6 h-6" /> : <Folder className="w-6 h-6" />}
                 </div>
-                <div>
-                  <span className="text-sm font-extrabold text-zinc-100 block font-mono">{path.split("\\").pop()}</span>
-                  <span className="text-xs text-zinc-500 font-mono block mt-0.5">{path}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm font-extrabold text-zinc-100 block font-mono truncate">{path.split("\\").pop()}</span>
+                  <span className="text-xs text-zinc-500 font-mono block mt-0.5 truncate" title={path}>{path}</span>
                 </div>
               </div>
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400">
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0">
                 {exists ? "ADA" : "TDK ADA"}
               </span>
             </div>

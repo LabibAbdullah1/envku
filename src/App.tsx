@@ -6,6 +6,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 
 import "./App.css";
+import packageJson from "../package.json";
 
 // Subcomponents
 import Sidebar from "./components/Sidebar";
@@ -580,7 +581,7 @@ export default function App() {
         {/* Global Footer */}
         <footer className="max-w-3xl w-full mx-auto border-t border-zinc-900/60 pt-5 text-xs text-zinc-500 font-mono flex justify-between relative z-10">
           <span>Envku Orchestrator</span>
-          <span>v1.2.1</span>
+          <span>v{packageJson.version}</span>
         </footer>
       </main>
 
