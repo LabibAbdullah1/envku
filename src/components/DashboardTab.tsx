@@ -7,6 +7,7 @@ interface DashboardTabProps {
   services: {
     Apache: { running: boolean };
     MySQL: { running: boolean };
+    Redis: { running: boolean };
   };
 }
 
@@ -94,6 +95,15 @@ export default function DashboardTab({
                 {services.MySQL.running ? "Running" : "Offline"}
               </span>
               <span className={`h-3 w-3 rounded-full ${services.MySQL.running ? "bg-emerald-500" : "bg-zinc-700"}`} />
+            </span>
+          </div>
+          <div className="flex justify-between items-center bg-zinc-950/40 border border-zinc-850 p-4 rounded-xl">
+            <span className="text-sm font-medium text-zinc-200">Redis Cache Server (Port 6379)</span>
+            <span className="flex items-center space-x-2">
+              <span className={`text-xs font-semibold ${services.Redis.running ? "text-emerald-400" : "text-zinc-500"}`}>
+                {services.Redis.running ? "Running" : "Offline"}
+              </span>
+              <span className={`h-3 w-3 rounded-full ${services.Redis.running ? "bg-emerald-500" : "bg-zinc-700"}`} />
             </span>
           </div>
         </div>

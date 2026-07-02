@@ -29,7 +29,9 @@ export default function DownloaderTab({
     { id: "php83", name: "PHP 8.3 Engine", description: "PHP 8.3 x64 Thread Safe (TS) untuk modul Apache.", installedPath: `${baseDir}\\php83` },
     { id: "php82", name: "PHP 8.2 Engine", description: "PHP 8.2 x64 Thread Safe (TS) versi stabil warisan.", installedPath: `${baseDir}\\php82` },
     { id: "mysql", name: "MySQL Database Server", description: "Engine database relasional kustom v8.0.", installedPath: `${baseDir}\\mysql` },
-    { id: "phpmyadmin", name: "phpMyAdmin Interface", description: "Pengelola MySQL berbasis web di localhost.", installedPath: `${baseDir}\\www\\phpmyadmin` }
+    { id: "phpmyadmin", name: "phpMyAdmin Interface", description: "Pengelola MySQL berbasis web di localhost.", installedPath: `${baseDir}\\www\\phpmyadmin` },
+    { id: "composer", name: "PHP Composer", description: "Manajer ketergantungan PHP portabel (composer.phar).", installedPath: `${baseDir}\\composer\\composer.phar` },
+    { id: "redis", name: "Redis Cache Server", description: "Database memori berkinerja tinggi (redis-server.exe) v5.0.", installedPath: `${baseDir}\\redis` }
   ];
 
   return (

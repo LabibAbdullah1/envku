@@ -30,7 +30,7 @@ pub fn control_service(service: String, action: String) -> Result<String, String
         .map_err(|e| format!("Gagal mengontrol service: {}", e))?;
 
     if output.status.success() {
-        if service == "MySQL-Kustom" && action == "start" {
+        if service == "mysql-server" && action == "start" {
             // Wait 1.5s for MySQL database server to fully boot up and bind to port 3306
             std::thread::sleep(std::time::Duration::from_millis(1500));
 
@@ -69,7 +69,7 @@ pub fn install_service(service: String) -> Result<String, String> {
         } else {
             Err(String::from_utf8_lossy(&output.stderr).to_string())
         }
-    } else if service == "MySQL-Kustom" {
+    } else if service == "mysql-server" {
         let mysql_dir = server_dir.join("mysql");
         let my_ini_path = mysql_dir.join("my.ini");
         if !my_ini_path.exists() {
@@ -98,17 +98,46 @@ default_authentication_plugin=mysql_native_password
 
         // Delete existing service if any to avoid collision or wrong executable paths
         let _ = crate::create_hidden_command("sc")
-            .args(&["delete", "MySQL-Kustom"])
+            .args(&["delete", "mysql-server"])
             .output();
 
         let mysqld_exe = mysql_dir.join("bin").join("mysqld.exe");
         let defaults_arg = format!("--defaults-file={}", my_ini_path.to_string_lossy());
         let output = crate::create_hidden_command(&mysqld_exe.to_string_lossy())
-            .args(&["--install", "MySQL-Kustom", &defaults_arg])
+            .args(&["--install", "mysql-server", &defaults_arg])
             .output()
             .map_err(|e| format!("Gagal menginstal service MySQL: {}", e))?;
         if output.status.success() {
-            Ok("Service MySQL-Kustom berhasil diinstal".to_string())
+            Ok("Service mysql-server berhasil diinstal".to_string())
+        } else {
+            Err(String::from_utf8_lossy(&output.stderr).to_string())
+        }
+    } else if service == "redis-server" {
+        let redis_dir = server_dir.join("redis");
+        let redis_exe = redis_dir.join("redis-server.exe");
+        let conf_path = redis_dir.join("redis.windows.conf");
+
+        if !redis_exe.exists() {
+            return Err("Redis tidak terinstal di folder server.".to_string());
+        }
+
+        // Delete existing service if any to avoid collision
+        let _ = crate::create_hidden_command("sc")
+            .args(&["delete", "redis-server"])
+            .output();
+
+        let output = crate::create_hidden_command(&redis_exe.to_string_lossy())
+            .args(&[
+                "--service-install",
+                &conf_path.to_string_lossy(),
+                "--service-name",
+                "redis-server"
+            ])
+            .output()
+            .map_err(|e| format!("Gagal menginstal service Redis: {}", e))?;
+
+        if output.status.success() {
+            Ok("Service redis-server berhasil diinstal".to_string())
         } else {
             Err(String::from_utf8_lossy(&output.stderr).to_string())
         }
@@ -128,4 +157,32 @@ pub fn ping_port(port: u16) -> bool {
         }
     }
     false
+}
+
+#[tauri::command]
+pub fn clear_redis_cache() -> Result<String, String> {
+    let server_dir = get_server_dir_path();
+    let redis_cli = server_dir.join("redis").join("redis-cli.exe");
+
+    if !redis_cli.exists() {
+        return Err("Redis-cli tidak ditemukan. Pastikan Redis sudah terinstal.".to_string());
+    }
+
+    let output = crate::create_hidden_command(&redis_cli.to_string_lossy())
+        .arg("FLUSHALL")
+        .output()
+        .map_err(|e| format!("Gagal menjalankan redis-cli: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Ok(format!("Redis cache berhasil dibersihkan: {}", stdout.trim()))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Err(format!(
+            "Gagal membersihkan Redis cache. Stderr: {}. Stdout: {}",
+            stderr.trim(),
+            stdout.trim()
+        ))
+    }
 }

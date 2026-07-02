@@ -75,9 +75,11 @@ export default function App() {
   const [services, setServices] = useState<{
     Apache: { installed: boolean; running: boolean; checking: boolean };
     MySQL: { installed: boolean; running: boolean; checking: boolean };
+    Redis: { installed: boolean; running: boolean; checking: boolean };
   }>({
     Apache: { installed: false, running: false, checking: true },
-    MySQL: { installed: false, running: false, checking: true }
+    MySQL: { installed: false, running: false, checking: true },
+    Redis: { installed: false, running: false, checking: true }
   });
 
   // Modul 3 State (Project Virtual Hosts)
@@ -117,7 +119,9 @@ export default function App() {
       `${baseDir}\\php83`,
       `${baseDir}\\php82`,
       `${baseDir}\\mysql`,
-      `${baseDir}\\www\\phpmyadmin`
+      `${baseDir}\\www\\phpmyadmin`,
+      `${baseDir}\\composer\\composer.phar`,
+      `${baseDir}\\redis`
     ];
     setDirsLoading(true);
     try {
@@ -127,6 +131,7 @@ export default function App() {
     } catch (err) {
       console.warn("Gagal memeriksa direktori:", err);
     } finally {
+      document.body.style.backgroundColor = ""; // keep existing format
       setDirsLoading(false);
     }
   };
@@ -135,14 +140,17 @@ export default function App() {
   const updateServiceStates = async () => {
     try {
       const apacheInstalled = await invoke<boolean>("check_service_installed", { service: "Apache2.4" });
-      const mysqlInstalled = await invoke<boolean>("check_service_installed", { service: "MySQL-Kustom" });
+      const mysqlInstalled = await invoke<boolean>("check_service_installed", { service: "mysql-server" });
+      const redisInstalled = await invoke<boolean>("check_service_installed", { service: "redis-server" });
 
       const apacheRunning = await invoke<boolean>("ping_port", { port: 80 });
       const mysqlRunning = await invoke<boolean>("ping_port", { port: 3306 });
+      const redisRunning = await invoke<boolean>("ping_port", { port: 6379 });
 
       setServices({
         Apache: { installed: apacheInstalled, running: apacheRunning, checking: false },
-        MySQL: { installed: mysqlInstalled, running: mysqlRunning, checking: false }
+        MySQL: { installed: mysqlInstalled, running: mysqlRunning, checking: false },
+        Redis: { installed: redisInstalled, running: redisRunning, checking: false }
       });
     } catch (err) {
       console.warn("Gagal memperbarui status layanan:", err);
@@ -150,9 +158,11 @@ export default function App() {
   };
 
   // Run Service control (Start/Stop)
-  const toggleService = async (serviceKey: "Apache" | "MySQL") => {
+  const toggleService = async (serviceKey: "Apache" | "MySQL" | "Redis") => {
     const currentStatus = services[serviceKey];
-    const serviceWinName = serviceKey === "Apache" ? "Apache2.4" : "MySQL-Kustom";
+    let serviceWinName = "Apache2.4";
+    if (serviceKey === "MySQL") serviceWinName = "mysql-server";
+    else if (serviceKey === "Redis") serviceWinName = "redis-server";
     const action = currentStatus.running ? "stop" : "start";
 
     setServices(prev => ({
@@ -173,7 +183,7 @@ export default function App() {
   };
 
   // Install Windows Service
-  const handleInstallService = async (serviceWinName: string, serviceKey: "Apache" | "MySQL") => {
+  const handleInstallService = async (serviceWinName: string, serviceKey: "Apache" | "MySQL" | "Redis") => {
     setServices(prev => ({
       ...prev,
       [serviceKey]: { ...prev[serviceKey], checking: true }
@@ -187,6 +197,19 @@ export default function App() {
     } finally {
       setLoading(false);
       updateServiceStates();
+    }
+  };
+
+  // Clear Redis Cache
+  const handleClearRedisCache = async () => {
+    setLoading(true);
+    try {
+      const res = await invoke<string>("clear_redis_cache");
+      showToastMsg(res, "success");
+    } catch (err) {
+      showToastMsg(String(err), "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -379,7 +402,9 @@ export default function App() {
         `${resolvedBaseDir}\\php83`,
         `${resolvedBaseDir}\\php82`,
         `${resolvedBaseDir}\\mysql`,
-        `${resolvedBaseDir}\\www\\phpmyadmin`
+        `${resolvedBaseDir}\\www\\phpmyadmin`,
+        `${resolvedBaseDir}\\composer\\composer.phar`,
+        `${resolvedBaseDir}\\redis`
       ];
       setDirsLoading(true);
       try {
@@ -502,6 +527,7 @@ export default function App() {
               services={services}
               handleInstallService={handleInstallService}
               toggleService={toggleService}
+              handleClearRedis={handleClearRedisCache}
             />
           )}
 

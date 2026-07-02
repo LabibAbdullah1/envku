@@ -37,6 +37,7 @@ pub fn run() {
             commands::services::control_service,
             commands::services::install_service,
             commands::services::ping_port,
+            commands::services::clear_redis_cache,
             commands::projects::add_project,
             commands::projects::delete_project,
             commands::projects::get_virtual_hosts,

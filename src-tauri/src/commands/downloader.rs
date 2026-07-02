@@ -22,6 +22,8 @@ fn get_component_url(component_id: &str) -> Result<&'static str, String> {
         "php82" => Ok("https://windows.php.net/downloads/releases/php-8.2.31-Win32-vs16-x64.zip"),
         "mysql" => Ok("https://cdn.mysql.com/archives/mysql-8.0/mysql-8.0.39-winx64.zip"),
         "phpmyadmin" => Ok("https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip"),
+        "composer" => Ok("https://getcomposer.org/composer.phar"),
+        "redis" => Ok("https://github.com/tporadowski/redis/releases/download/v5.0.14.1/Redis-x64-5.0.14.1.zip"),
         _ => Err(format!("ID komponen tidak dikenal: {}", component_id)),
     }
 }
@@ -79,13 +81,20 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
     let mut downloaded: u64 = 0;
     let mut stream = response.bytes_stream();
 
+    let is_zip = component_id != "composer";
+    let download_filename = if is_zip {
+        format!("{}.zip", component_id)
+    } else {
+        "composer.phar".to_string()
+    };
+
     let server_dir = get_server_dir_path();
     let temp_dir = server_dir.join("temp");
     fs::create_dir_all(&temp_dir)
         .map_err(|e| format!("Gagal membuat folder temp: {}", e))?;
     
-    let zip_path = temp_dir.join(format!("{}.zip", component_id));
-    let mut file = File::create(&zip_path)
+    let file_path = temp_dir.join(&download_filename);
+    let mut file = File::create(&file_path)
         .map_err(|e| format!("Gagal membuat file sementara: {}", e))?;
 
     // Streaming the download
@@ -116,74 +125,80 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
         std::thread::sleep(std::time::Duration::from_millis(800));
     }
     if component_id == "mysql" {
-        let _ = crate::commands::services::control_service("MySQL-Kustom".to_string(), "stop".to_string());
+        let _ = crate::commands::services::control_service("mysql-server".to_string(), "stop".to_string());
+        std::thread::sleep(std::time::Duration::from_millis(800));
+    }
+    if component_id == "redis" {
+        let _ = crate::commands::services::control_service("redis-server".to_string(), "stop".to_string());
         std::thread::sleep(std::time::Duration::from_millis(800));
     }
 
-    // Extraction target directories
-    let extract_dest = match component_id.as_str() {
-        "php83" => server_dir.join("php83"),
-        "php82" => server_dir.join("php82"),
-        "phpmyadmin" => server_dir.join("www"), // Extracts directly into www
-        _ => server_dir.to_path_buf(), // Apache and MySQL go to base C:\server
-    };
+    if is_zip {
+        // Extraction target directories
+        let extract_dest = match component_id.as_str() {
+            "php83" => server_dir.join("php83"),
+            "php82" => server_dir.join("php82"),
+            "phpmyadmin" => server_dir.join("www"), // Extracts directly into www
+            "redis" => server_dir.join("redis"),
+            _ => server_dir.to_path_buf(), // Apache and MySQL go to base C:\server
+        };
 
-    fs::create_dir_all(&extract_dest)
-        .map_err(|e| format!("Gagal membuat folder tujuan: {}", e))?;
+        fs::create_dir_all(&extract_dest)
+            .map_err(|e| format!("Gagal membuat folder tujuan: {}", e))?;
 
-    extract_zip(&zip_path, &extract_dest)?;
+        extract_zip(&file_path, &extract_dest)?;
 
-    // Post-extraction: restructuring directories
-    match component_id.as_str() {
-        "apache" => {
-            let httpd_conf_path = server_dir.join("Apache24\\conf\\httpd.conf");
-            if httpd_conf_path.exists() {
-                let mut content = fs::read_to_string(&httpd_conf_path)
-                    .map_err(|e| format!("Gagal membaca httpd.conf: {}", e))?;
+        // Post-extraction: restructuring directories
+        match component_id.as_str() {
+            "apache" => {
+                let httpd_conf_path = server_dir.join("Apache24\\conf\\httpd.conf");
+                if httpd_conf_path.exists() {
+                    let mut content = fs::read_to_string(&httpd_conf_path)
+                        .map_err(|e| format!("Gagal membaca httpd.conf: {}", e))?;
 
-                let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
-                content = content.replace("Define SRVROOT \"c:/Apache24\"", &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash));
-                content = content.replace("Define SRVROOT \"C:/Apache24\"", &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash));
+                    let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
+                    content = content.replace("Define SRVROOT \"c:/Apache24\"", &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash));
+                    content = content.replace("Define SRVROOT \"C:/Apache24\"", &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash));
 
-                // Enable proxy modules
-                content = content.replace("#LoadModule proxy_module modules/mod_proxy.so", "LoadModule proxy_module modules/mod_proxy.so");
-                content = content.replace("#LoadModule proxy_http_module modules/mod_proxy_http.so", "LoadModule proxy_http_module modules/mod_proxy_http.so");
+                    // Enable proxy modules
+                    content = content.replace("#LoadModule proxy_module modules/mod_proxy.so", "LoadModule proxy_module modules/mod_proxy.so");
+                    content = content.replace("#LoadModule proxy_http_module modules/mod_proxy_http.so", "LoadModule proxy_http_module modules/mod_proxy_http.so");
 
-                // Enable vhosts config file inclusion
-                content = content.replace("#Include conf/extra/httpd-vhosts.conf", "Include conf/extra/httpd-vhosts.conf");
+                    // Enable vhosts config file inclusion
+                    content = content.replace("#Include conf/extra/httpd-vhosts.conf", "Include conf/extra/httpd-vhosts.conf");
 
-                // Set index.php as default DirectoryIndex
-                content = content.replace("DirectoryIndex index.html", "DirectoryIndex index.php index.html");
+                    // Set index.php as default DirectoryIndex
+                    content = content.replace("DirectoryIndex index.html", "DirectoryIndex index.php index.html");
 
-                fs::write(&httpd_conf_path, content)
-                    .map_err(|e| format!("Gagal memperbarui httpd.conf setelah ekstraksi: {}", e))?;
+                    fs::write(&httpd_conf_path, content)
+                        .map_err(|e| format!("Gagal memperbarui httpd.conf setelah ekstraksi: {}", e))?;
+                }
             }
-        }
-        "mysql" => {
-            let entries = fs::read_dir(&server_dir)
-                .map_err(|e| format!("Gagal membaca direktori server: {}", e))?;
-            let mut mysql_folder = None;
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let name = entry.file_name().to_string_lossy().into_owned();
-                    if name.starts_with("mysql-") && entry.path().is_dir() {
-                        mysql_folder = Some(entry.path());
-                        break;
+            "mysql" => {
+                let entries = fs::read_dir(&server_dir)
+                    .map_err(|e| format!("Gagal membaca direktori server: {}", e))?;
+                let mut mysql_folder = None;
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let name = entry.file_name().to_string_lossy().into_owned();
+                        if name.starts_with("mysql-") && entry.path().is_dir() {
+                            mysql_folder = Some(entry.path());
+                            break;
+                        }
                     }
                 }
-            }
-            if let Some(folder) = mysql_folder {
-                let dest = server_dir.join("mysql");
-                if dest.exists() {
-                    fs::remove_dir_all(&dest).unwrap_or(());
-                }
-                fs::rename(folder, &dest)
-                    .map_err(|e| format!("Gagal merestrukturasi folder MySQL: {}", e))?;
+                if let Some(folder) = mysql_folder {
+                    let dest = server_dir.join("mysql");
+                    if dest.exists() {
+                        fs::remove_dir_all(&dest).unwrap_or(());
+                    }
+                    fs::rename(folder, &dest)
+                        .map_err(|e| format!("Gagal merestrukturasi folder MySQL: {}", e))?;
 
-                // Automatically generate my.ini after extraction
-                let my_ini_path = dest.join("my.ini");
-                let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
-                let config = format!(r#"[mysqld]
+                    // Automatically generate my.ini after extraction
+                    let my_ini_path = dest.join("my.ini");
+                    let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
+                    let config = format!(r#"[mysqld]
 basedir={}/mysql
 datadir={}/mysql/data
 port=3306
@@ -192,43 +207,43 @@ default-storage-engine=INNODB
 sql_mode=NO_ENGINE_SUBSTITUTION
 default_authentication_plugin=mysql_native_password
 "#, server_dir_slash, server_dir_slash);
-                let _ = fs::write(&my_ini_path, config);
+                    let _ = fs::write(&my_ini_path, config);
 
-                // Automatically initialize datadir if it does not exist
-                let data_dir = dest.join("data");
-                if !data_dir.exists() {
-                    let mysqld_path = dest.join("bin").join("mysqld.exe");
-                    let _ = crate::create_hidden_command(&mysqld_path.to_string_lossy())
-                        .args(&["--initialize-insecure", "--user=mysql"])
-                        .output();
-                }
-            }
-        }
-        "phpmyadmin" => {
-            let www_dir = server_dir.join("www");
-            let entries = fs::read_dir(&www_dir)
-                .map_err(|e| format!("Gagal membaca direktori www: {}", e))?;
-            let mut pma_folder = None;
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let name = entry.file_name().to_string_lossy().into_owned();
-                    if name.starts_with("phpMyAdmin-") && entry.path().is_dir() {
-                        pma_folder = Some(entry.path());
-                        break;
+                    // Automatically initialize datadir if it does not exist
+                    let data_dir = dest.join("data");
+                    if !data_dir.exists() {
+                        let mysqld_path = dest.join("bin").join("mysqld.exe");
+                        let _ = crate::create_hidden_command(&mysqld_path.to_string_lossy())
+                            .args(&["--initialize-insecure", "--user=mysql"])
+                            .output();
                     }
                 }
             }
-            if let Some(folder) = pma_folder {
-                let dest = www_dir.join("phpmyadmin");
-                if dest.exists() {
-                    fs::remove_dir_all(&dest).unwrap_or(());
+            "phpmyadmin" => {
+                let www_dir = server_dir.join("www");
+                let entries = fs::read_dir(&www_dir)
+                    .map_err(|e| format!("Gagal membaca direktori www: {}", e))?;
+                let mut pma_folder = None;
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let name = entry.file_name().to_string_lossy().into_owned();
+                        if name.starts_with("phpMyAdmin-") && entry.path().is_dir() {
+                            pma_folder = Some(entry.path());
+                            break;
+                        }
+                    }
                 }
-                fs::rename(folder, &dest)
-                    .map_err(|e| format!("Gagal merestrukturasi folder phpMyAdmin: {}", e))?;
+                if let Some(folder) = pma_folder {
+                    let dest = www_dir.join("phpmyadmin");
+                    if dest.exists() {
+                        fs::remove_dir_all(&dest).unwrap_or(());
+                    }
+                    fs::rename(folder, &dest)
+                        .map_err(|e| format!("Gagal merestrukturasi folder phpMyAdmin: {}", e))?;
 
-                // Automatically create config.inc.php with AllowNoPassword enabled
-                let config_path = dest.join("config.inc.php");
-                let pma_config = r#"<?php
+                    // Automatically create config.inc.php with AllowNoPassword enabled
+                    let config_path = dest.join("config.inc.php");
+                    let pma_config = r#"<?php
 $cfg['blowfish_secret'] = 'envku_orchestrator_secret_32_cha';
 $i = 0;
 $i++;
@@ -260,39 +275,59 @@ $cfg['Servers'][$i]['central_columns'] = 'pma__central_columns';
 $cfg['Servers'][$i]['designer_settings'] = 'pma__designer_settings';
 $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
 "#;
-                let _ = fs::write(config_path, pma_config);
-            }
-        }
-        "php83" | "php82" => {
-            let php_dir = server_dir.join(&component_id);
-            let php_ini_path = php_dir.join("php.ini");
-            if !php_ini_path.exists() {
-                let dev_ini = php_dir.join("php.ini-development");
-                if dev_ini.exists() {
-                    let mut content = fs::read_to_string(&dev_ini)
-                        .map_err(|e| format!("Gagal membaca php.ini-development: {}", e))?;
-
-                    // Enable extension_dir
-                    content = content.replace(";extension_dir = \"ext\"", "extension_dir = \"ext\"");
-
-                    // Enable common extensions
-                    content = content.replace(";extension=curl", "extension=curl");
-                    content = content.replace(";extension=gd", "extension=gd");
-                    content = content.replace(";extension=mbstring", "extension=mbstring");
-                    content = content.replace(";extension=mysqli", "extension=mysqli");
-                    content = content.replace(";extension=openssl", "extension=openssl");
-                    content = content.replace(";extension=pdo_mysql", "extension=pdo_mysql");
-
-                    fs::write(&php_ini_path, content)
-                        .map_err(|e| format!("Gagal menulis php.ini baru setelah ekstraksi: {}", e))?;
+                    let _ = fs::write(config_path, pma_config);
                 }
             }
+            "php83" | "php82" => {
+                let php_dir = server_dir.join(&component_id);
+                let php_ini_path = php_dir.join("php.ini");
+                if !php_ini_path.exists() {
+                    let dev_ini = php_dir.join("php.ini-development");
+                    if dev_ini.exists() {
+                        let mut content = fs::read_to_string(&dev_ini)
+                            .map_err(|e| format!("Gagal membaca php.ini-development: {}", e))?;
+
+                        // Enable extension_dir
+                        content = content.replace(";extension_dir = \"ext\"", "extension_dir = \"ext\"");
+
+                        // Enable common extensions
+                        content = content.replace(";extension=curl", "extension=curl");
+                        content = content.replace(";extension=gd", "extension=gd");
+                        content = content.replace(";extension=mbstring", "extension=mbstring");
+                        content = content.replace(";extension=mysqli", "extension=mysqli");
+                        content = content.replace(";extension=openssl", "extension=openssl");
+                        content = content.replace(";extension=pdo_mysql", "extension=pdo_mysql");
+
+                        fs::write(&php_ini_path, content)
+                            .map_err(|e| format!("Gagal menulis php.ini baru setelah ekstraksi: {}", e))?;
+                    }
+                }
+            }
+            _ => {}
         }
-        _ => {}
+    } else {
+        // Composer logic
+        let composer_dir = server_dir.join("composer");
+        fs::create_dir_all(&composer_dir)
+            .map_err(|e| format!("Gagal membuat folder composer: {}", e))?;
+
+        let dest_phar = composer_dir.join("composer.phar");
+        fs::rename(&file_path, &dest_phar)
+            .map_err(|e| format!("Gagal memindahkan composer.phar: {}", e))?;
+
+        // Write composer.bat
+        let bat_path = composer_dir.join("composer.bat");
+        let bat_content = "@php \"%~dp0composer.phar\" %*\r\n";
+        fs::write(&bat_path, bat_content)
+            .map_err(|e| format!("Gagal menulis composer.bat: {}", e))?;
     }
 
     // Cleanup Zip & Temp dir
-    fs::remove_file(&zip_path).unwrap_or(());
+    if is_zip {
+        fs::remove_file(&file_path).unwrap_or(());
+    } else {
+        let _ = fs::remove_file(&file_path);
+    }
     let _ = fs::remove_dir(&temp_dir); // Only succeeds if empty
 
     // Re-register phpmyadmin virtual host if needed
