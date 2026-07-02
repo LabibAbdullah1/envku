@@ -1,14 +1,14 @@
 use std::fs;
 use std::path::Path;
 use std::collections::HashMap;
-use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS, KEY_READ};
+use winreg::enums::{HKEY_CURRENT_USER, KEY_ALL_ACCESS, KEY_READ};
 use winreg::RegKey;
 use crate::config::get_server_dir_path;
 
 pub fn register_system_paths() -> Result<(), String> {
     let server_dir = get_server_dir_path();
     
-    // We want to add these paths to system PATH if they exist:
+    // We want to add these paths to User PATH if they exist:
     // - C:\server\composer
     // - C:\server\mysql\bin
     // - C:\server\redis
@@ -31,16 +31,16 @@ pub fn register_system_paths() -> Result<(), String> {
         return Ok(());
     }
 
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let env_key = hklm.open_subkey_with_flags(
-        "System\\CurrentControlSet\\Control\\Session Manager\\Environment",
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let env_key = hkcu.open_subkey_with_flags(
+        "Environment",
         KEY_READ | KEY_ALL_ACCESS
-    ).map_err(|e| format!("Gagal membuka registry PATH: {}. Pastikan dijalankan sebagai Administrator.", e))?;
+    ).map_err(|e| format!("Gagal membuka registry PATH User: {}.", e))?;
 
     let path_val: String = env_key.get_value("Path")
-        .map_err(|e| format!("Gagal membaca PATH system registry: {}", e))?;
+        .unwrap_or_else(|_| "".to_string());
 
-    let existing_paths: Vec<String> = path_val.split(';').map(|s| s.trim().to_string()).collect();
+    let existing_paths: Vec<String> = path_val.split(';').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
     let mut updated_paths = existing_paths.clone();
     let mut changed = false;
 
@@ -57,7 +57,7 @@ pub fn register_system_paths() -> Result<(), String> {
     if changed {
         let new_path_val = updated_paths.join(";");
         env_key.set_value("Path", &new_path_val)
-            .map_err(|e| format!("Gagal menulis PATH baru ke registry: {}", e))?;
+            .map_err(|e| format!("Gagal menulis PATH baru ke registry User: {}", e))?;
 
         // Refresh Windows environment (broadcast setting change so explorer picks it up)
         let _ = crate::create_hidden_command("powershell.exe")
