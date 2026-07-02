@@ -448,3 +448,83 @@ span.bg-zinc-800 {
   font-weight: 850 !important;
   text-shadow: none !important;
 }
+
+/* ─── PHP Extension Manager Custom Styles ─── */
+.php-ext-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+}
+
+.php-ext-card {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 18px !important;
+  background-color: #16171d !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  border-radius: 4px !important;
+  transition: all 0.15s ease !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+}
+
+.php-ext-card:hover {
+  border-color: #38BDF8 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 5px 5px 0px 0px #000000 !important;
+}
+
+.php-ext-name {
+  font-family: 'Consolas', 'Courier New', monospace !important;
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
+  text-transform: lowercase !important;
+}
+
+.php-ext-btn {
+  padding: 6px 16px !important;
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  border: 2px solid #000000 !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.1s ease !important;
+  letter-spacing: 0.05em !important;
+}
+
+.php-ext-btn-active {
+  background-color: #22C55E !important; /* Neon Green */
+  color: #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  text-shadow: none !important;
+}
+
+.php-ext-btn-active:hover {
+  background-color: #4ade80 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px 0px #000000 !important;
+}
+
+.php-ext-btn-inactive {
+  background-color: #27272a !important; /* Dark Grey */
+  color: #a1a1aa !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  text-shadow: none !important;
+}
+
+.php-ext-btn-inactive:hover {
+  background-color: #3f3f46 !important;
+  color: #ffffff !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px 0px #000000 !important;
+}
+
+.php-ext-btn:active {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0px 0px #000000 !important;
+}

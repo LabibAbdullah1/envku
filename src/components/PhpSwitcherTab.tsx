@@ -159,26 +159,26 @@ export default function PhpSwitcherTab({
               <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="php-ext-grid">
               {extensions.map(ext => (
                 <div 
                   key={ext.name}
-                  className="flex items-center justify-between p-3.5 bg-zinc-950/40 border border-zinc-850 rounded-xl hover:border-zinc-800 transition-all duration-150"
+                  className="php-ext-card"
                 >
-                  <span className="text-sm font-bold text-zinc-200 font-mono">{ext.name}</span>
+                  <span className="php-ext-name">{ext.name}</span>
                   <button
                     disabled={togglingExt !== null}
                     onClick={() => handleToggleExtension(ext.name, ext.enabled)}
-                    className={`flex items-center space-x-1.5 py-1.5 px-3.5 rounded-lg text-xs font-bold transition duration-150 cursor-pointer ${
+                    className={`php-ext-btn ${
                       togglingExt === ext.name
                         ? "bg-zinc-800 text-zinc-500 cursor-wait"
                         : ext.enabled
-                          ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20"
-                          : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-zinc-800"
+                          ? "php-ext-btn-active"
+                          : "php-ext-btn-inactive"
                     }`}
                   >
-                    {togglingExt === ext.name && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    <span>{togglingExt === ext.name ? "Memproses..." : ext.enabled ? "Aktif" : "Nonaktif"}</span>
+                    {togglingExt === ext.name && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                    <span>{togglingExt === ext.name ? "Proses" : ext.enabled ? "Aktif" : "Nonaktif"}</span>
                   </button>
                 </div>
               ))}

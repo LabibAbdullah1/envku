@@ -164,7 +164,7 @@ pub fn get_php_extensions(version_id: String) -> Result<Vec<PhpExtensionInfo>, S
         .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
 
     let target_extensions = vec![
-        "curl", "fileinfo", "gd", "intl", "mbstring", "mysqli", 
+        "curl", "exif", "fileinfo", "gd", "intl", "mbstring", "mysqli", 
         "openssl", "pdo_mysql", "pdo_sqlite", "sqlite3", "zip"
     ];
 
