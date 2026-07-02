@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 use std::collections::HashMap;
-use winreg::enums::{HKEY_CURRENT_USER, KEY_ALL_ACCESS, KEY_READ};
+use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS, KEY_READ};
 use winreg::RegKey;
 use crate::config::get_server_dir_path;
 
@@ -31,11 +31,11 @@ pub fn register_system_paths() -> Result<(), String> {
         return Ok(());
     }
 
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let env_key = hkcu.open_subkey_with_flags(
-        "Environment",
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let env_key = hklm.open_subkey_with_flags(
+        "System\\CurrentControlSet\\Control\\Session Manager\\Environment",
         KEY_READ | KEY_ALL_ACCESS
-    ).map_err(|e| format!("Gagal membuka registry PATH User: {}.", e))?;
+    ).map_err(|e| format!("Gagal membuka registry PATH System: {}. Pastikan dijalankan sebagai Administrator.", e))?;
 
     let path_val: String = env_key.get_value("Path")
         .unwrap_or_else(|_| "".to_string());
@@ -57,7 +57,7 @@ pub fn register_system_paths() -> Result<(), String> {
     if changed {
         let new_path_val = updated_paths.join(";");
         env_key.set_value("Path", &new_path_val)
-            .map_err(|e| format!("Gagal menulis PATH baru ke registry User: {}", e))?;
+            .map_err(|e| format!("Gagal menulis PATH baru ke registry System: {}", e))?;
 
         // Refresh Windows environment (broadcast setting change so explorer picks it up)
         let _ = crate::create_hidden_command("powershell.exe")
