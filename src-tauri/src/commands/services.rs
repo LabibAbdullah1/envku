@@ -43,6 +43,11 @@ pub fn control_service(service: String, action: String) -> Result<String, String
                     .output();
             }
         }
+        if service == "redis-server" && action == "start" {
+            // Wait 1s for Redis to start up, then flush cache automatically
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            let _ = clear_redis_cache();
+        }
         Ok(format!("Service {} berhasil di-{}", service, action))
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);

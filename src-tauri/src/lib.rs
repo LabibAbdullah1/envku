@@ -27,6 +27,16 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            use tauri::Manager;
+            if let Some(webview_window) = app.get_webview_window("main") {
+                let _ = webview_window.clear_all_browsing_data();
+            }
+            if let Some(splash_window) = app.get_webview_window("splashscreen") {
+                let _ = splash_window.clear_all_browsing_data();
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             greet, 
             config::get_server_dir,
