@@ -20,6 +20,7 @@ jobs:
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
         port: 21
+        security: loose # Menerima sertifikat SSL cPanel/self-signed jika menggunakan FTPS
         
         # 1. TANKAR FOLDER DI GITHUB YANG MAU DI-UPLOAD
         local-dir: ./website/
@@ -29,4 +30,4 @@ jobs:
         server-dir: ./
         
         # Jika ingin file lama yang dihapus di GitHub juga ikut terhapus di cPanel, ubah jadi true
-        delete-clean: false
+        dangerous-clean-slate: false
