@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
 
 interface PhpSwitcherTabProps {
@@ -17,6 +19,48 @@ export default function PhpSwitcherTab({
 }: PhpSwitcherTabProps) {
   const php83Path = `${baseDir}\\php83`;
   const php82Path = `${baseDir}\\php82`;
+
+  const [extensions, setExtensions] = useState<{ name: string; enabled: boolean }[]>([]);
+  const [loadingExts, setLoadingExts] = useState<boolean>(false);
+  const [togglingExt, setTogglingExt] = useState<string | null>(null);
+
+  const fetchExtensions = async () => {
+    if (activePhpVersion === "unknown") {
+      setExtensions([]);
+      return;
+    }
+    setLoadingExts(true);
+    try {
+      const list = await invoke<{ name: string; enabled: boolean }[]>("get_php_extensions", {
+        versionId: activePhpVersion,
+      });
+      setExtensions(list);
+    } catch (err) {
+      console.warn("Gagal mengambil ekstensi PHP:", err);
+    } finally {
+      setLoadingExts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExtensions();
+  }, [activePhpVersion]);
+
+  const handleToggleExtension = async (extName: string, currentlyEnabled: boolean) => {
+    setTogglingExt(extName);
+    try {
+      await invoke("toggle_php_extension", {
+        versionId: activePhpVersion,
+        extensionName: extName,
+        enable: !currentlyEnabled,
+      });
+      await fetchExtensions();
+    } catch (err) {
+      console.error("Gagal mengubah ekstensi:", err);
+    } finally {
+      setTogglingExt(null);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -99,6 +143,49 @@ export default function PhpSwitcherTab({
           </div>
         )}
       </div>
+
+      {activePhpVersion !== "unknown" && (
+        <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-zinc-100">Ekstensi PHP (php.ini)</h3>
+              <p className="text-xs text-zinc-400 mt-1">Aktifkan atau nonaktifkan modul ekstensi PHP secara instan. Apache akan otomatis di-restart setelah perubahan.</p>
+            </div>
+            {loadingExts && <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />}
+          </div>
+
+          {loadingExts && extensions.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {extensions.map(ext => (
+                <div 
+                  key={ext.name}
+                  className="flex items-center justify-between p-3.5 bg-zinc-950/40 border border-zinc-850 rounded-xl hover:border-zinc-800 transition-all duration-150"
+                >
+                  <span className="text-sm font-bold text-zinc-200 font-mono">{ext.name}</span>
+                  <button
+                    disabled={togglingExt !== null}
+                    onClick={() => handleToggleExtension(ext.name, ext.enabled)}
+                    className={`flex items-center space-x-1.5 py-1.5 px-3.5 rounded-lg text-xs font-bold transition duration-150 cursor-pointer ${
+                      togglingExt === ext.name
+                        ? "bg-zinc-800 text-zinc-500 cursor-wait"
+                        : ext.enabled
+                          ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20"
+                          : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-zinc-800"
+                    }`}
+                  >
+                    {togglingExt === ext.name && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{togglingExt === ext.name ? "Memproses..." : ext.enabled ? "Aktif" : "Nonaktif"}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ interface VirtualHostInfo {
   document_root: string;
   is_node: boolean;
   node_port: number | null;
+  has_ssl: boolean;
 }
 
 interface ProjectWizardTabProps {
@@ -14,7 +15,7 @@ interface ProjectWizardTabProps {
   fetchVirtualHosts: () => void;
   updateServiceStates: () => void;
   showToastMsg: (message: string, type?: "success" | "error") => void;
-  handleLaunchHost: (domain: string) => void;
+  handleLaunchHost: (domain: string, hasSsl: boolean) => void;
   handleDeleteHost: (domain: string) => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
@@ -35,6 +36,7 @@ export default function ProjectWizardTab({
   const [projectPath, setProjectPath] = useState<string>("");
   const [isNodeProject, setIsNodeProject] = useState<boolean>(false);
   const [nodePort, setNodePort] = useState<number>(3000);
+  const [enableSsl, setEnableSsl] = useState<boolean>(false);
 
   // Add virtual host project
   const handleAddProject = async (e: React.FormEvent) => {
@@ -49,12 +51,14 @@ export default function ProjectWizardTab({
         domain: projectDomain,
         documentRoot: projectPath,
         isNode: isNodeProject,
-        nodePort: isNodeProject ? nodePort : null
+        nodePort: isNodeProject ? nodePort : null,
+        enableSsl: enableSsl
       });
       showToastMsg(res, "success");
       setProjectName("");
       setProjectDomain("");
       setProjectPath("");
+      setEnableSsl(false);
       fetchVirtualHosts();
     } catch (err) {
       showToastMsg(String(err), "error");
@@ -160,6 +164,22 @@ export default function ProjectWizardTab({
           )}
         </div>
 
+        {/* SSL / HTTPS option */}
+        <div className="p-4 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-sm font-bold text-zinc-200 block">Aktifkan SSL (HTTPS)</span>
+              <span className="text-xs text-zinc-500 block">Buat sertifikat SSL self-signed lokal dan daftarkan ke Windows Trusted Root Store.</span>
+            </div>
+            <input 
+              type="checkbox"
+              checked={enableSsl}
+              onChange={(e) => setEnableSsl(e.target.checked)}
+              className="h-5 w-5 bg-zinc-950 border border-zinc-800 rounded-lg text-indigo-600 outline-none cursor-pointer"
+            />
+          </div>
+        </div>
+
         <button
           type="submit"
           disabled={loading}
@@ -193,6 +213,11 @@ export default function ProjectWizardTab({
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-mono">
                       {vh.is_node ? `NODE (PORT ${vh.node_port})` : "PHP / STATIC"}
                     </span>
+                    {vh.has_ssl && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono flex items-center gap-1">
+                        🔒 SSL
+                      </span>
+                    )}
                   </div>
                   <h4 className="text-sm font-black text-zinc-100 font-mono select-text">{vh.domain}</h4>
                   <p className="text-[11px] text-zinc-400 font-mono truncate" title={vh.document_root}>
@@ -201,7 +226,7 @@ export default function ProjectWizardTab({
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => handleLaunchHost(vh.domain)}
+                    onClick={() => handleLaunchHost(vh.domain, vh.has_ssl)}
                     className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-550 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 cursor-pointer shadow-md"
                   >
                     <Play className="w-4 h-4" />

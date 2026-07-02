@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { Loader2, Square, Play, Trash2 } from "lucide-react";
 
 interface ServiceState {
@@ -11,9 +12,10 @@ interface ServicesTabProps {
     Apache: ServiceState;
     MySQL: ServiceState;
     Redis: ServiceState;
+    Mailpit: ServiceState;
   };
   handleInstallService: (winServiceName: string, key: "Apache" | "MySQL" | "Redis") => void;
-  toggleService: (key: "Apache" | "MySQL" | "Redis") => void;
+  toggleService: (key: "Apache" | "MySQL" | "Redis" | "Mailpit") => void;
   handleClearRedis: () => void;
 }
 
@@ -138,7 +140,7 @@ export default function ServicesTab({
         </div>
 
         {/* Redis Card */}
-        <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl flex flex-col justify-between space-y-6 shadow-xl col-span-2">
+        <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl flex flex-col justify-between space-y-6 shadow-xl">
           <div className="space-y-3">
             <div className="flex justify-between items-start">
               <span className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest">redis-server</span>
@@ -161,7 +163,7 @@ export default function ServicesTab({
                   className="flex items-center space-x-1.5 py-1.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:border-amber-400 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition duration-150 cursor-pointer shadow-sm"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Bersihkan Cache (Flush)</span>
+                  <span>Flush</span>
                 </button>
               )}
             </div>
@@ -196,6 +198,64 @@ export default function ServicesTab({
                   ? <Loader2 className="w-4 h-4 animate-spin" />
                   : services.Redis.running ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                 <span>{services.Redis.checking ? "Memproses..." : services.Redis.running ? "Matikan Service" : "Nyalakan Service"}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mail Sandbox Card */}
+        <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl flex flex-col justify-between space-y-6 shadow-xl">
+          <div className="space-y-3">
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest">Mail Sandbox (Mailpit)</span>
+              <span className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 ${
+                services.Mailpit.checking 
+                  ? "bg-zinc-800 text-zinc-400" 
+                  : services.Mailpit.running 
+                    ? "bg-emerald-500/15 text-emerald-400" 
+                    : "bg-red-500/15 text-red-400"
+              }`}>
+                {services.Mailpit.checking && <Loader2 className="w-3 h-3 animate-spin" />}
+                {services.Mailpit.checking ? "MEMERIKSA" : services.Mailpit.running ? "RUNNING" : "STOPPED"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-zinc-100">Mail Sandbox</h3>
+              {services.Mailpit.installed && services.Mailpit.running && (
+                <button
+                  onClick={() => invoke("open_in_browser", { url: "http://localhost:8025" })}
+                  className="flex items-center space-x-1.5 py-1.5 px-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 hover:border-indigo-400 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition duration-150 cursor-pointer shadow-sm"
+                >
+                  <span>Buka Webmail</span>
+                </button>
+              )}
+            </div>
+            <p className="text-sm text-zinc-400 leading-relaxed">
+              SMTP Port: 1025, Webmail: 8025. Menangkap semua email keluar dari aplikasi lokal Anda dan menampilkannya di dashboard webmail.
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            {!services.Mailpit.installed ? (
+              <div className="w-full py-3 bg-zinc-950/40 border border-zinc-850 text-zinc-500 rounded-xl text-xs font-bold text-center">
+                Silakan pasang Mail Sandbox di menu Downloader
+              </div>
+            ) : (
+              <button
+                disabled={services.Mailpit.checking}
+                onClick={() => toggleService("Mailpit")}
+                className={`w-full flex items-center justify-center space-x-2 py-3 border rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                  services.Mailpit.checking
+                    ? "bg-zinc-900/50 border-zinc-700 text-zinc-500 cursor-wait"
+                    : services.Mailpit.running 
+                      ? "bg-red-950/25 border-red-500/30 hover:bg-red-900/40 text-red-400 hover:border-red-400" 
+                      : "bg-emerald-950/25 border-emerald-500/30 hover:bg-emerald-900/40 text-emerald-400 hover:border-emerald-400"
+                }`}
+              >
+                {services.Mailpit.checking
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : services.Mailpit.running ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                <span>{services.Mailpit.checking ? "Memproses..." : services.Mailpit.running ? "Matikan Sandbox" : "Nyalakan Sandbox"}</span>
               </button>
             )}
           </div>

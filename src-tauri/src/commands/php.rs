@@ -145,3 +145,112 @@ pub fn get_active_php_version() -> Result<String, String> {
 
     Ok("unknown".to_string())
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct PhpExtensionInfo {
+    pub name: String,
+    pub enabled: bool,
+}
+
+#[tauri::command]
+pub fn get_php_extensions(version_id: String) -> Result<Vec<PhpExtensionInfo>, String> {
+    let server_dir = get_server_dir_path();
+    let php_ini_path = server_dir.join(&version_id).join("php.ini");
+    if !php_ini_path.exists() {
+        return Err(format!("File php.ini tidak ditemukan di {}", php_ini_path.to_string_lossy()));
+    }
+
+    let content = fs::read_to_string(&php_ini_path)
+        .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
+
+    let target_extensions = vec![
+        "curl", "fileinfo", "gd", "intl", "mbstring", "mysqli", 
+        "openssl", "pdo_mysql", "pdo_sqlite", "sqlite3", "zip"
+    ];
+
+    let mut result = Vec::new();
+    for ext in target_extensions {
+        let enabled_pattern = format!("extension={}", ext);
+        let disabled_pattern = format!(";extension={}", ext);
+        
+        let mut found = false;
+        let mut enabled = false;
+
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed == enabled_pattern {
+                enabled = true;
+                found = true;
+                break;
+            } else if trimmed == disabled_pattern {
+                enabled = false;
+                found = true;
+                break;
+            }
+        }
+
+        result.push(PhpExtensionInfo {
+            name: ext.to_string(),
+            enabled: found && enabled,
+        });
+    }
+
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn toggle_php_extension(version_id: String, extension_name: String, enable: bool) -> Result<String, String> {
+    let server_dir = get_server_dir_path();
+    let php_ini_path = server_dir.join(&version_id).join("php.ini");
+    if !php_ini_path.exists() {
+        return Err(format!("File php.ini tidak ditemukan di {}", php_ini_path.to_string_lossy()));
+    }
+
+    let content = fs::read_to_string(&php_ini_path)
+        .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
+
+    let enabled_pattern = format!("extension={}", extension_name);
+    let disabled_pattern = format!(";extension={}", extension_name);
+
+    let mut new_lines = Vec::new();
+    let mut modified = false;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if enable {
+            if trimmed == disabled_pattern {
+                new_lines.push(enabled_pattern.clone());
+                modified = true;
+            } else {
+                new_lines.push(line.to_string());
+            }
+        } else {
+            if trimmed == enabled_pattern {
+                new_lines.push(disabled_pattern.clone());
+                modified = true;
+            } else {
+                new_lines.push(line.to_string());
+            }
+        }
+    }
+
+    if !modified {
+        if enable {
+            new_lines.push(enabled_pattern);
+        } else {
+            new_lines.push(disabled_pattern);
+        }
+    }
+
+    fs::write(&php_ini_path, new_lines.join("\n"))
+        .map_err(|e| format!("Gagal memperbarui php.ini: {}", e))?;
+
+    // Restart Apache automatically if this is the currently active PHP version!
+    let active_php = get_active_php_version().unwrap_or("unknown".to_string());
+    if active_php == version_id {
+        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
+        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+    }
+
+    Ok(format!("Ekstensi {} berhasil di-{}", extension_name, if enable { "aktifkan" } else { "nonaktifkan" }))
+}

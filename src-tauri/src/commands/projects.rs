@@ -8,10 +8,11 @@ pub struct VirtualHostInfo {
     pub document_root: String,
     pub is_node: bool,
     pub node_port: Option<u16>,
+    pub has_ssl: bool,
 }
 
 #[tauri::command]
-pub fn add_project(domain: String, document_root: String, is_node: bool, node_port: Option<u16>) -> Result<String, String> {
+pub fn add_project(domain: String, document_root: String, is_node: bool, node_port: Option<u16>, enable_ssl: bool) -> Result<String, String> {
     // 1. Hosts file modification
     let hosts_path = Path::new("C:\\Windows\\System32\\drivers\\etc\\hosts");
     let mut hosts_content = fs::read_to_string(hosts_path)
@@ -32,8 +33,49 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
             .map_err(|e| format!("Gagal menulis ke file hosts: {}. Pastikan dijalankan sebagai Administrator.", e))?;
     }
 
-    // 2. Vhosts config update
+    // 2. SSL Certificate Generation & Trust (if enabled)
     let server_dir = get_server_dir_path();
+    let ssl_dir = server_dir.join("ssl");
+    if enable_ssl {
+        if !ssl_dir.exists() {
+            fs::create_dir_all(&ssl_dir).map_err(|e| format!("Gagal membuat folder SSL: {}", e))?;
+        }
+
+        let key_path = ssl_dir.join(format!("{}.key", domain));
+        let crt_path = ssl_dir.join(format!("{}.crt", domain));
+        let openssl_exe = server_dir.join("Apache24").join("bin").join("openssl.exe");
+
+        if openssl_exe.exists() {
+            let subj_arg = format!("/CN={}", domain);
+            let output = crate::create_hidden_command(&openssl_exe.to_string_lossy())
+                .args(&[
+                    "req", "-x509", "-nodes", "-days", "365",
+                    "-newkey", "rsa:2048",
+                    "-keyout", &key_path.to_string_lossy(),
+                    "-out", &crt_path.to_string_lossy(),
+                    "-subj", &subj_arg
+                ])
+                .output();
+
+            if let Ok(out) = output {
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    return Err(format!("Gagal membuat sertifikat SSL: {}", stderr));
+                }
+            } else {
+                return Err("Gagal mengeksekusi openssl.exe".to_string());
+            }
+
+            // Trust the certificate globally in Windows Trusted Root store
+            let _ = crate::create_hidden_command("certutil")
+                .args(&["-addstore", "-user", "root", &crt_path.to_string_lossy()])
+                .output();
+        } else {
+            return Err("openssl.exe tidak ditemukan di folder Apache. Pastikan Apache sudah terinstal.".to_string());
+        }
+    }
+
+    // 3. Vhosts config update
     let vhosts_path = server_dir.join("Apache24\\conf\\extra\\httpd-vhosts.conf");
     if !vhosts_path.exists() {
         if let Some(parent) = vhosts_path.parent() {
@@ -48,7 +90,7 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
     let vhost_exists = vhosts_content.contains(&format!("ServerName {}", domain));
 
     if !vhost_exists {
-        let vhost_block = if is_node {
+        let mut vhost_block = if is_node {
             let port = node_port.unwrap_or(3000);
             format!(
                 r#"
@@ -78,6 +120,47 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
                 clean_doc_root, domain, clean_doc_root
             )
         };
+
+        if enable_ssl {
+            let clean_ssl_dir = ssl_dir.to_string_lossy().replace('\\', "/");
+            let ssl_block = if is_node {
+                let port = node_port.unwrap_or(3000);
+                format!(
+                    r#"
+<VirtualHost *:443>
+    ServerName {}
+    SSLEngine on
+    SSLCertificateFile "{}/{}.crt"
+    SSLCertificateKeyFile "{}/{}.key"
+    ProxyPreserveHost On
+    ProxyPass / http://localhost:{}/
+    ProxyPassReverse / http://localhost:{}/
+</VirtualHost>
+"#,
+                    domain, clean_ssl_dir, domain, clean_ssl_dir, domain, port, port
+                )
+            } else {
+                let clean_doc_root = document_root.replace('\\', "/");
+                format!(
+                    r#"
+<VirtualHost *:443>
+    DocumentRoot "{}"
+    ServerName {}
+    SSLEngine on
+    SSLCertificateFile "{}/{}.crt"
+    SSLCertificateKeyFile "{}/{}.key"
+    <Directory "{}">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+"#,
+                    clean_doc_root, domain, clean_ssl_dir, domain, clean_ssl_dir, domain, clean_doc_root
+                )
+            };
+            vhost_block.push_str(&ssl_block);
+        }
 
         if !vhosts_content.ends_with('\n') {
             vhosts_content.push('\n');
@@ -214,12 +297,21 @@ pub fn get_virtual_hosts() -> Result<Vec<VirtualHostInfo>, String> {
             current_node_port = None;
         } else if trimmed.to_lowercase().starts_with("</virtualhost>") {
             if in_vhost && !current_domain.is_empty() {
-                hosts.push(VirtualHostInfo {
-                    domain: current_domain.clone(),
-                    document_root: current_doc_root.clone(),
-                    is_node: current_is_node,
-                    node_port: current_node_port,
-                });
+                let crt_exists = server_dir.join("ssl").join(format!("{}.crt", current_domain)).exists();
+                let exists_idx = hosts.iter().position(|h: &VirtualHostInfo| h.domain == current_domain);
+                if let Some(idx) = exists_idx {
+                    if crt_exists {
+                        hosts[idx].has_ssl = true;
+                    }
+                } else {
+                    hosts.push(VirtualHostInfo {
+                        domain: current_domain.clone(),
+                        document_root: current_doc_root.clone(),
+                        is_node: current_is_node,
+                        node_port: current_node_port,
+                        has_ssl: crt_exists,
+                    });
+                }
             }
             in_vhost = false;
         } else if in_vhost {

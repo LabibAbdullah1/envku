@@ -1,4 +1,5 @@
-import { RefreshCw, FolderCheck, Folder, Activity } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { Terminal, RefreshCw, FolderCheck, Folder, Activity } from "lucide-react";
 
 interface DashboardTabProps {
   dirsLoading: boolean;
@@ -17,6 +18,14 @@ export default function DashboardTab({
   checkDirectories,
   services,
 }: DashboardTabProps) {
+  const handleOpenTerminal = async () => {
+    try {
+      await invoke("open_terminal");
+    } catch (err) {
+      console.error("Gagal membuka terminal", err);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -24,13 +33,22 @@ export default function DashboardTab({
           <h2 className="text-2xl font-bold text-white tracking-tight">Status Lingkungan</h2>
           <p className="text-sm text-zinc-400 mt-1">Verifikasi integritas direktori sistem server Anda secara real-time.</p>
         </div>
-        <button
-          onClick={checkDirectories}
-          className="flex items-center space-x-2 py-2 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition cursor-pointer"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Segarkan</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleOpenTerminal}
+            className="flex items-center space-x-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 hover:border-indigo-400 text-white rounded-xl text-xs font-semibold transition cursor-pointer shadow-md shadow-indigo-950/20"
+          >
+            <Terminal className="w-4 h-4" />
+            <span>Buka Terminal Envku</span>
+          </button>
+          <button
+            onClick={checkDirectories}
+            className="flex items-center space-x-2 py-2 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Segarkan</span>
+          </button>
+        </div>
       </div>
 
       {/* Status Directories Cards Grid */}

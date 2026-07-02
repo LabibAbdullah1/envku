@@ -3,6 +3,12 @@ use crate::config::get_server_dir_path;
 
 #[tauri::command]
 pub fn check_service_installed(service: String) -> Result<bool, String> {
+    if service == "mailpit" {
+        let server_dir = get_server_dir_path();
+        let mailpit_exe = server_dir.join("mailpit").join("mailpit.exe");
+        return Ok(mailpit_exe.exists());
+    }
+
     let output = crate::create_hidden_command("sc")
         .args(&["query", &service])
         .output()
@@ -18,6 +24,31 @@ pub fn check_service_installed(service: String) -> Result<bool, String> {
 
 #[tauri::command]
 pub fn control_service(service: String, action: String) -> Result<String, String> {
+    if service == "mailpit" {
+        if action == "start" {
+            let server_dir = get_server_dir_path();
+            let mailpit_exe = server_dir.join("mailpit").join("mailpit.exe");
+            if !mailpit_exe.exists() {
+                return Err("Mailpit tidak terinstal.".to_string());
+            }
+            let mut cmd = crate::create_hidden_command(&mailpit_exe.to_string_lossy());
+            cmd.spawn().map_err(|e| format!("Gagal menjalankan Mailpit: {}", e))?;
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            return Ok("Layanan Mail Sandbox (Mailpit) berhasil dijalankan".to_string());
+        } else if action == "stop" {
+            let output = crate::create_hidden_command("taskkill")
+                .args(&["/F", "/IM", "mailpit.exe"])
+                .output();
+            if output.is_ok() {
+                return Ok("Layanan Mail Sandbox (Mailpit) berhasil dihentikan".to_string());
+            } else {
+                return Err("Gagal menghentikan Mailpit.".to_string());
+            }
+        } else {
+            return Err("Aksi tidak valid (gunakan start/stop)".to_string());
+        }
+    }
+
     let action_arg = match action.as_str() {
         "start" => "start",
         "stop" => "stop",

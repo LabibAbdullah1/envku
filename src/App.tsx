@@ -32,6 +32,7 @@ interface VirtualHostInfo {
   document_root: string;
   is_node: boolean;
   node_port: number | null;
+  has_ssl: boolean;
 }
 
 export default function App() {
@@ -77,10 +78,12 @@ export default function App() {
     Apache: { installed: boolean; running: boolean; checking: boolean };
     MySQL: { installed: boolean; running: boolean; checking: boolean };
     Redis: { installed: boolean; running: boolean; checking: boolean };
+    Mailpit: { installed: boolean; running: boolean; checking: boolean };
   }>({
     Apache: { installed: false, running: false, checking: true },
     MySQL: { installed: false, running: false, checking: true },
-    Redis: { installed: false, running: false, checking: true }
+    Redis: { installed: false, running: false, checking: true },
+    Mailpit: { installed: false, running: false, checking: true }
   });
 
   // Modul 3 State (Project Virtual Hosts)
@@ -122,7 +125,8 @@ export default function App() {
       `${baseDir}\\mysql`,
       `${baseDir}\\www\\phpmyadmin`,
       `${baseDir}\\composer\\composer.phar`,
-      `${baseDir}\\redis`
+      `${baseDir}\\redis`,
+      `${baseDir}\\mailpit\\mailpit.exe`
     ];
     setDirsLoading(true);
     try {
@@ -143,15 +147,18 @@ export default function App() {
       const apacheInstalled = await invoke<boolean>("check_service_installed", { service: "Apache2.4" });
       const mysqlInstalled = await invoke<boolean>("check_service_installed", { service: "mysql-server" });
       const redisInstalled = await invoke<boolean>("check_service_installed", { service: "redis-server" });
+      const mailpitInstalled = await invoke<boolean>("check_service_installed", { service: "mailpit" });
 
       const apacheRunning = await invoke<boolean>("ping_port", { port: 80 });
       const mysqlRunning = await invoke<boolean>("ping_port", { port: 3306 });
       const redisRunning = await invoke<boolean>("ping_port", { port: 6379 });
+      const mailpitRunning = await invoke<boolean>("ping_port", { port: 8025 });
 
       setServices({
         Apache: { installed: apacheInstalled, running: apacheRunning, checking: false },
         MySQL: { installed: mysqlInstalled, running: mysqlRunning, checking: false },
-        Redis: { installed: redisInstalled, running: redisRunning, checking: false }
+        Redis: { installed: redisInstalled, running: redisRunning, checking: false },
+        Mailpit: { installed: mailpitInstalled, running: mailpitRunning, checking: false }
       });
     } catch (err) {
       console.warn("Gagal memperbarui status layanan:", err);
@@ -159,11 +166,12 @@ export default function App() {
   };
 
   // Run Service control (Start/Stop)
-  const toggleService = async (serviceKey: "Apache" | "MySQL" | "Redis") => {
+  const toggleService = async (serviceKey: "Apache" | "MySQL" | "Redis" | "Mailpit") => {
     const currentStatus = services[serviceKey];
     let serviceWinName = "Apache2.4";
     if (serviceKey === "MySQL") serviceWinName = "mysql-server";
     else if (serviceKey === "Redis") serviceWinName = "redis-server";
+    else if (serviceKey === "Mailpit") serviceWinName = "mailpit";
     const action = currentStatus.running ? "stop" : "start";
 
     setServices(prev => ({
@@ -350,9 +358,10 @@ export default function App() {
   };
 
   // Launch virtual host in browser
-  const handleLaunchHost = async (domain: string) => {
+  const handleLaunchHost = async (domain: string, hasSsl: boolean) => {
     try {
-      await invoke("open_in_browser", { url: `http://${domain}` });
+      const protocol = hasSsl ? "https" : "http";
+      await invoke("open_in_browser", { url: `${protocol}://${domain}` });
     } catch (err) {
       showToastMsg(String(err), "error");
     }
@@ -405,7 +414,8 @@ export default function App() {
         `${resolvedBaseDir}\\mysql`,
         `${resolvedBaseDir}\\www\\phpmyadmin`,
         `${resolvedBaseDir}\\composer\\composer.phar`,
-        `${resolvedBaseDir}\\redis`
+        `${resolvedBaseDir}\\redis`,
+        `${resolvedBaseDir}\\mailpit\\mailpit.exe`
       ];
       setDirsLoading(true);
       try {

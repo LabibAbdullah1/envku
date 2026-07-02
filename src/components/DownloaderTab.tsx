@@ -31,7 +31,8 @@ export default function DownloaderTab({
     { id: "mysql", name: "MySQL Database Server", description: "Engine database relasional kustom v8.0.", installedPath: `${baseDir}\\mysql` },
     { id: "phpmyadmin", name: "phpMyAdmin Interface", description: "Pengelola MySQL berbasis web di localhost.", installedPath: `${baseDir}\\www\\phpmyadmin` },
     { id: "composer", name: "PHP Composer", description: "Manajer ketergantungan PHP portabel (composer.phar).", installedPath: `${baseDir}\\composer\\composer.phar` },
-    { id: "redis", name: "Redis Cache Server", description: "Database memori berkinerja tinggi (redis-server.exe) v5.0.", installedPath: `${baseDir}\\redis` }
+    { id: "redis", name: "Redis Cache Server", description: "Database memori berkinerja tinggi (redis-server.exe) v5.0.", installedPath: `${baseDir}\\redis` },
+    { id: "mailpit", name: "Mail Sandbox (Mailpit)", description: "Server SMTP lokal portabel dan antarmuka web pencatat email.", installedPath: `${baseDir}\\mailpit\\mailpit.exe` }
   ];
 
   return (

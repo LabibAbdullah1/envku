@@ -110,6 +110,58 @@ fn ensure_phpmyadmin_host() {
         "phpmyadmin.test".to_string(),
         pma_path.to_string_lossy().to_string(),
         false,
-        None
+        None,
+        false
     );
+}
+
+#[tauri::command]
+pub fn open_terminal() -> Result<String, String> {
+    let server_dir = get_server_dir_path();
+    let composer_path = server_dir.join("composer");
+    let mysql_bin_path = server_dir.join("mysql").join("bin");
+    let redis_path = server_dir.join("redis");
+
+    // Get active PHP version
+    let active_php = crate::commands::php::get_active_php_version().unwrap_or("unknown".to_string());
+    let php_path = if active_php != "unknown" {
+        Some(server_dir.join(&active_php))
+    } else {
+        None
+    };
+
+    // Get current PATH
+    let current_path = std::env::var("PATH").unwrap_or_default();
+
+    // Construct new PATH
+    let mut new_paths = Vec::new();
+    if composer_path.exists() {
+        new_paths.push(composer_path.to_string_lossy().to_string());
+    }
+    if mysql_bin_path.exists() {
+        new_paths.push(mysql_bin_path.to_string_lossy().to_string());
+    }
+    if redis_path.exists() {
+        new_paths.push(redis_path.to_string_lossy().to_string());
+    }
+    if let Some(ref p) = php_path {
+        if p.exists() {
+            new_paths.push(p.to_string_lossy().to_string());
+        }
+    }
+    new_paths.push(current_path);
+    let final_path = new_paths.join(";");
+
+    // Spawn CMD with modified PATH environment variable
+    let mut cmd = std::process::Command::new("cmd.exe");
+    cmd.args(&["/c", "start cmd.exe"]);
+    cmd.env("PATH", final_path);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    cmd.spawn().map_err(|e| format!("Gagal membuka terminal: {}", e))?;
+
+    Ok("Terminal berhasil dibuka.".to_string())
 }

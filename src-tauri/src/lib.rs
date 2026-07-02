@@ -27,6 +27,13 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            use tauri::Manager;
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .setup(|app| {
             use tauri::Manager;
             if let Some(webview_window) = app.get_webview_window("main") {
@@ -42,6 +49,7 @@ pub fn run() {
             config::get_server_dir,
             commands::env::check_and_init_environment,
             commands::env::check_directories_exist,
+            commands::env::open_terminal,
             commands::downloader::download_and_extract,
             commands::services::check_service_installed,
             commands::services::control_service,
@@ -53,6 +61,8 @@ pub fn run() {
             commands::projects::get_virtual_hosts,
             commands::php::switch_php_version,
             commands::php::get_active_php_version,
+            commands::php::get_php_extensions,
+            commands::php::toggle_php_extension,
             commands::node::get_nvm_versions,
             commands::node::switch_node_version,
             commands::node::install_node_version,

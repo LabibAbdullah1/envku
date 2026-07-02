@@ -24,6 +24,7 @@ fn get_component_url(component_id: &str) -> Result<&'static str, String> {
         "phpmyadmin" => Ok("https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip"),
         "composer" => Ok("https://getcomposer.org/composer.phar"),
         "redis" => Ok("https://github.com/tporadowski/redis/releases/download/v5.0.14.1/Redis-x64-5.0.14.1.zip"),
+        "mailpit" => Ok("https://github.com/axllent/mailpit/releases/download/v1.21.1/mailpit-windows-amd64.zip"),
         _ => Err(format!("ID komponen tidak dikenal: {}", component_id)),
     }
 }
@@ -140,6 +141,7 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
             "php82" => server_dir.join("php82"),
             "phpmyadmin" => server_dir.join("www"), // Extracts directly into www
             "redis" => server_dir.join("redis"),
+            "mailpit" => server_dir.join("mailpit"),
             _ => server_dir.to_path_buf(), // Apache and MySQL go to base C:\server
         };
 
@@ -163,6 +165,15 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
                     // Enable proxy modules
                     content = content.replace("#LoadModule proxy_module modules/mod_proxy.so", "LoadModule proxy_module modules/mod_proxy.so");
                     content = content.replace("#LoadModule proxy_http_module modules/mod_proxy_http.so", "LoadModule proxy_http_module modules/mod_proxy_http.so");
+
+                    // Enable SSL modules
+                    content = content.replace("#LoadModule ssl_module modules/mod_ssl.so", "LoadModule ssl_module modules/mod_ssl.so");
+                    content = content.replace("#LoadModule socache_shmcb_module modules/mod_socache_shmcb.so", "LoadModule socache_shmcb_module modules/mod_socache_shmcb.so");
+
+                    // Enable port 443 listening
+                    if !content.contains("Listen 443") {
+                        content = content.replace("Listen 80", "Listen 80\nListen 443");
+                    }
 
                     // Enable vhosts config file inclusion
                     content = content.replace("#Include conf/extra/httpd-vhosts.conf", "Include conf/extra/httpd-vhosts.conf");
@@ -336,7 +347,8 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
         "phpmyadmin.test".to_string(),
         pma_path.to_string_lossy().to_string(),
         false,
-        None
+        None,
+        false
     );
 
     // Automatically register newly downloaded paths to system PATH
