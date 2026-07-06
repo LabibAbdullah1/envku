@@ -1,0 +1,2 @@
+# Abaikan database file counter agar tidak menimpa data di server saat dideploy
+counter.txt

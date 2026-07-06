@@ -179,9 +179,7 @@
     </footer>
 
     <script>
-        const WORKSPACE = 'envku-orchestrator';
-        const COUNTER_NAME = 'downloads';
-        const API_URL = `https://api.counterapi.dev/v1/${WORKSPACE}/${COUNTER_NAME}`;
+        const API_URL = 'counter.php';
 
         const badgeEl = document.getElementById('downloads-badge');
         const textEl = document.getElementById('downloads-text');
@@ -197,48 +195,80 @@
 
         // Fetch current counter
         async function fetchCount() {
+            // Jika berjalan lokal via file://, gunakan localStorage agar tidak reset saat refresh
+            if (window.location.protocol === 'file:') {
+                const localVal = parseInt(localStorage.getItem('envku_downloads') || '0', 10);
+                updateUI(localVal);
+                return;
+            }
+
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch(`${API_URL}?action=get`);
                 if (response.ok) {
                     const data = await response.json();
                     const val = data.count || 0;
-                    const displayVal = val; 
-                    badgeEl.textContent = formatCount(displayVal) + ' UNDUHAN';
-                    textEl.textContent = displayVal.toLocaleString('id-ID');
+                    updateUI(val);
                 } else {
-                    badgeEl.textContent = '0 UNDUHAN';
-                    textEl.textContent = '0';
+                    fallbackLocal();
                 }
             } catch (err) {
-                badgeEl.textContent = '0 UNDUHAN';
-                textEl.textContent = '0';
+                fallbackLocal();
             }
+        }
+
+        function updateUI(val) {
+            badgeEl.textContent = formatCount(val) + ' UNDUHAN';
+            textEl.textContent = val.toLocaleString('id-ID');
+        }
+
+        function fallbackLocal() {
+            const localVal = parseInt(localStorage.getItem('envku_downloads') || '0', 10);
+            updateUI(localVal);
         }
 
         // Increment count
         async function incrementCount() {
-            try {
-                await fetch(`${API_URL}/up`);
-            } catch (err) {
-                console.error('Failed to increment download count:', err);
+            // Jika berjalan lokal via file://, simpan di localStorage
+            if (window.location.protocol === 'file:') {
+                const localVal = parseInt(localStorage.getItem('envku_downloads') || '0', 10) + 1;
+                localStorage.setItem('envku_downloads', localVal);
+                updateUI(localVal);
+                return;
             }
+
+            try {
+                const response = await fetch(`${API_URL}?action=increment`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateUI(data.count || 0);
+                } else {
+                    incrementLocalFallback();
+                }
+            } catch (err) {
+                incrementLocalFallback();
+            }
+        }
+
+        function incrementLocalFallback() {
+            const localVal = parseInt(localStorage.getItem('envku_downloads') || '0', 10) + 1;
+            localStorage.setItem('envku_downloads', localVal);
+            updateUI(localVal);
         }
 
         // Listen for download click
         if (downloadBtn) {
             downloadBtn.addEventListener('click', () => {
+                // Tampilkan perubahan secara instan di UI (optimistic)
                 const currentText = textEl.textContent.replace(/\./g, '');
                 const currentNum = parseInt(currentText, 10);
                 if (!isNaN(currentNum)) {
-                    const nextNum = currentNum + 1;
-                    badgeEl.textContent = formatCount(nextNum) + ' UNDUHAN';
-                    textEl.textContent = nextNum.toLocaleString('id-ID');
+                    updateUI(currentNum + 1);
                 }
                 incrementCount();
             });
         }
 
-        // Initial fetch
+        // Jalankan pengambilan data awal
         fetchCount();
     </script>
 </body>
