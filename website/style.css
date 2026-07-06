@@ -339,9 +339,6 @@ body {
     box-shadow: 6px 6px 0px 0px #000000;
     padding: 30px;
     transition: transform 0.1s, box-shadow 0.1s;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
 }
 
 .feature-card:hover {
@@ -389,7 +386,6 @@ body {
     box-shadow: 2px 2px 0px 0px #000000;
     margin-bottom: 20px;
     color: #000000;
-    align-self: flex-start;
 }
 
 .icon-container.bg-yellow {
@@ -440,7 +436,6 @@ body {
     font-size: 0.85rem;
     color: #d1d5db;
     font-weight: 500;
-    flex-grow: 1;
 }
 
 /* Getting Started Panel */
