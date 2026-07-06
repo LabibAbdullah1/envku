@@ -12,6 +12,8 @@
     --accent-red: #EF4444;
     --accent-orange: #f97316;
     --accent-emerald: #22C55E;
+    --accent-pink: #EC4899;
+    --accent-cyan: #06B6D4;
 }
 
 html {
@@ -367,6 +369,14 @@ body {
     box-shadow: 10px 10px 0px 0px var(--accent-red);
 }
 
+.feature-card.border-pink:hover {
+    box-shadow: 10px 10px 0px 0px var(--accent-pink);
+}
+
+.feature-card.border-cyan:hover {
+    box-shadow: 10px 10px 0px 0px var(--accent-cyan);
+}
+
 .icon-container {
     display: inline-block;
     border: 2px solid #000000;
@@ -402,6 +412,16 @@ body {
 .icon-container.bg-red {
     background-color: var(--accent-red);
     color: #ffffff;
+}
+
+.icon-container.bg-pink {
+    background-color: var(--accent-pink);
+    color: #ffffff;
+}
+
+.icon-container.bg-cyan {
+    background-color: var(--accent-cyan);
+    color: #000000;
 }
 
 .feature-card h3 {
