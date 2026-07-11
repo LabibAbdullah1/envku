@@ -97,8 +97,8 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
 <VirtualHost *:80>
     ServerName {}
     ProxyPreserveHost On
-    ProxyPass / http://localhost:{}/
-    ProxyPassReverse / http://localhost:{}/
+    ProxyPass / http://127.0.0.1:{}/
+    ProxyPassReverse / http://127.0.0.1:{}/
 </VirtualHost>
 "#,
                 domain, port, port
@@ -133,8 +133,8 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
     SSLCertificateFile "{}/{}.crt"
     SSLCertificateKeyFile "{}/{}.key"
     ProxyPreserveHost On
-    ProxyPass / http://localhost:{}/
-    ProxyPassReverse / http://localhost:{}/
+    ProxyPass / http://127.0.0.1:{}/
+    ProxyPassReverse / http://127.0.0.1:{}/
 </VirtualHost>
 "#,
                     domain, clean_ssl_dir, domain, clean_ssl_dir, domain, port, port
@@ -321,10 +321,11 @@ pub fn get_virtual_hosts() -> Result<Vec<VirtualHostInfo>, String> {
             } else if lower.starts_with("documentroot") {
                 let path_with_quotes = trimmed["documentroot".len()..].trim();
                 current_doc_root = path_with_quotes.trim_matches('"').trim_matches('\'').to_string();
-            } else if lower.starts_with("proxypass") && lower.contains("http://localhost:") {
+            } else if lower.starts_with("proxypass") && (lower.contains("http://localhost:") || lower.contains("http://127.0.0.1:")) {
                 current_is_node = true;
-                if let Some(pos) = lower.find("localhost:") {
-                    let port_str: String = lower[pos + "localhost:".len()..]
+                let target_key = if lower.contains("localhost:") { "localhost:" } else { "127.0.0.1:" };
+                if let Some(pos) = lower.find(target_key) {
+                    let port_str: String = lower[pos + target_key.len()..]
                         .chars()
                         .take_while(|c| c.is_numeric())
                         .collect();
