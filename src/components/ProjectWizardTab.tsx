@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { RefreshCw, Plus, Play, X } from "lucide-react";
+import { RefreshCw, Plus, Play, X, Edit, Check } from "lucide-react";
 
 interface VirtualHostInfo {
   domain: string;
@@ -37,9 +37,31 @@ export default function ProjectWizardTab({
   const [isNodeProject, setIsNodeProject] = useState<boolean>(false);
   const [nodePort, setNodePort] = useState<number>(3000);
   const [enableSsl, setEnableSsl] = useState<boolean>(false);
+  const [editingDomain, setEditingDomain] = useState<string | null>(null);
 
-  // Add virtual host project
-  const handleAddProject = async (e: React.FormEvent) => {
+  const handleStartEdit = (vh: VirtualHostInfo) => {
+    setProjectName(vh.domain);
+    setProjectDomain(vh.domain);
+    setProjectPath(vh.document_root);
+    setIsNodeProject(vh.is_node);
+    setNodePort(vh.node_port || 3000);
+    setEnableSsl(vh.has_ssl);
+    setEditingDomain(vh.domain);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCancelEdit = () => {
+    setProjectName("");
+    setProjectDomain("");
+    setProjectPath("");
+    setIsNodeProject(false);
+    setNodePort(3000);
+    setEnableSsl(false);
+    setEditingDomain(null);
+  };
+
+  // Add or Edit virtual host project
+  const handleSubmitProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!projectName || !projectDomain || !projectPath) {
       showToastMsg("Semua field input proyek wajib diisi!", "error");
@@ -47,18 +69,33 @@ export default function ProjectWizardTab({
     }
     setLoading(true);
     try {
-      const res = await invoke<string>("add_project", {
-        domain: projectDomain,
-        documentRoot: projectPath,
-        isNode: isNodeProject,
-        nodePort: isNodeProject ? nodePort : null,
-        enableSsl: enableSsl
-      });
-      showToastMsg(res, "success");
-      setProjectName("");
-      setProjectDomain("");
-      setProjectPath("");
-      setEnableSsl(false);
+      if (editingDomain) {
+        // Edit mode
+        const res = await invoke<string>("edit_project", {
+          oldDomain: editingDomain,
+          newDomain: projectDomain,
+          documentRoot: projectPath,
+          isNode: isNodeProject,
+          nodePort: isNodeProject ? nodePort : null,
+          enableSsl: enableSsl
+        });
+        showToastMsg(res, "success");
+        handleCancelEdit();
+      } else {
+        // Add mode
+        const res = await invoke<string>("add_project", {
+          domain: projectDomain,
+          documentRoot: projectPath,
+          isNode: isNodeProject,
+          nodePort: isNodeProject ? nodePort : null,
+          enableSsl: enableSsl
+        });
+        showToastMsg(res, "success");
+        setProjectName("");
+        setProjectDomain("");
+        setProjectPath("");
+        setEnableSsl(false);
+      }
       fetchVirtualHosts();
     } catch (err) {
       showToastMsg(String(err), "error");
@@ -89,7 +126,7 @@ export default function ProjectWizardTab({
         </p>
       </div>
 
-      <form onSubmit={handleAddProject} className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-5 shadow-xl">
+      <form onSubmit={handleSubmitProject} className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-5 shadow-xl">
         <div className="grid grid-cols-2 gap-5">
           <div className="space-y-2">
             <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Nama Proyek</label>
@@ -180,18 +217,32 @@ export default function ProjectWizardTab({
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-550 disabled:bg-zinc-800 text-white rounded-xl text-sm font-bold transition flex items-center justify-center space-x-2 cursor-pointer shadow-lg shadow-indigo-950/30"
-        >
-          {loading ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Plus className="w-4 h-4" />
+        <div className="flex space-x-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-550 disabled:bg-zinc-800 text-white rounded-xl text-sm font-bold transition flex items-center justify-center space-x-2 cursor-pointer shadow-lg shadow-indigo-950/30"
+          >
+            {loading ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : editingDomain ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            <span>{editingDomain ? "Simpan Perubahan" : "Buat & Daftarkan Proyek"}</span>
+          </button>
+
+          {editingDomain && (
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="py-3.5 px-6 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-sm font-bold transition cursor-pointer"
+            >
+              Batal
+            </button>
           )}
-          <span>Buat & Daftarkan Proyek</span>
-        </button>
+        </div>
       </form>
 
       {/* Active Hosts List */}
@@ -224,20 +275,27 @@ export default function ProjectWizardTab({
                     Root: {vh.document_root || "Proxy Server"}
                   </p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <button
                     onClick={() => handleLaunchHost(vh.domain, vh.has_ssl)}
-                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-550 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 cursor-pointer shadow-md"
+                    className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-550 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md"
                   >
-                    <Play className="w-4 h-4" />
+                    <Play className="w-3.5 h-3.5" />
                     <span>Buka</span>
                   </button>
                   <button
+                    onClick={() => handleStartEdit(vh)}
+                    className="py-2 px-3 bg-zinc-800 hover:bg-zinc-700 hover:text-white text-zinc-300 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer shadow-md shrink-0"
+                    title="Edit Host"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleDeleteHost(vh.domain)}
-                    className="py-2.5 px-3.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer shadow-md shrink-0"
+                    className="py-2 px-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer shadow-md shrink-0"
                     title="Hapus Host"
                   >
-                    <X className="w-4.5 h-4.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>

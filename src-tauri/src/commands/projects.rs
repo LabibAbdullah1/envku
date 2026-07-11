@@ -177,8 +177,7 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
     Ok(format!("Proyek {} berhasil dibuat & didaftarkan.", domain))
 }
 
-#[tauri::command]
-pub fn delete_project(domain: String) -> Result<String, String> {
+fn delete_project_internal(domain: &str) -> Result<(), String> {
     // 1. Remove from hosts file
     let hosts_path = Path::new("C:\\Windows\\System32\\drivers\\etc\\hosts");
     if hosts_path.exists() {
@@ -188,7 +187,7 @@ pub fn delete_project(domain: String) -> Result<String, String> {
         let new_lines: Vec<String> = hosts_content.lines()
             .filter(|line| {
                 let clean = line.trim();
-                clean.starts_with('#') || !clean.contains(&domain)
+                clean.starts_with('#') || !clean.contains(domain)
             })
             .map(|s| s.to_string())
             .collect();
@@ -261,12 +260,36 @@ pub fn delete_project(domain: String) -> Result<String, String> {
         fs::write(&vhosts_path, new_content.trim_end())
             .map_err(|e| format!("Gagal menulis httpd-vhosts.conf: {}", e))?;
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_project(domain: String) -> Result<String, String> {
+    delete_project_internal(&domain)?;
 
     // 3. Restart Apache to apply changes
     let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
     let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
 
     Ok(format!("Proyek {} berhasil dihapus.", domain))
+}
+
+#[tauri::command]
+pub fn edit_project(
+    old_domain: String,
+    new_domain: String,
+    document_root: String,
+    is_node: bool,
+    node_port: Option<u16>,
+    enable_ssl: bool,
+) -> Result<String, String> {
+    // 1. Delete the old project config (without restarting Apache)
+    delete_project_internal(&old_domain)?;
+
+    // 2. Add the new project config (this will write config and restart Apache)
+    add_project(new_domain.clone(), document_root, is_node, node_port, enable_ssl)?;
+
+    Ok(format!("Proyek {} berhasil diperbarui.", new_domain))
 }
 
 #[tauri::command]

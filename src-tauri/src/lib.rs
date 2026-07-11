@@ -57,6 +57,7 @@ pub fn run() {
             commands::services::ping_port,
             commands::services::clear_redis_cache,
             commands::projects::add_project,
+            commands::projects::edit_project,
             commands::projects::delete_project,
             commands::projects::get_virtual_hosts,
             commands::php::switch_php_version,
