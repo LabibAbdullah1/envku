@@ -164,11 +164,15 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
 
                     // Enable proxy modules
                     content = content.replace("#LoadModule proxy_module modules/mod_proxy.so", "LoadModule proxy_module modules/mod_proxy.so");
+                    content = content.replace("# LoadModule proxy_module modules/mod_proxy.so", "LoadModule proxy_module modules/mod_proxy.so");
                     content = content.replace("#LoadModule proxy_http_module modules/mod_proxy_http.so", "LoadModule proxy_http_module modules/mod_proxy_http.so");
+                    content = content.replace("# LoadModule proxy_http_module modules/mod_proxy_http.so", "LoadModule proxy_http_module modules/mod_proxy_http.so");
 
                     // Enable SSL modules
                     content = content.replace("#LoadModule ssl_module modules/mod_ssl.so", "LoadModule ssl_module modules/mod_ssl.so");
+                    content = content.replace("# LoadModule ssl_module modules/mod_ssl.so", "LoadModule ssl_module modules/mod_ssl.so");
                     content = content.replace("#LoadModule socache_shmcb_module modules/mod_socache_shmcb.so", "LoadModule socache_shmcb_module modules/mod_socache_shmcb.so");
+                    content = content.replace("# LoadModule socache_shmcb_module modules/mod_socache_shmcb.so", "LoadModule socache_shmcb_module modules/mod_socache_shmcb.so");
 
                     // Enable port 443 listening
                     if !content.contains("Listen 443") {
