@@ -18,8 +18,8 @@ pub struct DownloadProgressPayload {
 fn get_component_url(component_id: &str) -> Result<&'static str, String> {
     match component_id {
         "apache" => Ok("https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.68-260617-Win64-VS18.zip"),
-        "php83" => Ok("https://windows.php.net/downloads/releases/php-8.3.31-Win32-vs16-x64.zip"),
-        "php82" => Ok("https://windows.php.net/downloads/releases/php-8.2.31-Win32-vs16-x64.zip"),
+        "php83" => Ok("https://windows.php.net/downloads/releases/php-8.3.32-Win32-vs16-x64.zip"),
+        "php82" => Ok("https://windows.php.net/downloads/releases/php-8.2.32-Win32-vs16-x64.zip"),
         "mysql" => Ok("https://cdn.mysql.com/archives/mysql-8.0/mysql-8.0.39-winx64.zip"),
         "phpmyadmin" => Ok("https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip"),
         "composer" => Ok("https://getcomposer.org/composer.phar"),
