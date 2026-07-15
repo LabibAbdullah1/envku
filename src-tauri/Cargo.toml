@@ -33,3 +33,10 @@ futures-util = "0.3"
 tokio = { version = "1", features = ["full"] }
 rfd = "0.14"
 
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+

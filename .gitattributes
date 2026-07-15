@@ -1,0 +1,16 @@
+# Exclude repository-specific configuration and build tools from source archives
+.env.local export-ignore
+.env.example export-ignore
+.github/ export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+.vscode/ export-ignore
+installer.nsi export-ignore
+generate-ico.cjs export-ignore
+generate-icons.cjs export-ignore
+post-build.cjs export-ignore
+release.cjs export-ignore
+save-keys.cjs export-ignore
+src-tauri/target/ export-ignore
+node_modules/ export-ignore
+dist/ export-ignore
