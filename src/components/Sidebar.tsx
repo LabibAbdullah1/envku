@@ -4,13 +4,14 @@ import {
   Layers, 
   Plus, 
   Code, 
-  Globe 
+  Globe,
+  Bug
 } from "lucide-react";
 import envkuLogo from "../assets/envku-logo.svg";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "downloader" | "services" | "wizard" | "php" | "node";
-  setActiveTab: (tab: "dashboard" | "downloader" | "services" | "wizard" | "php" | "node") => void;
+  activeTab: "dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support";
+  setActiveTab: (tab: "dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support") => void;
 }
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
@@ -101,6 +102,18 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           >
             <Globe className="w-5 h-5 shrink-0" />
             <span>Node.js / NVM</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("support")}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-xl text-sm transition-all duration-200 cursor-pointer ${
+              activeTab === "support" 
+                ? "bg-zinc-800/90 text-white font-bold border border-zinc-700/60 shadow-lg shadow-black/35" 
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40"
+            }`}
+          >
+            <Bug className="w-5 h-5 shrink-0" />
+            <span>Lapor Bug & Star</span>
           </button>
         </nav>
       </div>

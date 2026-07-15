@@ -18,6 +18,7 @@ import ServicesTab from "./components/ServicesTab";
 import ProjectWizardTab from "./components/ProjectWizardTab";
 import PhpSwitcherTab from "./components/PhpSwitcherTab";
 import NodeManagerTab from "./components/NodeManagerTab";
+import SupportTab from "./components/SupportTab";
 
 // Interface definitions
 interface ProgressPayload {
@@ -40,7 +41,7 @@ export default function App() {
   const isSplash = typeof window !== "undefined" && window.location.search.includes("splash=true");
 
   // Navigation
-  const [activeTab, setActiveTab] = useState<"dashboard" | "downloader" | "services" | "wizard" | "php" | "node">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support">("dashboard");
 
   // Splash screen state
   const [appReady, setAppReady] = useState<boolean>(false);
@@ -75,10 +76,10 @@ export default function App() {
 
   // Modul 2 State (Services status)
   const [services, setServices] = useState<{
-    Apache: { installed: boolean; running: boolean; checking: boolean };
-    MySQL: { installed: boolean; running: boolean; checking: boolean };
-    Redis: { installed: boolean; running: boolean; checking: boolean };
-    Mailpit: { installed: boolean; running: boolean; checking: boolean };
+    Apache: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string };
+    MySQL: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string };
+    Redis: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string };
+    Mailpit: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string };
   }>({
     Apache: { installed: false, running: false, checking: true },
     MySQL: { installed: false, running: false, checking: true },
@@ -144,22 +145,32 @@ export default function App() {
   // Poll service ports & check registration status
   const updateServiceStates = async () => {
     try {
-      const apacheInstalled = await invoke<boolean>("check_service_installed", { service: "Apache2.4" });
-      const mysqlInstalled = await invoke<boolean>("check_service_installed", { service: "mysql-server" });
-      const redisInstalled = await invoke<boolean>("check_service_installed", { service: "redis-server" });
-      const mailpitInstalled = await invoke<boolean>("check_service_installed", { service: "mailpit" });
+      const details = await invoke<any[]>("get_detailed_services_status");
+      const newServices = { ...services };
+      
+      details.forEach((item) => {
+        let key: "Apache" | "MySQL" | "Redis" | "Mailpit" = "Apache";
+        if (item.name === "MySQL") key = "MySQL";
+        else if (item.name === "Redis") key = "Redis";
+        else if (item.name === "Mailpit") key = "Mailpit";
 
-      const apacheRunning = await invoke<boolean>("ping_port", { port: 80 });
-      const mysqlRunning = await invoke<boolean>("ping_port", { port: 3306 });
-      const redisRunning = await invoke<boolean>("ping_port", { port: 6379 });
-      const mailpitRunning = await invoke<boolean>("ping_port", { port: 8025 });
+        let conflictMessage = "";
+        if (item.path_conflict) {
+          conflictMessage = `Service terdaftar di luar Envku: ${item.conflict_process}`;
+        } else if (item.port_conflict) {
+          conflictMessage = `Port ${item.port} digunakan oleh PID ${item.conflict_pid} (${item.conflict_process})`;
+        }
 
-      setServices({
-        Apache: { installed: apacheInstalled, running: apacheRunning, checking: false },
-        MySQL: { installed: mysqlInstalled, running: mysqlRunning, checking: false },
-        Redis: { installed: redisInstalled, running: redisRunning, checking: false },
-        Mailpit: { installed: mailpitInstalled, running: mailpitRunning, checking: false }
+        newServices[key] = {
+          installed: item.installed,
+          running: item.running,
+          checking: false,
+          conflict: item.path_conflict || item.port_conflict,
+          conflictMessage: conflictMessage || undefined
+        };
       });
+
+      setServices(newServices);
     } catch (err) {
       console.warn("Gagal memperbarui status layanan:", err);
     }
@@ -583,6 +594,15 @@ export default function App() {
               installingNode={installingNode}
               quickInstallingNode={quickInstallingNode}
               handleQuickInstallNode={handleQuickInstallNode}
+            />
+          )}
+
+          {activeTab === "support" && (
+            <SupportTab
+              services={services}
+              activePhpVersion={activePhpVersion}
+              dirsStatus={dirsStatus}
+              baseDir={baseDir}
             />
           )}
 

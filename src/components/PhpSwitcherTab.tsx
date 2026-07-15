@@ -23,6 +23,11 @@ export default function PhpSwitcherTab({
   const [extensions, setExtensions] = useState<{ name: string; enabled: boolean }[]>([]);
   const [loadingExts, setLoadingExts] = useState<boolean>(false);
   const [togglingExt, setTogglingExt] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredExtensions = extensions.filter(ext => 
+    ext.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const fetchExtensions = async () => {
     if (activePhpVersion === "unknown") {
@@ -146,21 +151,34 @@ export default function PhpSwitcherTab({
 
       {activePhpVersion !== "unknown" && (
         <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl">
-          <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-4 gap-4">
             <div>
               <h3 className="text-lg font-bold text-zinc-100">Ekstensi PHP (php.ini)</h3>
               <p className="text-xs text-zinc-400 mt-1">Aktifkan atau nonaktifkan modul ekstensi PHP secara instan. Apache akan otomatis di-restart setelah perubahan.</p>
             </div>
-            {loadingExts && <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />}
+            <div className="flex items-center space-x-3 shrink-0">
+              <input
+                type="text"
+                placeholder="Cari ekstensi..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 focus:bg-zinc-950 rounded-xl px-4 py-2 text-xs text-zinc-100 outline-none transition-all duration-200 w-44"
+              />
+              {loadingExts && <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />}
+            </div>
           </div>
 
           {loadingExts && extensions.length === 0 ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
             </div>
+          ) : filteredExtensions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-zinc-500 text-xs">
+              Tidak ada ekstensi yang cocok dengan "{searchQuery}"
+            </div>
           ) : (
             <div className="php-ext-grid">
-              {extensions.map(ext => (
+              {filteredExtensions.map(ext => (
                 <div 
                   key={ext.name}
                   className="php-ext-card"

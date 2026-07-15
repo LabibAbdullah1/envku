@@ -22,8 +22,272 @@ pub fn check_service_installed(service: String) -> Result<bool, String> {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct ServiceStatus {
+    pub name: String,
+    pub installed: bool,
+    pub running: bool,
+    pub port_conflict: bool,
+    pub path_conflict: bool,
+    pub conflict_pid: Option<u32>,
+    pub conflict_process: Option<String>,
+    pub port: Option<u16>,
+}
+
+fn is_service_running(service_name: &str) -> bool {
+    let output = crate::create_hidden_command("sc")
+        .args(&["query", service_name])
+        .output();
+    if let Ok(out) = output {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        stdout.contains("STATE") && stdout.contains("RUNNING")
+    } else {
+        false
+    }
+}
+
+fn get_service_image_path(service_name: &str) -> Option<String> {
+    let output = crate::create_hidden_command("sc")
+        .args(&["qc", service_name])
+        .output()
+        .ok()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        if line.contains("BINARY_PATH_NAME") {
+            let parts: Vec<&str> = line.splitn(2, ':').collect();
+            if parts.len() > 1 {
+                return Some(parts[1].trim().to_string());
+            }
+        }
+    }
+    None
+}
+
+pub fn is_port_in_use(port: u16) -> bool {
+    use std::net::{TcpStream, ToSocketAddrs};
+    use std::time::Duration;
+    let addr = format!("127.0.0.1:{}", port);
+    if let Ok(mut addrs) = addr.to_socket_addrs() {
+        if let Some(sockaddr) = addrs.next() {
+            return TcpStream::connect_timeout(&sockaddr, Duration::from_millis(150)).is_ok();
+        }
+    }
+    false
+}
+
+pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
+    let output = crate::create_hidden_command("netstat")
+        .args(&["-ano"])
+        .output()
+        .ok()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    
+    let target_port_pattern = format!(":{}", port);
+    let mut matching_pid = None;
+    
+    for line in stdout.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 5 && (parts[0] == "TCP" || parts[0] == "UDP") {
+            let local_addr = parts[1];
+            if local_addr.ends_with(&target_port_pattern) {
+                let actual_port_str = local_addr.split(':').last().unwrap_or("");
+                if actual_port_str == port.to_string() {
+                    if let Ok(pid) = parts[parts.len() - 1].parse::<u32>() {
+                        matching_pid = Some(pid);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    let pid = matching_pid?;
+    if pid == 0 {
+        return Some((0, "System Idle Process".to_string()));
+    }
+    if pid == 4 {
+        return Some((4, "System".to_string()));
+    }
+    
+    let output_wmic = crate::create_hidden_command("wmic")
+        .args(&["process", "where", &format!("processid={}", pid), "get", "ExecutablePath", "/format:csv"])
+        .output()
+        .ok()?;
+    let stdout_wmic = String::from_utf8_lossy(&output_wmic.stdout);
+    for line in stdout_wmic.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.contains("Node,ExecutablePath") {
+            continue;
+        }
+        let parts: Vec<&str> = trimmed.split(',').collect();
+        if parts.len() >= 2 {
+            let path = parts[1].trim().to_string();
+            if !path.is_empty() {
+                return Some((pid, path));
+            }
+        }
+    }
+
+    let output_task = crate::create_hidden_command("tasklist")
+        .args(&["/FI", &format!("PID eq {}", pid), "/FO", "CSV", "/NH"])
+        .output()
+        .ok()?;
+    let stdout_task = String::from_utf8_lossy(&output_task.stdout);
+    for line in stdout_task.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = trimmed.split(',').collect();
+        if parts.len() > 0 {
+            let name = parts[0].replace('"', "");
+            if !name.is_empty() {
+                return Some((pid, name));
+            }
+        }
+    }
+    
+    Some((pid, format!("PID {}", pid)))
+}
+
+#[tauri::command]
+pub fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String> {
+    let mut statuses = Vec::new();
+    
+    let services_to_check = vec![
+        ("Apache", "Apache2.4", 80),
+        ("MySQL", "mysql-server", 3306),
+        ("Redis", "redis-server", 6379),
+        ("Mailpit", "mailpit", 8025),
+    ];
+    
+    let server_dir = get_server_dir_path();
+    let server_dir_str = server_dir.to_string_lossy().to_lowercase();
+    
+    for (key, service_name, port) in services_to_check {
+        let mut running = false;
+        let mut port_conflict = false;
+        let mut path_conflict = false;
+        let mut conflict_pid = None;
+        let mut conflict_process = None;
+        
+        let installed = if key == "Mailpit" {
+            let mailpit_exe = server_dir.join("mailpit").join("mailpit.exe");
+            mailpit_exe.exists()
+        } else {
+            check_service_installed(service_name.to_string()).unwrap_or(false)
+        };
+        
+        if key == "Mailpit" {
+            if is_port_in_use(port) {
+                if let Some((pid, proc_path)) = find_port_owner(port) {
+                    let proc_path_lower = proc_path.to_lowercase();
+                    if !proc_path_lower.contains("mailpit.exe") || !proc_path_lower.contains(&server_dir_str) {
+                        port_conflict = true;
+                        conflict_pid = Some(pid);
+                        conflict_process = Some(proc_path);
+                    } else {
+                        running = true;
+                    }
+                } else {
+                    running = true;
+                }
+            }
+        } else {
+            if installed {
+                if let Some(img_path) = get_service_image_path(service_name) {
+                    let img_path_lower = img_path.to_lowercase();
+                    if !img_path_lower.contains(&server_dir_str) {
+                        path_conflict = true;
+                        conflict_process = Some(img_path);
+                    }
+                }
+                
+                running = is_service_running(service_name);
+            }
+            
+            if is_port_in_use(port) {
+                if let Some((pid, proc_path)) = find_port_owner(port) {
+                    let proc_path_lower = proc_path.to_lowercase();
+                    
+                    let is_our_proc = match key {
+                        "Apache" => proc_path_lower.contains("httpd.exe") && proc_path_lower.contains(&server_dir_str),
+                        "MySQL" => proc_path_lower.contains("mysqld.exe") && proc_path_lower.contains(&server_dir_str),
+                        "Redis" => (proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) && proc_path_lower.contains(&server_dir_str),
+                        _ => false,
+                    };
+                    
+                    if !is_our_proc {
+                        port_conflict = true;
+                        conflict_pid = Some(pid);
+                        conflict_process = Some(proc_path);
+                    } else {
+                        running = true;
+                    }
+                } else {
+                    if !running {
+                        port_conflict = true;
+                    }
+                }
+            }
+        }
+        
+        statuses.push(ServiceStatus {
+            name: key.to_string(),
+            installed,
+            running,
+            port_conflict,
+            path_conflict,
+            conflict_pid,
+            conflict_process,
+            port: Some(port),
+        });
+    }
+    
+    Ok(statuses)
+}
+
 #[tauri::command]
 pub fn control_service(service: String, action: String) -> Result<String, String> {
+    if action == "start" {
+        let port = match service.as_str() {
+            "Apache2.4" => Some(80),
+            "mysql-server" => Some(3306),
+            "redis-server" => Some(6379),
+            "mailpit" => Some(8025),
+            _ => None,
+        };
+
+        if let Some(p) = port {
+            if is_port_in_use(p) {
+                if let Some((pid, proc_path)) = find_port_owner(p) {
+                    let server_dir = get_server_dir_path().to_string_lossy().to_lowercase();
+                    let proc_path_lower = proc_path.to_lowercase();
+                    
+                    let is_our_proc = match service.as_str() {
+                        "Apache2.4" => proc_path_lower.contains("httpd.exe") && proc_path_lower.contains(&server_dir),
+                        "mysql-server" => proc_path_lower.contains("mysqld.exe") && proc_path_lower.contains(&server_dir),
+                        "redis-server" => (proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) && proc_path_lower.contains(&server_dir),
+                        "mailpit" => proc_path_lower.contains("mailpit.exe") && proc_path_lower.contains(&server_dir),
+                        _ => false,
+                    };
+
+                    if !is_our_proc {
+                        return Err(format!(
+                            "Gagal memulai: Port {} sudah digunakan oleh PID {} ({}) yang bukan bagian dari Envku. Silakan matikan aplikasi tersebut terlebih dahulu.",
+                            p, pid, proc_path
+                        ));
+                    }
+                } else {
+                    return Err(format!(
+                        "Gagal memulai: Port {} sudah digunakan oleh aplikasi lain. Silakan matikan aplikasi tersebut terlebih dahulu.",
+                        p
+                    ));
+                }
+            }
+        }
+    }
+
     if service == "mailpit" {
         if action == "start" {
             let server_dir = get_server_dir_path();
@@ -62,7 +326,6 @@ pub fn control_service(service: String, action: String) -> Result<String, String
 
     if output.status.success() {
         if service == "mysql-server" && action == "start" {
-            // Wait 1.5s for MySQL database server to fully boot up and bind to port 3306
             std::thread::sleep(std::time::Duration::from_millis(1500));
 
             let sql_path = get_server_dir_path().join("www").join("phpmyadmin").join("sql").join("create_tables.sql");
@@ -75,7 +338,6 @@ pub fn control_service(service: String, action: String) -> Result<String, String
             }
         }
         if service == "redis-server" && action == "start" {
-            // Wait 1s for Redis to start up, then flush cache automatically
             std::thread::sleep(std::time::Duration::from_millis(1000));
             let _ = clear_redis_cache();
         }

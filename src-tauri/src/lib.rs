@@ -56,6 +56,7 @@ pub fn run() {
             commands::services::install_service,
             commands::services::ping_port,
             commands::services::clear_redis_cache,
+            commands::services::get_detailed_services_status,
             commands::projects::add_project,
             commands::projects::edit_project,
             commands::projects::delete_project,

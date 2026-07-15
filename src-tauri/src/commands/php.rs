@@ -164,26 +164,36 @@ pub fn get_php_extensions(version_id: String) -> Result<Vec<PhpExtensionInfo>, S
         .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
 
     let target_extensions = vec![
-        "curl", "exif", "fileinfo", "gd", "intl", "mbstring", "mysqli", 
-        "openssl", "pdo_mysql", "pdo_sqlite", "sqlite3", "zip"
+        "bz2", "curl", "ffi", "fileinfo", "ftp", "gd", "gettext", "gmp", 
+        "imap", "intl", "ldap", "mbstring", "exif", "mysqli", "oci8_19", 
+        "odbc", "openssl", "pdo_firebird", "pdo_mysql", "pdo_oci", 
+        "pdo_odbc", "pdo_pgsql", "pdo_sqlite", "pgsql", "shmop", 
+        "snmp", "soap", "sockets", "sodium", "sqlite3", "sysvshm", 
+        "tidy", "xsl", "zip", "opcache"
     ];
 
     let mut result = Vec::new();
     for ext in target_extensions {
-        let enabled_pattern = format!("extension={}", ext);
-        let disabled_pattern = format!(";extension={}", ext);
+        let is_zend = ext == "opcache";
+        let prefix = if is_zend { "zend_extension" } else { "extension" };
         
         let mut found = false;
         let mut enabled = false;
 
         for line in content.lines() {
             let trimmed = line.trim();
-            if trimmed == enabled_pattern {
-                enabled = true;
-                found = true;
-                break;
-            } else if trimmed == disabled_pattern {
-                enabled = false;
+            let is_commented = trimmed.starts_with(';');
+            let clean_line = if is_commented {
+                trimmed[1..].trim()
+            } else {
+                trimmed
+            };
+            
+            let clean_line_no_spaces = clean_line.replace(" ", "").replace("\"", "").replace("'", "");
+            let expected_match = format!("{}={}", prefix, ext);
+            
+            if clean_line_no_spaces == expected_match {
+                enabled = !is_commented;
                 found = true;
                 break;
             }
@@ -209,36 +219,41 @@ pub fn toggle_php_extension(version_id: String, extension_name: String, enable: 
     let content = fs::read_to_string(&php_ini_path)
         .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
 
-    let enabled_pattern = format!("extension={}", extension_name);
-    let disabled_pattern = format!(";extension={}", extension_name);
+    let is_zend = extension_name == "opcache";
+    let prefix = if is_zend { "zend_extension" } else { "extension" };
 
     let mut new_lines = Vec::new();
     let mut modified = false;
 
     for line in content.lines() {
         let trimmed = line.trim();
-        if enable {
-            if trimmed == disabled_pattern {
-                new_lines.push(enabled_pattern.clone());
-                modified = true;
-            } else {
-                new_lines.push(line.to_string());
-            }
+        let is_commented = trimmed.starts_with(';');
+        let clean_line = if is_commented {
+            trimmed[1..].trim()
         } else {
-            if trimmed == enabled_pattern {
-                new_lines.push(disabled_pattern.clone());
-                modified = true;
+            trimmed
+        };
+        
+        let clean_line_no_spaces = clean_line.replace(" ", "").replace("\"", "").replace("'", "");
+        let expected_match = format!("{}={}", prefix, extension_name);
+
+        if clean_line_no_spaces == expected_match {
+            if enable {
+                new_lines.push(format!("{}={}", prefix, extension_name));
             } else {
-                new_lines.push(line.to_string());
+                new_lines.push(format!(";{}={}", prefix, extension_name));
             }
+            modified = true;
+        } else {
+            new_lines.push(line.to_string());
         }
     }
 
     if !modified {
         if enable {
-            new_lines.push(enabled_pattern);
+            new_lines.push(format!("{}={}", prefix, extension_name));
         } else {
-            new_lines.push(disabled_pattern);
+            new_lines.push(format!(";{}={}", prefix, extension_name));
         }
     }
 
