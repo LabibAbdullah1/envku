@@ -25,6 +25,7 @@ export default function SupportTab({
   dirsStatus,
   baseDir,
 }: SupportTabProps) {
+  const isLinux = baseDir.startsWith("/") || !baseDir.includes("\\");
   const [bugTitle, setBugTitle] = useState("");
   const [bugDesc, setBugDesc] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -124,7 +125,7 @@ export default function SupportTab({
 ${bugDesc || "Tidak ada deskripsi rinci yang dimasukkan."}
 
 ### Rincian Diagnostik Sistem (Otomatis)
-- **OS**: Windows
+- **OS**: ${isLinux ? "Linux" : "Windows"}
 - **Server Base Dir**: \`${baseDir}\`
 - **Versi PHP Aktif**: ${activePhpVersion.toUpperCase()}
 
@@ -307,7 +308,7 @@ ${folderDetails}`;
             <div className="p-4 bg-zinc-950/60 border border-zinc-850 rounded-xl space-y-3 font-mono text-[11px] text-zinc-400 max-h-48 overflow-y-auto">
               <div>
                 <span className="text-indigo-400 font-bold"># Rincian Diagnostik Sistem</span>
-                <br />OS: Windows
+                <br />OS: {isLinux ? "Linux" : "Windows"}
                 <br />Server Base Dir: {baseDir}
                 <br />Versi PHP Aktif: {activePhpVersion.toUpperCase()}
               </div>

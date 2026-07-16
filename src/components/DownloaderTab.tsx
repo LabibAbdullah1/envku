@@ -24,15 +24,60 @@ export default function DownloaderTab({
   downloadProgress,
   startDownload,
 }: DownloaderTabProps) {
+  const isLinux = baseDir.startsWith("/") || !baseDir.includes("\\");
+  const getPath = (pWin: string, pLinux: string) => {
+    return isLinux ? `${baseDir}/${pLinux}` : `${baseDir}\\${pWin}`;
+  };
+
   const componentsList: ComponentStatus[] = [
-    { id: "apache", name: "Apache Web Server", description: "Biner utama HTTP server v2.4 Windows VS17.", installedPath: `${baseDir}\\Apache24` },
-    { id: "php83", name: "PHP 8.3 Engine", description: "PHP 8.3 x64 Thread Safe (TS) untuk modul Apache.", installedPath: `${baseDir}\\php83` },
-    { id: "php82", name: "PHP 8.2 Engine", description: "PHP 8.2 x64 Thread Safe (TS) versi stabil warisan.", installedPath: `${baseDir}\\php82` },
-    { id: "mysql", name: "MySQL Database Server", description: "Engine database relasional kustom v8.0.", installedPath: `${baseDir}\\mysql` },
-    { id: "phpmyadmin", name: "phpMyAdmin Interface", description: "Pengelola MySQL berbasis web di localhost.", installedPath: `${baseDir}\\www\\phpmyadmin` },
-    { id: "composer", name: "PHP Composer", description: "Manajer ketergantungan PHP portabel (composer.phar).", installedPath: `${baseDir}\\composer\\composer.phar` },
-    { id: "redis", name: "Redis Cache Server", description: "Database memori berkinerja tinggi (redis-server.exe) v5.0.", installedPath: `${baseDir}\\redis` },
-    { id: "mailpit", name: "Mail Sandbox (Mailpit)", description: "Server SMTP lokal portabel dan antarmuka web pencatat email.", installedPath: `${baseDir}\\mailpit\\mailpit.exe` }
+    { 
+      id: "apache", 
+      name: "Apache Web Server", 
+      description: isLinux ? "Biner utama HTTP server v2.4 Linux." : "Biner utama HTTP server v2.4 Windows VS17.", 
+      installedPath: getPath("Apache24", "Apache24") 
+    },
+    { 
+      id: "php83", 
+      name: "PHP 8.3 Engine", 
+      description: isLinux ? "PHP 8.3 x64 Engine untuk modul Apache." : "PHP 8.3 x64 Thread Safe (TS) untuk modul Apache.", 
+      installedPath: getPath("php83", "php83") 
+    },
+    { 
+      id: "php82", 
+      name: "PHP 8.2 Engine", 
+      description: isLinux ? "PHP 8.2 x64 Engine versi stabil." : "PHP 8.2 x64 Thread Safe (TS) versi stabil warisan.", 
+      installedPath: getPath("php82", "php82") 
+    },
+    { 
+      id: "mysql", 
+      name: "MySQL Database Server", 
+      description: "Engine database relasional kustom v8.0.", 
+      installedPath: getPath("mysql", "mysql") 
+    },
+    { 
+      id: "phpmyadmin", 
+      name: "phpMyAdmin Interface", 
+      description: "Pengelola MySQL berbasis web di localhost.", 
+      installedPath: getPath("www\\phpmyadmin", "www/phpmyadmin") 
+    },
+    { 
+      id: "composer", 
+      name: "PHP Composer", 
+      description: "Manajer ketergantungan PHP portabel (composer.phar).", 
+      installedPath: getPath("composer\\composer.phar", "composer/composer.phar") 
+    },
+    { 
+      id: "redis", 
+      name: "Redis Cache Server", 
+      description: isLinux ? "Database memori berkinerja tinggi (redis-server) v5.0." : "Database memori berkinerja tinggi (redis-server.exe) v5.0.", 
+      installedPath: getPath("redis", "redis") 
+    },
+    { 
+      id: "mailpit", 
+      name: "Mail Sandbox (Mailpit)", 
+      description: "Server SMTP lokal portabel dan antarmuka web pencatat email.", 
+      installedPath: getPath("mailpit\\mailpit.exe", "mailpit/mailpit") 
+    }
   ];
 
   return (

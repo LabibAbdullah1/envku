@@ -78,7 +78,7 @@ export default function DashboardTab({
                   {exists ? <FolderCheck className="w-6 h-6" /> : <Folder className="w-6 h-6" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-sm font-extrabold text-zinc-100 block font-mono truncate">{path.split("\\").pop()}</span>
+                  <span className="text-sm font-extrabold text-zinc-100 block font-mono truncate">{path.split(/[/\\]/).pop()}</span>
                   <span className="text-xs text-zinc-500 font-mono block mt-0.5 truncate" title={path}>{path}</span>
                 </div>
               </div>

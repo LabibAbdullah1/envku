@@ -19,6 +19,7 @@ interface ServicesTabProps {
   handleInstallService: (winServiceName: string, key: "Apache" | "MySQL" | "Redis") => void;
   toggleService: (key: "Apache" | "MySQL" | "Redis" | "Mailpit") => void;
   handleClearRedis: () => void;
+  isLinux?: boolean;
 }
 
 export default function ServicesTab({
@@ -26,12 +27,13 @@ export default function ServicesTab({
   handleInstallService,
   toggleService,
   handleClearRedis,
+  isLinux = false,
 }: ServicesTabProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">Service Control Panel</h2>
-        <p className="text-sm text-zinc-400 mt-1">Daftarkan atau kelola status sakelar hidup/mati service Windows server lokal.</p>
+        <p className="text-sm text-zinc-400 mt-1">Daftarkan atau kelola status sakelar hidup/mati service {isLinux ? "systemd" : "Windows"} server lokal.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-5">
@@ -73,7 +75,7 @@ export default function ServicesTab({
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md shadow-indigo-950/20 flex items-center justify-center gap-2"
               >
                 {services.Apache.checking ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Register Apache Windows Service
+                Register Apache {isLinux ? "systemd" : "Windows"} Service
               </button>
             ) : (
               <button
@@ -134,7 +136,7 @@ export default function ServicesTab({
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md shadow-indigo-950/20 flex items-center justify-center gap-2"
               >
                 {services.MySQL.checking ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Register MySQL Windows Service
+                Register MySQL {isLinux ? "systemd" : "Windows"} Service
               </button>
             ) : (
               <button
@@ -206,7 +208,7 @@ export default function ServicesTab({
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md shadow-indigo-950/20 flex items-center justify-center gap-2"
               >
                 {services.Redis.checking ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Register Redis Windows Service
+                Register Redis {isLinux ? "systemd" : "Windows"} Service
               </button>
             ) : (
               <button

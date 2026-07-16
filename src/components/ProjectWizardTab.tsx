@@ -19,6 +19,7 @@ interface ProjectWizardTabProps {
   handleDeleteHost: (domain: string) => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
+  isLinux?: boolean;
 }
 
 export default function ProjectWizardTab({
@@ -30,6 +31,7 @@ export default function ProjectWizardTab({
   handleDeleteHost,
   loading,
   setLoading,
+  isLinux = false,
 }: ProjectWizardTabProps) {
   const [projectName, setProjectName] = useState<string>("");
   const [projectDomain, setProjectDomain] = useState<string>("");
@@ -206,7 +208,7 @@ export default function ProjectWizardTab({
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-sm font-bold text-zinc-200 block">Aktifkan SSL (HTTPS)</span>
-              <span className="text-xs text-zinc-500 block">Buat sertifikat SSL self-signed lokal dan daftarkan ke Windows Trusted Root Store.</span>
+              <span className="text-xs text-zinc-500 block">Buat sertifikat SSL self-signed lokal dan daftarkan ke trust store {isLinux ? "Linux" : "Windows"}.</span>
             </div>
             <input 
               type="checkbox"

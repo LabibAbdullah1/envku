@@ -17,8 +17,9 @@ export default function PhpSwitcherTab({
   handleSwitchPhp,
   baseDir,
 }: PhpSwitcherTabProps) {
-  const php83Path = `${baseDir}\\php83`;
-  const php82Path = `${baseDir}\\php82`;
+  const isLinux = baseDir.startsWith("/") || !baseDir.includes("\\");
+  const php83Path = isLinux ? `${baseDir}/php83` : `${baseDir}\\php83`;
+  const php82Path = isLinux ? `${baseDir}/php82` : `${baseDir}\\php82`;
 
   const [extensions, setExtensions] = useState<{ name: string; enabled: boolean }[]>([]);
   const [loadingExts, setLoadingExts] = useState<boolean>(false);
@@ -85,7 +86,7 @@ export default function PhpSwitcherTab({
 
           <p className="text-sm text-zinc-400 leading-relaxed">
             Pilih salah satu versi PHP terpasang di bawah. Proses ini akan mengotomatiskan update konfigurasi dynamic link library 
-            di file `httpd.conf` Apache, mengubah variabel PATH system di registry Windows, lalu me-restart Apache service.
+            di file `httpd.conf` Apache, {isLinux ? "membuat tautan symlink PATH sistem Linux" : "mengubah variabel PATH system di registry Windows"}, lalu me-restart Apache service.
           </p>
         </div>
 

@@ -48,6 +48,25 @@ export default function App() {
 
   // Dynamic server path resolved from backend
   const [baseDir, setBaseDir] = useState<string>("C:\\server");
+  const isLinux = baseDir.startsWith("/") || !baseDir.includes("\\");
+
+  const getSubPaths = (dir: string) => {
+    const isL = dir.startsWith("/") || !dir.includes("\\");
+    const sep = isL ? "/" : "\\";
+    const mailpitFile = isL ? "mailpit" : "mailpit.exe";
+    return [
+      dir,
+      `${dir}${sep}www`,
+      `${dir}${sep}Apache24`,
+      `${dir}${sep}php83`,
+      `${dir}${sep}php82`,
+      `${dir}${sep}mysql`,
+      `${dir}${sep}www${sep}phpmyadmin`,
+      `${dir}${sep}composer${sep}composer.phar`,
+      `${dir}${sep}redis`,
+      `${dir}${sep}mailpit${sep}${mailpitFile}`
+    ];
+  };
 
   // Per-action loading states
   const [dirsLoading, setDirsLoading] = useState<boolean>(true);
@@ -117,18 +136,7 @@ export default function App() {
 
   // Check Directories using baseDir dynamically
   const checkDirectories = async () => {
-    const pathsToCheck = [
-      baseDir,
-      `${baseDir}\\www`,
-      `${baseDir}\\Apache24`,
-      `${baseDir}\\php83`,
-      `${baseDir}\\php82`,
-      `${baseDir}\\mysql`,
-      `${baseDir}\\www\\phpmyadmin`,
-      `${baseDir}\\composer\\composer.phar`,
-      `${baseDir}\\redis`,
-      `${baseDir}\\mailpit\\mailpit.exe`
-    ];
+    const pathsToCheck = getSubPaths(baseDir);
     setDirsLoading(true);
     try {
       await invoke("check_and_init_environment");
@@ -416,18 +424,7 @@ export default function App() {
       }
 
       // 2. Scan directories based on resolved base directory
-      const pathsToCheck = [
-        resolvedBaseDir,
-        `${resolvedBaseDir}\\www`,
-        `${resolvedBaseDir}\\Apache24`,
-        `${resolvedBaseDir}\\php83`,
-        `${resolvedBaseDir}\\php82`,
-        `${resolvedBaseDir}\\mysql`,
-        `${resolvedBaseDir}\\www\\phpmyadmin`,
-        `${resolvedBaseDir}\\composer\\composer.phar`,
-        `${resolvedBaseDir}\\redis`,
-        `${resolvedBaseDir}\\mailpit\\mailpit.exe`
-      ];
+      const pathsToCheck = getSubPaths(resolvedBaseDir);
       setDirsLoading(true);
       try {
         await invoke("check_and_init_environment");
@@ -550,6 +547,7 @@ export default function App() {
               handleInstallService={handleInstallService}
               toggleService={toggleService}
               handleClearRedis={handleClearRedisCache}
+              isLinux={isLinux}
             />
           )}
 
@@ -563,6 +561,7 @@ export default function App() {
               handleDeleteHost={handleDeleteHost}
               loading={loading}
               setLoading={setLoading}
+              isLinux={isLinux}
             />
           )}
 
@@ -641,7 +640,7 @@ export default function App() {
             <div className="space-y-2">
               <h3 className="text-lg font-black text-red-600 uppercase tracking-wider">Hapus Host Lokal?</h3>
               <div className="text-xs text-zinc-300 font-semibold leading-relaxed">
-                Apakah Anda yakin ingin menghapus host <span className="font-mono text-indigo-400 font-bold">{hostToDelete}</span>? Tindakan ini akan menghapusnya dari file hosts Windows dan httpd-vhosts.conf Apache.
+                Apakah Anda yakin ingin menghapus host <span className="font-mono text-indigo-400 font-bold">{hostToDelete}</span>? Tindakan ini akan menghapusnya dari file hosts {isLinux ? "Linux" : "Windows"} dan httpd-vhosts.conf Apache.
               </div>
             </div>
             <div className="flex gap-4 w-full">
