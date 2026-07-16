@@ -33,6 +33,20 @@ pub fn execute_elevated_command(args: &[&str]) -> Result<std::process::Output, s
 
     #[cfg(target_os = "linux")]
     {
+        // 1. Check if we are already root
+        let is_root = std::process::Command::new("id")
+            .arg("-u")
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "0")
+            .unwrap_or(false);
+
+        if is_root {
+            let mut cmd = Command::new(args[0]);
+            cmd.args(&args[1..]);
+            return cmd.output();
+        }
+
+        // 2. Select preferred elevated execution tool
         let is_wsl = std::env::var("WSL_DISTRO_NAME").is_ok() || 
                      std::fs::read_to_string("/proc/version").map(|v| v.to_lowercase().contains("microsoft")).unwrap_or(false);
 
@@ -41,10 +55,12 @@ pub fn execute_elevated_command(args: &[&str]) -> Result<std::process::Output, s
         } else {
             if std::path::Path::new("/usr/bin/pkexec").exists() { "/usr/bin/pkexec" } else { "pkexec" }
         };
+
         let mut cmd = Command::new(program);
         cmd.args(args);
         let output = cmd.output();
 
+        // 3. Fallback to other tool if the preferred one fails
         match output {
             Ok(ref out) if out.status.success() => Ok(output.unwrap()),
             _ => {
@@ -55,7 +71,17 @@ pub fn execute_elevated_command(args: &[&str]) -> Result<std::process::Output, s
                 };
                 let mut fallback_cmd = Command::new(fallback);
                 fallback_cmd.args(args);
-                fallback_cmd.output()
+                let fallback_output = fallback_cmd.output();
+
+                match fallback_output {
+                    Ok(ref out) if out.status.success() => Ok(fallback_output.unwrap()),
+                    _ => {
+                        // 4. Ultimate fallback: try running the command directly
+                        let mut direct_cmd = Command::new(args[0]);
+                        direct_cmd.args(&args[1..]);
+                        direct_cmd.output()
+                    }
+                }
             }
         }
     }
