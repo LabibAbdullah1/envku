@@ -1,7 +1,7 @@
 #[cfg(target_os = "linux")]
 use std::fs;
 #[cfg(target_os = "linux")]
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use crate::platform::env_path::get_server_dir_path;
 
@@ -212,7 +212,7 @@ Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
-"#
+"#.to_string()
             },
             "mysql" => {
                 r#"[Unit]
@@ -227,7 +227,7 @@ Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
-"#
+"#.to_string()
             },
             "redis" => {
                 r#"[Unit]
@@ -241,7 +241,7 @@ Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
-"#
+"#.to_string()
             },
             "mailpit" => {
                 let mailpit_bin = server_dir.join("mailpit").join("mailpit");

@@ -71,23 +71,20 @@ fn ensure_phpmyadmin_host() {
 #[tauri::command]
 pub fn open_terminal() -> Result<String, String> {
     let server_dir = get_server_dir_path();
-    let composer_path = server_dir.join("composer");
-    let mysql_bin_path = server_dir.join("mysql").join("bin");
-    let redis_path = server_dir.join("redis");
-
-    // Get active PHP version
-    let active_php = crate::commands::php::get_active_php_version().unwrap_or("unknown".to_string());
-    let php_path = if active_php != "unknown" {
-        Some(server_dir.join(&active_php))
-    } else {
-        None
-    };
-
-    // Get current PATH
     let current_path = std::env::var("PATH").unwrap_or_default();
 
     #[cfg(target_os = "windows")]
     {
+        let composer_path = server_dir.join("composer");
+        let mysql_bin_path = server_dir.join("mysql").join("bin");
+        let redis_path = server_dir.join("redis");
+
+        let active_php = crate::commands::php::get_active_php_version().unwrap_or("unknown".to_string());
+        let php_path = if active_php != "unknown" {
+            Some(server_dir.join(&active_php))
+        } else {
+            None
+        };
         let mut new_paths = Vec::new();
         if composer_path.exists() {
             new_paths.push(composer_path.to_string_lossy().to_string());

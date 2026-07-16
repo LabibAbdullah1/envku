@@ -9,6 +9,7 @@ pub mod platform;
 
 
 pub fn create_hidden_command(program: &str) -> Command {
+    #[allow(unused_mut)]
     let mut cmd = Command::new(program);
     #[cfg(target_os = "windows")]
     {
