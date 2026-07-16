@@ -1,6 +1,10 @@
-use std::fs::{self, File};
+use std::fs;
+#[cfg(target_os = "windows")]
+use std::fs::File;
 use std::path::Path;
+#[cfg(target_os = "windows")]
 use std::io::Write;
+#[cfg(target_os = "windows")]
 use crate::config::get_server_dir_path;
 
 #[tauri::command]
