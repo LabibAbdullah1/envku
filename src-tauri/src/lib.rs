@@ -36,7 +36,11 @@ pub fn execute_elevated_command(args: &[&str]) -> Result<std::process::Output, s
         let is_wsl = std::env::var("WSL_DISTRO_NAME").is_ok() || 
                      std::fs::read_to_string("/proc/version").map(|v| v.to_lowercase().contains("microsoft")).unwrap_or(false);
 
-        let program = if is_wsl { "sudo" } else { "pkexec" };
+        let program = if is_wsl {
+            if std::path::Path::new("/usr/bin/sudo").exists() { "/usr/bin/sudo" } else { "sudo" }
+        } else {
+            if std::path::Path::new("/usr/bin/pkexec").exists() { "/usr/bin/pkexec" } else { "pkexec" }
+        };
         let mut cmd = Command::new(program);
         cmd.args(args);
         let output = cmd.output();
@@ -44,7 +48,11 @@ pub fn execute_elevated_command(args: &[&str]) -> Result<std::process::Output, s
         match output {
             Ok(ref out) if out.status.success() => Ok(output.unwrap()),
             _ => {
-                let fallback = if program == "sudo" { "pkexec" } else { "sudo" };
+                let fallback = if program.contains("sudo") {
+                    if std::path::Path::new("/usr/bin/pkexec").exists() { "/usr/bin/pkexec" } else { "pkexec" }
+                } else {
+                    if std::path::Path::new("/usr/bin/sudo").exists() { "/usr/bin/sudo" } else { "sudo" }
+                };
                 let mut fallback_cmd = Command::new(fallback);
                 fallback_cmd.args(args);
                 fallback_cmd.output()
