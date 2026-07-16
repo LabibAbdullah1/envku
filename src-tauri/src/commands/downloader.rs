@@ -64,6 +64,7 @@ pub fn extract_zip(zip_path: &Path, target_dir: &Path) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[allow(unreachable_code)]
 pub async fn download_and_extract(app: AppHandle, component_id: String) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {

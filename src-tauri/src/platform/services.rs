@@ -2,6 +2,7 @@
 use std::fs;
 #[cfg(target_os = "linux")]
 use std::path::Path;
+#[cfg(target_os = "windows")]
 use std::process::Command;
 use crate::platform::env_path::get_server_dir_path;
 
