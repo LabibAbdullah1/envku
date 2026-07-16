@@ -225,10 +225,16 @@
 
         // Fetch current counter
         async function fetchCount() {
+            // Migrasi untuk localStorage lokal jika ada data lama
+            if (!localStorage.getItem('envku_downloads_win') && localStorage.getItem('envku_downloads')) {
+                localStorage.setItem('envku_downloads_win', localStorage.getItem('envku_downloads'));
+            }
+
             // Jika berjalan lokal via file://, gunakan localStorage agar tidak reset saat refresh
             if (window.location.protocol === 'file:') {
-                const localVal = parseInt(localStorage.getItem('envku_downloads') || '0', 10);
-                updateUI(localVal);
+                const localWin = parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
+                const localLinux = parseInt(localStorage.getItem('envku_downloads_linux') || '0', 10);
+                updateUI(localWin, localLinux);
                 return;
             }
 
@@ -236,8 +242,9 @@
                 const response = await fetch(`${API_URL}?action=get`);
                 if (response.ok) {
                     const data = await response.json();
-                    const val = data.count || 0;
-                    updateUI(val);
+                    const valWin = data.win || 0;
+                    const valLinux = data.linux || 0;
+                    updateUI(valWin, valLinux);
                 } else {
                     fallbackLocal();
                 }
@@ -246,62 +253,83 @@
             }
         }
 
-        function updateUI(val) {
-            const formatted = formatCount(val) + ' UNDUHAN';
-            const localeStr = val.toLocaleString('id-ID');
-            if (badgeWin) badgeWin.textContent = formatted;
-            if (textWin) textWin.textContent = localeStr;
-            if (badgeLinux) badgeLinux.textContent = formatted;
-            if (textLinux) textLinux.textContent = localeStr;
+        function updateUI(valWin, valLinux) {
+            if (badgeWin) badgeWin.textContent = formatCount(valWin) + ' UNDUHAN';
+            if (textWin) textWin.textContent = valWin.toLocaleString('id-ID');
+            if (badgeLinux) badgeLinux.textContent = formatCount(valLinux) + ' UNDUHAN';
+            if (textLinux) textLinux.textContent = valLinux.toLocaleString('id-ID');
         }
 
         function fallbackLocal() {
-            const localVal = parseInt(localStorage.getItem('envku_downloads') || '0', 10);
-            updateUI(localVal);
+            const localWin = parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
+            const localLinux = parseInt(localStorage.getItem('envku_downloads_linux') || '0', 10);
+            updateUI(localWin, localLinux);
         }
 
         // Increment count
-        async function incrementCount() {
+        async function incrementCount(platform) {
             // Jika berjalan lokal via file://, simpan di localStorage
             if (window.location.protocol === 'file:') {
-                const localVal = parseInt(localStorage.getItem('envku_downloads') || '0', 10) + 1;
-                localStorage.setItem('envku_downloads', localVal);
-                updateUI(localVal);
+                const key = `envku_downloads_${platform}`;
+                const localVal = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+                localStorage.setItem(key, localVal);
+                
+                const winVal = platform === 'win' ? localVal : parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
+                const linuxVal = platform === 'linux' ? localVal : parseInt(localStorage.getItem('envku_downloads_linux') || '0', 10);
+                updateUI(winVal, linuxVal);
                 return;
             }
 
             try {
-                const response = await fetch(`${API_URL}?action=increment`);
+                const response = await fetch(`${API_URL}?action=increment&platform=${platform}`);
                 if (response.ok) {
                     const data = await response.json();
-                    updateUI(data.count || 0);
+                    updateUI(data.win || 0, data.linux || 0);
                 } else {
-                    incrementLocalFallback();
+                    incrementLocalFallback(platform);
                 }
             } catch (err) {
-                incrementLocalFallback();
+                incrementLocalFallback(platform);
             }
         }
 
-        function incrementLocalFallback() {
-            const localVal = parseInt(localStorage.getItem('envku_downloads') || '0', 10) + 1;
-            localStorage.setItem('envku_downloads', localVal);
-            updateUI(localVal);
+        function incrementLocalFallback(platform) {
+            const key = `envku_downloads_${platform}`;
+            const localVal = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+            localStorage.setItem(key, localVal);
+
+            const winVal = platform === 'win' ? localVal : parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
+            const linuxVal = platform === 'linux' ? localVal : parseInt(localStorage.getItem('envku_downloads_linux') || '0', 10);
+            updateUI(winVal, linuxVal);
         }
 
-        // Listen for download click (Optimistic updates for both platforms)
-        const handleDownloadClick = () => {
-            const currentText = (textWin?.textContent || "0").replace(/\./g, '');
+        // Listen for download click
+        if (btnWin) {
+            btnWin.addEventListener('click', () => {
+                const currentText = (textWin?.textContent || "0").replace(/\./g, '');
+                const currentNum = parseInt(currentText, 10);
+                const currentLinuxText = (textLinux?.textContent || "0").replace(/\./g, '');
+                const currentLinuxNum = parseInt(currentLinuxText, 10);
+                if (!isNaN(currentNum)) {
+                    updateUI(currentNum + 1, currentLinuxNum);
+                }
+                incrementCount('win');
+            });
+        }
+
+        const handleLinuxClick = () => {
+            const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
+            const currentWinNum = parseInt(currentWinText, 10);
+            const currentText = (textLinux?.textContent || "0").replace(/\./g, '');
             const currentNum = parseInt(currentText, 10);
             if (!isNaN(currentNum)) {
-                updateUI(currentNum + 1);
+                updateUI(currentWinNum, currentNum + 1);
             }
-            incrementCount();
+            incrementCount('linux');
         };
 
-        if (btnWin) btnWin.addEventListener('click', handleDownloadClick);
-        if (btnLinux) btnLinux.addEventListener('click', handleDownloadClick);
-        if (btnDeb) btnDeb.addEventListener('click', handleDownloadClick);
+        if (btnLinux) btnLinux.addEventListener('click', handleLinuxClick);
+        if (btnDeb) btnDeb.addEventListener('click', handleLinuxClick);
 
         // Jalankan pengambilan data awal
         fetchCount();
