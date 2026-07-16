@@ -5,7 +5,6 @@ use crate::config::get_server_dir_path;
 pub fn switch_php_version(version_id: String) -> Result<String, String> {
     let server_dir = get_server_dir_path();
     let target_php_path = server_dir.join(&version_id);
-    let target_php_dir = target_php_path.to_string_lossy().to_string();
     if !target_php_path.exists() {
         return Err(format!("Folder PHP {} tidak ditemukan. Silakan download komponen terlebih dahulu.", version_id));
     }
@@ -14,6 +13,7 @@ pub fn switch_php_version(version_id: String) -> Result<String, String> {
     {
         use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS, KEY_READ};
         use winreg::RegKey;
+        let target_php_dir = target_php_path.to_string_lossy().to_string();
 
         let httpd_conf_path = server_dir.join("Apache24\\conf\\httpd.conf");
         if !httpd_conf_path.exists() {
