@@ -49,6 +49,7 @@ console.log(`   File .AppImage terdeteksi: ${appImageFile}`);
 
 // Cari file .deb jika folder deb bundle ada
 let debFile = null;
+let debSizeMB = "0";
 if (fs.existsSync(DEB_BUNDLE_DIR)) {
   const debFiles = fs.readdirSync(DEB_BUNDLE_DIR);
   debFile = debFiles.find(f => f.toLowerCase().startsWith("envku_") && f.endsWith(".deb"));
@@ -85,13 +86,19 @@ if (tarGzFile && sigFile) {
 }
 
 // ── Salin file .deb jika ada ─────────────────────────────────
+let debSha256Show = "Belum dihitung";
 if (debFile) {
   console.log(`📦 Menyalin biner .deb...`);
   const DEB_SRC = path.join(DEB_BUNDLE_DIR, debFile);
   const DEB_DEST = path.join(DOWNLOADS, debFile);
   fs.copyFileSync(DEB_SRC, DEB_DEST);
-  const debSizeMB = (fs.statSync(DEB_DEST).size / 1024 / 1024).toFixed(1);
+  debSizeMB = (fs.statSync(DEB_DEST).size / 1024 / 1024).toFixed(1);
   console.log(`   ✅ Berhasil! (${debSizeMB} MB)`);
+  
+  // Hitung SHA-256 untuk DEB
+  const bufferDeb = fs.readFileSync(DEB_DEST);
+  const debSha256Full = crypto.createHash("sha256").update(bufferDeb).digest("hex");
+  debSha256Show = debSha256Full.substring(0, 24) + "...";
 }
 
 // ── Hitung SHA-256 dari .AppImage ─────────────────────────────
@@ -145,28 +152,54 @@ if (debFile) {
   );
 }
 
-// 2. Ukuran file nyata (Linux)
+// 2. Ukuran file nyata (Linux AppImage)
 html = html.replace(
-  /(<li id="file-size-linux"><strong>Ukuran:<\/strong> ?)~?[\d.]+ MB(<\/li>)/,
+  /(<li id="file-size-appimage"><strong>Ukuran:<\/strong> ?).*?(<\/li>)/,
   `$1~${appImageSizeMB} MB$2`
 );
 
-// 3. Tanggal rilis (Linux)
+// 2b. Ukuran file nyata (Linux DEB)
+if (debFile) {
+  html = html.replace(
+    /(<li id="file-size-deb"><strong>Ukuran:<\/strong> ?).*?(<\/li>)/,
+    `$1~${debSizeMB} MB$2`
+  );
+}
+
+// 3. Tanggal rilis (Linux AppImage)
 html = html.replace(
-  /(<li id="file-release-linux"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
+  /(<li id="file-release-appimage"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
   `$1${tglRilis}$2`
 );
 
-// 4. SHA-256 hash (Linux)
+// 3b. Tanggal rilis (Linux DEB)
+if (debFile) {
+  html = html.replace(
+    /(<li id="file-release-deb"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
+    `$1${tglRilis}$2`
+  );
+}
+
+// 4. SHA-256 hash (Linux AppImage)
 html = html.replace(
-  /(<span class="hash-text" id="hash-linux">).*?(<\/span>)/,
+  /(<span class="hash-text" id="hash-appimage">).*?(<\/span>)/,
   `$1${sha256Show}$2`
 );
+
+// 4b. SHA-256 hash (Linux DEB)
+if (debFile) {
+  html = html.replace(
+    /(<span class="hash-text" id="hash-deb">).*?(<\/span>)/,
+    `$1${debSha256Show}$2`
+  );
+}
 
 fs.writeFileSync(INDEX_HTML, html, "utf8");
 
 console.log(`   ✅ URL download Linux: downloads/${appImageFile}`);
-console.log(`   ✅ Ukuran file Linux : ~${appImageSizeMB} MB`);
+console.log(`   ✅ Ukuran AppImage   : ~${appImageSizeMB} MB`);
+console.log(`   ✅ Ukuran DEB        : ~${debSizeMB} MB`);
 console.log(`   ✅ Tanggal rilis Linux: ${tglRilis}`);
-console.log(`   ✅ SHA-256 Linux     : ${sha256Show}`);
+console.log(`   ✅ SHA-256 AppImage  : ${sha256Show}`);
+console.log(`   ✅ SHA-256 DEB       : ${debSha256Show}`);
 console.log(`\n✅ Post-build Linux selesai!`);

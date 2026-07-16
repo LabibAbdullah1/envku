@@ -171,26 +171,48 @@
                 </div>
             </div>
 
-            <!-- Linux Card -->
+            <!-- Linux AppImage Card -->
             <div class="download-card">
                 <div class="download-header bg-blue" style="display: flex; flex-direction: column; gap: 8px;">
-                    <h3 style="color: #000000; text-shadow: none;">ENVKU UNTUK LINUX</h3>
+                    <h3 style="color: #000000; text-shadow: none;">ENVKU PORTABLE LINUX</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <span class="version-tag">V1.3.8 (STABLE)</span>
-                        <span class="version-tag" style="background-color: #EF4444; color: #ffffff;" id="downloads-badge-linux">0 UNDUHAN</span>
+                        <span class="version-tag" style="background-color: #EF4444; color: #ffffff;" id="downloads-badge-appimage">0 UNDUHAN</span>
                     </div>
                 </div>
                 <div class="download-body">
                     <ul class="download-info">
                         <li><strong>Platform:</strong> Linux Universal (amd64)</li>
-                        <li id="file-size-linux"><strong>Ukuran:</strong> ~3.1 MB</li>
-                        <li id="file-release-linux"><strong>Rilis:</strong> 16 Juli 2026</li>
-                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-linux">0</span> kali</li>
+                        <li id="file-size-appimage"><strong>Ukuran:</strong> ~80.5 MB</li>
+                        <li id="file-release-appimage"><strong>Rilis:</strong> 16 Juli 2026</li>
+                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-appimage">0</span> kali</li>
                     </ul>
-                    <a href="downloads/envku_1.3.7_amd64.AppImage" id="download-btn-linux" class="btn-primary btn-download" style="background-color: var(--accent-blue); width: 100%; display: block; text-align: center; margin-bottom: 12px;">UNDUH PORTABLE (.APPIMAGE)</a>
-                    <a href="downloads/envku_1.3.7_amd64.deb" id="download-btn-deb" class="btn-secondary btn-download" style="width: 100%; display: block; text-align: center;">UNDUH INSTALLER (.DEB)</a>
-                    <div class="hash-box" style="margin-top: 12px;">
-                        SHA-256: <span class="hash-text" id="hash-linux">78e2b8df1a95e0c60959f678...</span>
+                    <a href="downloads/envku_1.3.7_amd64.AppImage" id="download-btn-appimage" class="btn-primary btn-download" style="background-color: var(--accent-blue); width: 100%; display: block; text-align: center;">UNDUH PORTABLE (.APPIMAGE)</a>
+                    <div class="hash-box">
+                        SHA-256: <span class="hash-text" id="hash-appimage">78e2b8df1a95e0c60959f678...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linux DEB Card -->
+            <div class="download-card">
+                <div class="download-header bg-emerald" style="display: flex; flex-direction: column; gap: 8px;">
+                    <h3 style="color: #000000; text-shadow: none;">ENVKU DEBIAN LINUX</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="version-tag">V1.3.8 (STABLE)</span>
+                        <span class="version-tag" style="background-color: #EF4444; color: #ffffff;" id="downloads-badge-deb">0 UNDUHAN</span>
+                    </div>
+                </div>
+                <div class="download-body">
+                    <ul class="download-info">
+                        <li><strong>Platform:</strong> Debian / Ubuntu (amd64)</li>
+                        <li id="file-size-deb"><strong>Ukuran:</strong> ~3.8 MB</li>
+                        <li id="file-release-deb"><strong>Rilis:</strong> 16 Juli 2026</li>
+                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-deb">0</span> kali</li>
+                    </ul>
+                    <a href="downloads/envku_1.3.7_amd64.deb" id="download-btn-deb" class="btn-primary btn-download" style="background-color: var(--accent-emerald); width: 100%; display: block; text-align: center;">UNDUH INSTALLER (.DEB)</a>
+                    <div class="hash-box">
+                        SHA-256: <span class="hash-text" id="hash-deb">78e2b8df1a95e0c60959f678...</span>
                     </div>
                 </div>
             </div>
@@ -208,11 +230,13 @@
 
         const badgeWin = document.getElementById('downloads-badge-win');
         const textWin = document.getElementById('downloads-text-win');
-        const badgeLinux = document.getElementById('downloads-badge-linux');
-        const textLinux = document.getElementById('downloads-text-linux');
+        const badgeAppImage = document.getElementById('downloads-badge-appimage');
+        const textAppImage = document.getElementById('downloads-text-appimage');
+        const badgeDeb = document.getElementById('downloads-badge-deb');
+        const textDeb = document.getElementById('downloads-text-deb');
 
         const btnWin = document.getElementById('download-btn-win');
-        const btnLinux = document.getElementById('download-btn-linux');
+        const btnAppImage = document.getElementById('download-btn-appimage');
         const btnDeb = document.getElementById('download-btn-deb');
 
         // Format count (e.g., 4230 -> 4.2K+)
@@ -229,12 +253,16 @@
             if (!localStorage.getItem('envku_downloads_win') && localStorage.getItem('envku_downloads')) {
                 localStorage.setItem('envku_downloads_win', localStorage.getItem('envku_downloads'));
             }
+            if (!localStorage.getItem('envku_downloads_appimage') && localStorage.getItem('envku_downloads_linux')) {
+                localStorage.setItem('envku_downloads_appimage', localStorage.getItem('envku_downloads_linux'));
+            }
 
             // Jika berjalan lokal via file://, gunakan localStorage agar tidak reset saat refresh
             if (window.location.protocol === 'file:') {
                 const localWin = parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
-                const localLinux = parseInt(localStorage.getItem('envku_downloads_linux') || '0', 10);
-                updateUI(localWin, localLinux);
+                const localAppImage = parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
+                const localDeb = parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
+                updateUI(localWin, localAppImage, localDeb);
                 return;
             }
 
@@ -243,8 +271,9 @@
                 if (response.ok) {
                     const data = await response.json();
                     const valWin = data.win || 0;
-                    const valLinux = data.linux || 0;
-                    updateUI(valWin, valLinux);
+                    const valAppImage = data.appimage || 0;
+                    const valDeb = data.deb || 0;
+                    updateUI(valWin, valAppImage, valDeb);
                 } else {
                     fallbackLocal();
                 }
@@ -253,17 +282,20 @@
             }
         }
 
-        function updateUI(valWin, valLinux) {
+        function updateUI(valWin, valAppImage, valDeb) {
             if (badgeWin) badgeWin.textContent = formatCount(valWin) + ' UNDUHAN';
             if (textWin) textWin.textContent = valWin.toLocaleString('id-ID');
-            if (badgeLinux) badgeLinux.textContent = formatCount(valLinux) + ' UNDUHAN';
-            if (textLinux) textLinux.textContent = valLinux.toLocaleString('id-ID');
+            if (badgeAppImage) badgeAppImage.textContent = formatCount(valAppImage) + ' UNDUHAN';
+            if (textAppImage) textAppImage.textContent = valAppImage.toLocaleString('id-ID');
+            if (badgeDeb) badgeDeb.textContent = formatCount(valDeb) + ' UNDUHAN';
+            if (textDeb) textDeb.textContent = valDeb.toLocaleString('id-ID');
         }
 
         function fallbackLocal() {
             const localWin = parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
-            const localLinux = parseInt(localStorage.getItem('envku_downloads_linux') || '0', 10);
-            updateUI(localWin, localLinux);
+            const localAppImage = parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
+            const localDeb = parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
+            updateUI(localWin, localAppImage, localDeb);
         }
 
         // Increment count
@@ -275,8 +307,9 @@
                 localStorage.setItem(key, localVal);
                 
                 const winVal = platform === 'win' ? localVal : parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
-                const linuxVal = platform === 'linux' ? localVal : parseInt(localStorage.getItem('envku_downloads_linux') || '0', 10);
-                updateUI(winVal, linuxVal);
+                const appimageVal = platform === 'appimage' ? localVal : parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
+                const debVal = platform === 'deb' ? localVal : parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
+                updateUI(winVal, appimageVal, debVal);
                 return;
             }
 
@@ -284,7 +317,7 @@
                 const response = await fetch(`${API_URL}?action=increment&platform=${platform}`);
                 if (response.ok) {
                     const data = await response.json();
-                    updateUI(data.win || 0, data.linux || 0);
+                    updateUI(data.win || 0, data.appimage || 0, data.deb || 0);
                 } else {
                     incrementLocalFallback(platform);
                 }
@@ -299,8 +332,9 @@
             localStorage.setItem(key, localVal);
 
             const winVal = platform === 'win' ? localVal : parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
-            const linuxVal = platform === 'linux' ? localVal : parseInt(localStorage.getItem('envku_downloads_linux') || '0', 10);
-            updateUI(winVal, linuxVal);
+            const appimageVal = platform === 'appimage' ? localVal : parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
+            const debVal = platform === 'deb' ? localVal : parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
+            updateUI(winVal, appimageVal, debVal);
         }
 
         // Listen for download click
@@ -308,28 +342,55 @@
             btnWin.addEventListener('click', () => {
                 const currentText = (textWin?.textContent || "0").replace(/\./g, '');
                 const currentNum = parseInt(currentText, 10);
-                const currentLinuxText = (textLinux?.textContent || "0").replace(/\./g, '');
-                const currentLinuxNum = parseInt(currentLinuxText, 10);
+                
+                const currentAppImageText = (textAppImage?.textContent || "0").replace(/\./g, '');
+                const currentAppImageNum = parseInt(currentAppImageText, 10);
+                
+                const currentDebText = (textDeb?.textContent || "0").replace(/\./g, '');
+                const currentDebNum = parseInt(currentDebText, 10);
+
                 if (!isNaN(currentNum)) {
-                    updateUI(currentNum + 1, currentLinuxNum);
+                    updateUI(currentNum + 1, currentAppImageNum, currentDebNum);
                 }
                 incrementCount('win');
             });
         }
 
-        const handleLinuxClick = () => {
-            const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
-            const currentWinNum = parseInt(currentWinText, 10);
-            const currentText = (textLinux?.textContent || "0").replace(/\./g, '');
-            const currentNum = parseInt(currentText, 10);
-            if (!isNaN(currentNum)) {
-                updateUI(currentWinNum, currentNum + 1);
-            }
-            incrementCount('linux');
-        };
+        if (btnAppImage) {
+            btnAppImage.addEventListener('click', () => {
+                const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
+                const currentWinNum = parseInt(currentWinText, 10);
+                
+                const currentText = (textAppImage?.textContent || "0").replace(/\./g, '');
+                const currentNum = parseInt(currentText, 10);
+                
+                const currentDebText = (textDeb?.textContent || "0").replace(/\./g, '');
+                const currentDebNum = parseInt(currentDebText, 10);
 
-        if (btnLinux) btnLinux.addEventListener('click', handleLinuxClick);
-        if (btnDeb) btnDeb.addEventListener('click', handleLinuxClick);
+                if (!isNaN(currentNum)) {
+                    updateUI(currentWinNum, currentNum + 1, currentDebNum);
+                }
+                incrementCount('appimage');
+            });
+        }
+
+        if (btnDeb) {
+            btnDeb.addEventListener('click', () => {
+                const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
+                const currentWinNum = parseInt(currentWinText, 10);
+                
+                const currentAppImageText = (textAppImage?.textContent || "0").replace(/\./g, '');
+                const currentAppImageNum = parseInt(currentAppImageText, 10);
+                
+                const currentText = (textDeb?.textContent || "0").replace(/\./g, '');
+                const currentNum = parseInt(currentText, 10);
+
+                if (!isNaN(currentNum)) {
+                    updateUI(currentWinNum, currentAppImageNum, currentNum + 1);
+                }
+                incrementCount('deb');
+            });
+        }
 
         // Jalankan pengambilan data awal
         fetchCount();
