@@ -35,9 +35,9 @@ if (!fs.existsSync(BUNDLE_DIR)) {
 const files = fs.readdirSync(BUNDLE_DIR);
 
 // Cari file .AppImage, .AppImage.tar.gz, dan .AppImage.tar.gz.sig
-const appImageFile = files.find(f => f.startsWith("envku_") && f.endsWith(".AppImage"));
-const tarGzFile    = files.find(f => f.startsWith("envku_") && f.endsWith(".AppImage.tar.gz"));
-const sigFile      = files.find(f => f.startsWith("envku_") && f.endsWith(".AppImage.tar.gz.sig"));
+const appImageFile = files.find(f => f.toLowerCase().startsWith("envku_") && f.endsWith(".AppImage"));
+const tarGzFile    = files.find(f => f.toLowerCase().startsWith("envku_") && f.endsWith(".AppImage.tar.gz"));
+const sigFile      = files.find(f => f.toLowerCase().startsWith("envku_") && f.endsWith(".AppImage.tar.gz.sig"));
 
 if (!appImageFile) {
   console.error(`\n❌ Berkas .AppImage tidak ditemukan di folder ${BUNDLE_DIR}`);
@@ -108,7 +108,7 @@ let html = fs.readFileSync(INDEX_HTML, "utf8");
 
 // 1. URL tombol download Linux (.AppImage)
 html = html.replace(
-  /href="downloads\/envku_[\d.]+_amd64\.AppImage"/g,
+  /href="downloads\/[eE]nvku_[\d.]+_amd64\.AppImage"/g,
   `href="downloads/${appImageFile}"`
 );
 
