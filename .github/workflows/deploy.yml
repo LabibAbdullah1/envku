@@ -59,12 +59,14 @@ jobs:
           ls -lh website/downloads/
 
       - name: FTP Deploy Website to cPanel
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          security: loose
           local-dir: ./website/
           server-dir: ./
           state-name: .ftp-deploy-sync-state.json
