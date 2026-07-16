@@ -5,6 +5,8 @@ use std::os::windows::process::CommandExt;
 
 pub mod config;
 pub mod commands;
+pub mod platform;
+
 
 pub fn create_hidden_command(program: &str) -> Command {
     let mut cmd = Command::new(program);
@@ -71,7 +73,9 @@ pub fn run() {
             commands::node::install_nvm,
             commands::common::select_directory,
             commands::common::open_in_browser,
-            commands::common::close_splashscreen
+            commands::common::close_splashscreen,
+            commands::pre_flight::check_pre_flight,
+            commands::pre_flight::resolve_port_conflict
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

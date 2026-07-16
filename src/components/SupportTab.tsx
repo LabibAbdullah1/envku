@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Star, Bug, Info, ExternalLink } from "lucide-react";
+import { Star, Bug, Info, ExternalLink, RefreshCw, Download } from "lucide-react";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { getVersion } from "@tauri-apps/api/app";
 
 interface SupportTabProps {
   services: {
@@ -25,6 +28,79 @@ export default function SupportTab({
   const [bugTitle, setBugTitle] = useState("");
   const [bugDesc, setBugDesc] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [currentVersion, setCurrentVersion] = useState("1.3.7");
+  const [checking, setChecking] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<{
+    available: boolean;
+    version?: string;
+    body?: string;
+  } | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [installing, setInstalling] = useState(false);
+  const [updateObj, setUpdateObj] = useState<any>(null);
+
+  useEffect(() => {
+    getVersion().then(setCurrentVersion).catch(console.error);
+  }, []);
+
+  const handleCheckForUpdates = async () => {
+    setChecking(true);
+    setUpdateError(null);
+    setUpdateInfo(null);
+    setUpdateObj(null);
+    try {
+      const update = await check();
+      if (update) {
+        setUpdateInfo({
+          available: true,
+          version: update.version,
+          body: update.body,
+        });
+        setUpdateObj(update);
+      } else {
+        setUpdateInfo({ available: false });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setUpdateError(err?.message || String(err));
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (!updateObj) return;
+    setInstalling(true);
+    try {
+      let downloaded = 0;
+      let contentLength = 0;
+      await updateObj.downloadAndInstall((event: any) => {
+        switch (event.event) {
+          case 'Started':
+            contentLength = event.data.contentLength || 0;
+            break;
+          case 'Progress':
+            downloaded += event.data.chunkLength;
+            if (contentLength > 0) {
+              setDownloadProgress(Math.round((downloaded / contentLength) * 100));
+            }
+            break;
+          case 'Finished':
+            break;
+        }
+      });
+      alert("Pembaruan berhasil dipasang. Aplikasi akan dimuat ulang!");
+      await relaunch();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Gagal memasang pembaruan: ${err?.message || String(err)}`);
+      setDownloadProgress(null);
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   // Generate markdown diagnostics report
   const generateDiagnosticsReport = () => {
@@ -121,6 +197,72 @@ ${folderDetails}`;
             <Star className="w-4.5 h-4.5 fill-current" />
             <span>Star Envku di GitHub</span>
             <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Check for Updates Card */}
+      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-5">
+          <RefreshCw className="w-48 h-48 text-indigo-400" />
+        </div>
+        <div className="space-y-3 relative z-10">
+          <div className="flex items-center space-x-2 text-indigo-400">
+            <RefreshCw className={`w-6 h-6 ${checking ? "animate-spin" : ""}`} />
+            <h3 className="text-lg font-bold text-zinc-100">Pembaluan Aplikasi</h3>
+          </div>
+          <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
+            Periksa versi terbaru Envku Orchestrator secara manual. Versi Anda saat ini: <span className="font-bold text-zinc-200">v{currentVersion}</span>.
+          </p>
+        </div>
+
+        {/* Update Status / Info */}
+        {updateError && (
+          <div className="p-4 bg-red-950/40 border border-red-905/50 rounded-xl text-xs text-red-300">
+            <strong>Gagal memeriksa pembaruan:</strong> {updateError}
+          </div>
+        )}
+
+        {updateInfo && !updateInfo.available && (
+          <div className="p-4 bg-emerald-950/40 border border-emerald-905/50 rounded-xl text-xs text-emerald-300">
+            Envku Orchestrator sudah menggunakan versi terbaru (v{currentVersion}).
+          </div>
+        )}
+
+        {updateInfo && updateInfo.available && (
+          <div className="p-4 bg-indigo-950/40 border border-indigo-905/50 rounded-xl space-y-3">
+            <div className="text-sm text-indigo-205 font-bold flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              <span>Versi Baru Tersedia: v{updateInfo.version}</span>
+            </div>
+            {updateInfo.body && (
+              <p className="text-xs text-zinc-300 line-clamp-3 bg-zinc-950/50 p-2.5 rounded-lg border border-zinc-800/50 font-mono">
+                {updateInfo.body}
+              </p>
+            )}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleInstallUpdate}
+                disabled={installing}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-505 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-wait"
+              >
+                <Download className="w-4 h-4" />
+                <span>{installing ? `Mengunduh... ${downloadProgress !== null ? `${downloadProgress}%` : ""}` : "Unduh & Pasang Pembaruan"}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleCheckForUpdates}
+            disabled={checking || installing}
+            className="px-6 py-3 bg-zinc-850 hover:bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-xl text-sm font-black transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-wait"
+          >
+            <RefreshCw className={`w-4.5 h-4.5 ${checking ? "animate-spin" : ""}`} />
+            <span>{checking ? "Memeriksa..." : "Cek Pembaruan Sekarang"}</span>
           </button>
         </div>
       </div>

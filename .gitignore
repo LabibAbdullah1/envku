@@ -28,3 +28,13 @@ dist-ssr
 *.sw?
 *.tsbuildinfo
 
+# Ignore local Linux build outputs in downloads
+website/downloads/*.deb
+website/downloads/*.AppImage
+website/downloads/*.AppImage.tar.gz
+website/downloads/*.AppImage.tar.gz.sig
+
+# Ignore custom cargo check target directory
+src-tauri/target-check/
+
+

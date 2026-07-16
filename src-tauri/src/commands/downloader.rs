@@ -1,10 +1,10 @@
-use std::fs::{self, File};
-use std::path::Path;
-use std::io::Write;
-use tauri::{AppHandle, Emitter};
-use futures_util::StreamExt;
-use zip::ZipArchive;
 use crate::config::get_server_dir_path;
+use futures_util::StreamExt;
+use std::fs::{self, File};
+use std::io::Write;
+use std::path::Path;
+use tauri::{AppHandle, Emitter};
+use zip::ZipArchive;
 
 #[derive(Clone, serde::Serialize)]
 pub struct DownloadProgressPayload {
@@ -31,13 +31,13 @@ fn get_component_url(component_id: &str) -> Result<&'static str, String> {
 
 // Safe ZIP file extraction helper
 pub fn extract_zip(zip_path: &Path, target_dir: &Path) -> Result<(), String> {
-    let file = File::open(zip_path)
-        .map_err(|e| format!("Gagal membuka file ZIP: {}", e))?;
-    let mut archive = ZipArchive::new(file)
-        .map_err(|e| format!("Gagal memproses file ZIP: {}", e))?;
+    let file = File::open(zip_path).map_err(|e| format!("Gagal membuka file ZIP: {}", e))?;
+    let mut archive =
+        ZipArchive::new(file).map_err(|e| format!("Gagal memproses file ZIP: {}", e))?;
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i)
+        let mut file = archive
+            .by_index(i)
             .map_err(|e| format!("Gagal membaca index file ZIP: {}", e))?;
         let outpath = match file.enclosed_name() {
             Some(path) => target_dir.join(path),
@@ -54,8 +54,8 @@ pub fn extract_zip(zip_path: &Path, target_dir: &Path) -> Result<(), String> {
                         .map_err(|e| format!("Gagal membuat sub-direktori zip: {}", e))?;
                 }
             }
-            let mut outfile = File::create(&outpath)
-                .map_err(|e| format!("Gagal membuat file output: {}", e))?;
+            let mut outfile =
+                File::create(&outpath).map_err(|e| format!("Gagal membuat file output: {}", e))?;
             std::io::copy(&mut file, &mut outfile)
                 .map_err(|e| format!("Gagal menyalin data zip: {}", e))?;
         }
@@ -67,8 +67,11 @@ pub fn extract_zip(zip_path: &Path, target_dir: &Path) -> Result<(), String> {
 pub async fn download_and_extract(app: AppHandle, component_id: String) -> Result<String, String> {
     let url = get_component_url(&component_id)?;
     let client = reqwest::Client::new();
-    
-    let response = client.get(url).send().await
+
+    let response = client
+        .get(url)
+        .send()
+        .await
         .map_err(|e| format!("Gagal mendownload komponen: {}", e))?;
 
     if !response.status().is_success() {
@@ -91,12 +94,11 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
 
     let server_dir = get_server_dir_path();
     let temp_dir = server_dir.join("temp");
-    fs::create_dir_all(&temp_dir)
-        .map_err(|e| format!("Gagal membuat folder temp: {}", e))?;
-    
+    fs::create_dir_all(&temp_dir).map_err(|e| format!("Gagal membuat folder temp: {}", e))?;
+
     let file_path = temp_dir.join(&download_filename);
-    let mut file = File::create(&file_path)
-        .map_err(|e| format!("Gagal membuat file sementara: {}", e))?;
+    let mut file =
+        File::create(&file_path).map_err(|e| format!("Gagal membuat file sementara: {}", e))?;
 
     // Streaming the download
     while let Some(chunk_result) = stream.next().await {
@@ -107,30 +109,41 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
 
         if total_size > 0 {
             let percentage = ((downloaded as f64 / total_size as f64) * 100.0) as u32;
-            app.emit("download_progress", DownloadProgressPayload {
-                component_id: component_id.clone(),
-                percentage,
-                bytes_downloaded: downloaded,
-                bytes_total: total_size,
-            }).unwrap_or(());
+            app.emit(
+                "download_progress",
+                DownloadProgressPayload {
+                    component_id: component_id.clone(),
+                    percentage,
+                    bytes_downloaded: downloaded,
+                    bytes_total: total_size,
+                },
+            )
+            .unwrap_or(());
         }
     }
-    
+
     // Explicitly flush and drop file before extraction
     file.flush().unwrap_or(());
     drop(file);
 
     // Stop services to release file locks before extraction
     if component_id == "apache" || component_id == "php83" || component_id == "php82" {
-        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
+        let _ =
+            crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
         std::thread::sleep(std::time::Duration::from_millis(800));
     }
     if component_id == "mysql" {
-        let _ = crate::commands::services::control_service("mysql-server".to_string(), "stop".to_string());
+        let _ = crate::commands::services::control_service(
+            "mysql-server".to_string(),
+            "stop".to_string(),
+        );
         std::thread::sleep(std::time::Duration::from_millis(800));
     }
     if component_id == "redis" {
-        let _ = crate::commands::services::control_service("redis-server".to_string(), "stop".to_string());
+        let _ = crate::commands::services::control_service(
+            "redis-server".to_string(),
+            "stop".to_string(),
+        );
         std::thread::sleep(std::time::Duration::from_millis(800));
     }
 
@@ -159,20 +172,50 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
                         .map_err(|e| format!("Gagal membaca httpd.conf: {}", e))?;
 
                     let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
-                    content = content.replace("Define SRVROOT \"c:/Apache24\"", &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash));
-                    content = content.replace("Define SRVROOT \"C:/Apache24\"", &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash));
+                    content = content.replace(
+                        "Define SRVROOT \"c:/Apache24\"",
+                        &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash),
+                    );
+                    content = content.replace(
+                        "Define SRVROOT \"C:/Apache24\"",
+                        &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash),
+                    );
 
                     // Enable proxy modules
-                    content = content.replace("#LoadModule proxy_module modules/mod_proxy.so", "LoadModule proxy_module modules/mod_proxy.so");
-                    content = content.replace("# LoadModule proxy_module modules/mod_proxy.so", "LoadModule proxy_module modules/mod_proxy.so");
-                    content = content.replace("#LoadModule proxy_http_module modules/mod_proxy_http.so", "LoadModule proxy_http_module modules/mod_proxy_http.so");
-                    content = content.replace("# LoadModule proxy_http_module modules/mod_proxy_http.so", "LoadModule proxy_http_module modules/mod_proxy_http.so");
+                    content = content.replace(
+                        "#LoadModule proxy_module modules/mod_proxy.so",
+                        "LoadModule proxy_module modules/mod_proxy.so",
+                    );
+                    content = content.replace(
+                        "# LoadModule proxy_module modules/mod_proxy.so",
+                        "LoadModule proxy_module modules/mod_proxy.so",
+                    );
+                    content = content.replace(
+                        "#LoadModule proxy_http_module modules/mod_proxy_http.so",
+                        "LoadModule proxy_http_module modules/mod_proxy_http.so",
+                    );
+                    content = content.replace(
+                        "# LoadModule proxy_http_module modules/mod_proxy_http.so",
+                        "LoadModule proxy_http_module modules/mod_proxy_http.so",
+                    );
 
                     // Enable SSL modules
-                    content = content.replace("#LoadModule ssl_module modules/mod_ssl.so", "LoadModule ssl_module modules/mod_ssl.so");
-                    content = content.replace("# LoadModule ssl_module modules/mod_ssl.so", "LoadModule ssl_module modules/mod_ssl.so");
-                    content = content.replace("#LoadModule socache_shmcb_module modules/mod_socache_shmcb.so", "LoadModule socache_shmcb_module modules/mod_socache_shmcb.so");
-                    content = content.replace("# LoadModule socache_shmcb_module modules/mod_socache_shmcb.so", "LoadModule socache_shmcb_module modules/mod_socache_shmcb.so");
+                    content = content.replace(
+                        "#LoadModule ssl_module modules/mod_ssl.so",
+                        "LoadModule ssl_module modules/mod_ssl.so",
+                    );
+                    content = content.replace(
+                        "# LoadModule ssl_module modules/mod_ssl.so",
+                        "LoadModule ssl_module modules/mod_ssl.so",
+                    );
+                    content = content.replace(
+                        "#LoadModule socache_shmcb_module modules/mod_socache_shmcb.so",
+                        "LoadModule socache_shmcb_module modules/mod_socache_shmcb.so",
+                    );
+                    content = content.replace(
+                        "# LoadModule socache_shmcb_module modules/mod_socache_shmcb.so",
+                        "LoadModule socache_shmcb_module modules/mod_socache_shmcb.so",
+                    );
 
                     // Enable port 443 listening
                     if !content.contains("Listen 443") {
@@ -180,13 +223,20 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
                     }
 
                     // Enable vhosts config file inclusion
-                    content = content.replace("#Include conf/extra/httpd-vhosts.conf", "Include conf/extra/httpd-vhosts.conf");
+                    content = content.replace(
+                        "#Include conf/extra/httpd-vhosts.conf",
+                        "Include conf/extra/httpd-vhosts.conf",
+                    );
 
                     // Set index.php as default DirectoryIndex
-                    content = content.replace("DirectoryIndex index.html", "DirectoryIndex index.php index.html");
+                    content = content.replace(
+                        "DirectoryIndex index.html",
+                        "DirectoryIndex index.php index.html",
+                    );
 
-                    fs::write(&httpd_conf_path, content)
-                        .map_err(|e| format!("Gagal memperbarui httpd.conf setelah ekstraksi: {}", e))?;
+                    fs::write(&httpd_conf_path, content).map_err(|e| {
+                        format!("Gagal memperbarui httpd.conf setelah ekstraksi: {}", e)
+                    })?;
                 }
             }
             "mysql" => {
@@ -213,7 +263,8 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
                     // Automatically generate my.ini after extraction
                     let my_ini_path = dest.join("my.ini");
                     let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
-                    let config = format!(r#"[mysqld]
+                    let config = format!(
+                        r#"[mysqld]
 basedir={}/mysql
 datadir={}/mysql/data
 port=3306
@@ -221,7 +272,9 @@ character-set-server=utf8mb4
 default-storage-engine=INNODB
 sql_mode=NO_ENGINE_SUBSTITUTION
 default_authentication_plugin=mysql_native_password
-"#, server_dir_slash, server_dir_slash);
+"#,
+                        server_dir_slash, server_dir_slash
+                    );
                     let _ = fs::write(&my_ini_path, config);
 
                     // Automatically initialize datadir if it does not exist
@@ -303,7 +356,8 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
                             .map_err(|e| format!("Gagal membaca php.ini-development: {}", e))?;
 
                         // Enable extension_dir
-                        content = content.replace(";extension_dir = \"ext\"", "extension_dir = \"ext\"");
+                        content =
+                            content.replace(";extension_dir = \"ext\"", "extension_dir = \"ext\"");
 
                         // Enable common extensions
                         content = content.replace(";extension=curl", "extension=curl");
@@ -313,8 +367,9 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
                         content = content.replace(";extension=openssl", "extension=openssl");
                         content = content.replace(";extension=pdo_mysql", "extension=pdo_mysql");
 
-                        fs::write(&php_ini_path, content)
-                            .map_err(|e| format!("Gagal menulis php.ini baru setelah ekstraksi: {}", e))?;
+                        fs::write(&php_ini_path, content).map_err(|e| {
+                            format!("Gagal menulis php.ini baru setelah ekstraksi: {}", e)
+                        })?;
                     }
                 }
             }
@@ -352,11 +407,14 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
         pma_path.to_string_lossy().to_string(),
         false,
         None,
-        false
+        false,
     );
 
     // Automatically register newly downloaded paths to system PATH
-    let _ = crate::commands::env::register_system_paths();
+    let _ = crate::platform::env_path::register_system_paths();
 
-    Ok(format!("Komponen {} berhasil di-download dan di-ekstrak.", component_id.to_uppercase()))
+    Ok(format!(
+        "Komponen {} berhasil di-download dan di-ekstrak.",
+        component_id.to_uppercase()
+    ))
 }

@@ -14,3 +14,7 @@ save-keys.cjs export-ignore
 src-tauri/target/ export-ignore
 node_modules/ export-ignore
 dist/ export-ignore
+
+# Track large Windows binaries with Git LFS
+website/downloads/*.exe filter=lfs diff=lfs merge=lfs -text
+

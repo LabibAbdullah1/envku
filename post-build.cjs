@@ -147,21 +147,21 @@ html = html.replace(
   `\`${EXE_NAME}\``
 );
 
-// 5. Ukuran file nyata
+// 5. Ukuran file nyata (Windows)
 html = html.replace(
-  /(<li><strong>Ukuran:<\/strong> ?)~?[\d.]+ MB(<\/li>)/,
+  /(<li id="file-size-win"><strong>Ukuran:<\/strong> ?)~?[\d.]+ MB(<\/li>)/,
   `$1~${exeSizeMB} MB$2`
 );
 
-// 6. Tanggal rilis
+// 6. Tanggal rilis (Windows)
 html = html.replace(
-  /(<li><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
+  /(<li id="file-release-win"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
   `$1${tglRilis}$2`
 );
 
-// 7. SHA-256 hash
+// 7. SHA-256 hash (Windows)
 html = html.replace(
-  /(<span class="hash-text">).*?(<\/span>)/,
+  /(<span class="hash-text" id="hash-win">).*?(<\/span>)/,
   `$1${sha256Show}$2`
 );
 
