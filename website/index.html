@@ -187,8 +187,9 @@
                         <li id="file-release-linux"><strong>Rilis:</strong> 16 Juli 2026</li>
                         <li><strong>Total Unduhan:</strong> <span id="downloads-text-linux">0</span> kali</li>
                     </ul>
-                    <a href="downloads/envku_1.3.7_amd64.AppImage" id="download-btn-linux" class="btn-primary btn-download" style="background-color: var(--accent-blue);">UNDUH PORTABLE (.APPIMAGE)</a>
-                    <div class="hash-box">
+                    <a href="downloads/envku_1.3.7_amd64.AppImage" id="download-btn-linux" class="btn-primary btn-download" style="background-color: var(--accent-blue); width: 100%; display: block; text-align: center; margin-bottom: 12px;">UNDUH PORTABLE (.APPIMAGE)</a>
+                    <a href="downloads/envku_1.3.7_amd64.deb" id="download-btn-deb" class="btn-secondary btn-download" style="width: 100%; display: block; text-align: center;">UNDUH INSTALLER (.DEB)</a>
+                    <div class="hash-box" style="margin-top: 12px;">
                         SHA-256: <span class="hash-text" id="hash-linux">78e2b8df1a95e0c60959f678...</span>
                     </div>
                 </div>
@@ -212,6 +213,7 @@
 
         const btnWin = document.getElementById('download-btn-win');
         const btnLinux = document.getElementById('download-btn-linux');
+        const btnDeb = document.getElementById('download-btn-deb');
 
         // Format count (e.g., 4230 -> 4.2K+)
         function formatCount(num) {
@@ -299,6 +301,7 @@
 
         if (btnWin) btnWin.addEventListener('click', handleDownloadClick);
         if (btnLinux) btnLinux.addEventListener('click', handleDownloadClick);
+        if (btnDeb) btnDeb.addEventListener('click', handleDownloadClick);
 
         // Jalankan pengambilan data awal
         fetchCount();

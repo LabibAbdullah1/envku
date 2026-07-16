@@ -13,6 +13,7 @@ const crypto = require("crypto");
 const ROOT        = __dirname;
 const TAURI_CONF  = path.join(ROOT, "src-tauri", "tauri.conf.json");
 const BUNDLE_DIR  = path.join(ROOT, "src-tauri", "target", "release", "bundle", "appimage");
+const DEB_BUNDLE_DIR = path.join(ROOT, "src-tauri", "target", "release", "bundle", "deb");
 const WEBSITE_DIR = path.join(ROOT, "website");
 const DOWNLOADS   = path.join(WEBSITE_DIR, "downloads");
 const UPDATE_JSON = path.join(WEBSITE_DIR, "update.json");
@@ -46,6 +47,20 @@ if (!appImageFile) {
 
 console.log(`   File .AppImage terdeteksi: ${appImageFile}`);
 
+// Cari file .deb jika folder deb bundle ada
+let debFile = null;
+if (fs.existsSync(DEB_BUNDLE_DIR)) {
+  const debFiles = fs.readdirSync(DEB_BUNDLE_DIR);
+  debFile = debFiles.find(f => f.toLowerCase().startsWith("envku_") && f.endsWith(".deb"));
+  if (debFile) {
+    console.log(`   File .deb terdeteksi: ${debFile}`);
+  } else {
+    console.warn(`⚠️  Berkas .deb tidak ditemukan di folder ${DEB_BUNDLE_DIR}`);
+  }
+} else {
+  console.warn(`⚠️  Folder bundle deb tidak ditemukan: ${DEB_BUNDLE_DIR}`);
+}
+
 // ── Buat folder downloads jika belum ada ─────────────────────
 if (!fs.existsSync(DOWNLOADS)) {
   fs.mkdirSync(DOWNLOADS, { recursive: true });
@@ -67,6 +82,16 @@ if (tarGzFile && sigFile) {
   console.log(`   ✅ Berhasil disalin.`);
 } else {
   console.warn(`⚠️  Arsip updater atau file signature tidak ditemukan di folder bundle.`);
+}
+
+// ── Salin file .deb jika ada ─────────────────────────────────
+if (debFile) {
+  console.log(`📦 Menyalin biner .deb...`);
+  const DEB_SRC = path.join(DEB_BUNDLE_DIR, debFile);
+  const DEB_DEST = path.join(DOWNLOADS, debFile);
+  fs.copyFileSync(DEB_SRC, DEB_DEST);
+  const debSizeMB = (fs.statSync(DEB_DEST).size / 1024 / 1024).toFixed(1);
+  console.log(`   ✅ Berhasil! (${debSizeMB} MB)`);
 }
 
 // ── Hitung SHA-256 dari .AppImage ─────────────────────────────
@@ -111,6 +136,14 @@ html = html.replace(
   /href="downloads\/[eE]nvku_[\d.]+_amd64\.AppImage"/g,
   `href="downloads/${appImageFile}"`
 );
+
+// 1b. URL tombol download Linux (.deb)
+if (debFile) {
+  html = html.replace(
+    /href="downloads\/[eE]nvku_[\d.]+_amd64\.deb"/g,
+    `href="downloads/${debFile}"`
+  );
+}
 
 // 2. Ukuran file nyata (Linux)
 html = html.replace(
