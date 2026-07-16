@@ -111,10 +111,8 @@ pub fn control_service(service: &str, action: &str) -> Result<String, String> {
         let systemd_service = format!("envku-{}", service);
         
         // Jalankan perintah systemctl melalui pkexec untuk eskalasi hak akses jika diperlukan
-        let output = Command::new("pkexec")
-            .args(&["systemctl", action, &systemd_service])
-            .output()
-            .map_err(|e| format!("Gagal memanggil pkexec systemctl: {}", e))?;
+        let output = crate::execute_elevated_command(&["systemctl", action, &systemd_service])
+            .map_err(|e| format!("Gagal memanggil perintah elevated systemctl: {}", e))?;
 
         if output.status.success() {
             Ok(format!("Layanan {} berhasil di-{}", service, action))
@@ -269,9 +267,7 @@ WantedBy=multi-user.target
             .map_err(|e| format!("Gagal membuat file unit kustom sementara: {}", e))?;
 
         // 4. Pindahkan berkas kustom unit ke direktori systemd menggunakan pkexec
-        let move_output = Command::new("pkexec")
-            .args(&["cp", &temp_file.to_string_lossy(), &service_file_path])
-            .output()
+        let move_output = crate::execute_elevated_command(&["cp", &temp_file.to_string_lossy(), &service_file_path])
             .map_err(|e| format!("Gagal memindahkan file unit systemd: {}", e))?;
 
         let _ = fs::remove_file(temp_file);
@@ -282,9 +278,7 @@ WantedBy=multi-user.target
         }
 
         // 5. Reload systemd daemon dan aktifkan service tersebut
-        let reload_output = Command::new("pkexec")
-            .args(&["systemctl", "daemon-reload"])
-            .output()
+        let reload_output = crate::execute_elevated_command(&["systemctl", "daemon-reload"])
             .map_err(|e| format!("Gagal me-reload systemd daemon: {}", e))?;
 
         if !reload_output.status.success() {
@@ -292,9 +286,7 @@ WantedBy=multi-user.target
             return Err(format!("Gagal me-reload systemd: {}", stderr.trim()));
         }
 
-        let enable_output = Command::new("pkexec")
-            .args(&["systemctl", "enable", &format!("envku-{}", service)])
-            .output()
+        let enable_output = crate::execute_elevated_command(&["systemctl", "enable", &format!("envku-{}", service)])
             .map_err(|e| format!("Gagal mengaktifkan layanan systemd: {}", e))?;
 
         if enable_output.status.success() {

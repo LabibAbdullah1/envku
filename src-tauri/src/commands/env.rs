@@ -12,19 +12,15 @@ pub fn check_and_init_environment() -> Result<String, String> {
     {
         if !base_path.exists() {
             // Minta hak akses root untuk membuat /opt/server dan ubah kepemilikannya ke user aktif
-            let output = std::process::Command::new("pkexec")
-                .args(&["mkdir", "-p", "/opt/server"])
-                .output()
-                .map_err(|e| format!("Gagal membuat /opt/server via pkexec: {}", e))?;
+            let output = crate::execute_elevated_command(&["mkdir", "-p", "/opt/server"])
+                .map_err(|e| format!("Gagal membuat /opt/server via perintah elevated: {}", e))?;
                 
             if !output.status.success() {
                 return Err("Gagal membuat direktori /opt/server. Autentikasi ditolak.".to_string());
             }
 
             if let Ok(user) = std::env::var("USER") {
-                let _ = std::process::Command::new("pkexec")
-                    .args(&["chown", "-R", &user, "/opt/server"])
-                    .output();
+                let _ = crate::execute_elevated_command(&["chown", "-R", &user, "/opt/server"]);
             }
         }
     }

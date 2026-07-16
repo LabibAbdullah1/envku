@@ -18,6 +18,48 @@ pub fn create_hidden_command(program: &str) -> Command {
     cmd
 }
 
+pub fn execute_elevated_command(args: &[&str]) -> Result<std::process::Output, std::io::Error> {
+    #[cfg(target_os = "windows")]
+    {
+        let mut cmd = Command::new(args[0]);
+        cmd.args(&args[1..]);
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+        cmd.output()
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let is_wsl = std::env::var("WSL_DISTRO_NAME").is_ok() || 
+                     std::fs::read_to_string("/proc/version").map(|v| v.to_lowercase().contains("microsoft")).unwrap_or(false);
+
+        let program = if is_wsl { "sudo" } else { "pkexec" };
+        let mut cmd = Command::new(program);
+        cmd.args(args);
+        let output = cmd.output();
+
+        match output {
+            Ok(ref out) if out.status.success() => Ok(output.unwrap()),
+            _ => {
+                let fallback = if program == "sudo" { "pkexec" } else { "sudo" };
+                let mut fallback_cmd = Command::new(fallback);
+                fallback_cmd.args(args);
+                fallback_cmd.output()
+            }
+        }
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        let mut cmd = Command::new(args[0]);
+        cmd.args(&args[1..]);
+        cmd.output()
+    }
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)

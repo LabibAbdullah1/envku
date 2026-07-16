@@ -296,8 +296,9 @@ pub fn toggle_php_extension(version_id: String, extension_name: String, enable: 
     // Restart Apache automatically if this is the currently active PHP version!
     let active_php = get_active_php_version().unwrap_or("unknown".to_string());
     if active_php == version_id {
-        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
-        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+        let service_name = if cfg!(target_os = "linux") { "apache" } else { "Apache2.4" };
+        let _ = crate::commands::services::control_service(service_name.to_string(), "stop".to_string());
+        let _ = crate::commands::services::control_service(service_name.to_string(), "start".to_string());
     }
 
     Ok(format!("Ekstensi {} berhasil di-{}", extension_name, if enable { "aktifkan" } else { "nonaktifkan" }))

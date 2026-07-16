@@ -1,5 +1,4 @@
 use std::fs;
-use std::path::Path;
 use crate::config::get_server_dir_path;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -14,24 +13,7 @@ pub struct VirtualHostInfo {
 #[tauri::command]
 pub fn add_project(domain: String, document_root: String, is_node: bool, node_port: Option<u16>, enable_ssl: bool) -> Result<String, String> {
     // 1. Hosts file modification
-    let hosts_path = Path::new("C:\\Windows\\System32\\drivers\\etc\\hosts");
-    let mut hosts_content = fs::read_to_string(hosts_path)
-        .map_err(|e| format!("Gagal membaca file hosts: {}", e))?;
-
-    let host_entry = format!("127.0.0.1 {}", domain);
-    let domain_exists = hosts_content.lines().any(|line| {
-        let clean = line.trim();
-        !clean.starts_with('#') && clean.contains(&domain)
-    });
-
-    if !domain_exists {
-        if !hosts_content.ends_with('\n') {
-            hosts_content.push('\n');
-        }
-        hosts_content.push_str(&format!("{}\n", host_entry));
-        fs::write(hosts_path, &hosts_content)
-            .map_err(|e| format!("Gagal menulis ke file hosts: {}. Pastikan dijalankan sebagai Administrator.", e))?;
-    }
+    crate::platform::hosts::add_host_entry(&domain, "127.0.0.1")?;
 
     // 2. SSL Certificate Generation & Trust (if enabled)
     let server_dir = get_server_dir_path();
@@ -76,7 +58,7 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
     }
 
     // 3. Vhosts config update
-    let vhosts_path = server_dir.join("Apache24\\conf\\extra\\httpd-vhosts.conf");
+    let vhosts_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-vhosts.conf");
     if !vhosts_path.exists() {
         if let Some(parent) = vhosts_path.parent() {
             fs::create_dir_all(parent).unwrap_or(());
@@ -179,31 +161,11 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
 
 fn delete_project_internal(domain: &str) -> Result<(), String> {
     // 1. Remove from hosts file
-    let hosts_path = Path::new("C:\\Windows\\System32\\drivers\\etc\\hosts");
-    if hosts_path.exists() {
-        let hosts_content = fs::read_to_string(hosts_path)
-            .map_err(|e| format!("Gagal membaca file hosts: {}", e))?;
-        
-        let new_lines: Vec<String> = hosts_content.lines()
-            .filter(|line| {
-                let clean = line.trim();
-                clean.starts_with('#') || !clean.contains(domain)
-            })
-            .map(|s| s.to_string())
-            .collect();
-            
-        let mut new_content = new_lines.join("\n");
-        if !new_content.ends_with('\n') && !new_content.is_empty() {
-            new_content.push('\n');
-        }
-        
-        fs::write(hosts_path, new_content)
-            .map_err(|e| format!("Gagal menulis ke file hosts: {}. Pastikan dijalankan sebagai Administrator.", e))?;
-    }
+    crate::platform::hosts::remove_host_entry(domain)?;
 
     // 2. Remove from httpd-vhosts.conf
     let server_dir = get_server_dir_path();
-    let vhosts_path = server_dir.join("Apache24\\conf\\extra\\httpd-vhosts.conf");
+    let vhosts_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-vhosts.conf");
     if vhosts_path.exists() {
         let vhosts_content = fs::read_to_string(&vhosts_path)
             .map_err(|e| format!("Gagal membaca httpd-vhosts.conf: {}", e))?;
@@ -295,7 +257,7 @@ pub fn edit_project(
 #[tauri::command]
 pub fn get_virtual_hosts() -> Result<Vec<VirtualHostInfo>, String> {
     let server_dir = get_server_dir_path();
-    let vhosts_path = server_dir.join("Apache24\\conf\\extra\\httpd-vhosts.conf");
+    let vhosts_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-vhosts.conf");
     if !vhosts_path.exists() {
         return Ok(Vec::new());
     }
