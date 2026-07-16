@@ -53,8 +53,11 @@ jobs:
       - name: Install npm Dependencies
         run: npm ci
 
-      - name: Build Tauri App (Linux .deb only)
+      - name: Build Tauri App (Linux AppImage & deb)
         run: npm run tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Process Linux Release (Post-Build Linux)
         run: |
