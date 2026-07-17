@@ -281,7 +281,11 @@ pub fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String> {
             if is_port_in_use(port) {
                 if let Some((pid, proc_path)) = find_port_owner(port) {
                     let proc_path_lower = proc_path.to_lowercase();
-                    if !proc_path_lower.contains("mailpit.exe") || !proc_path_lower.contains(&server_dir_str) {
+                    let has_path_separator = proc_path_lower.contains('\\') || proc_path_lower.contains('/');
+                    let is_our_mailpit = (proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
+                        (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || !has_path_separator);
+
+                    if !is_our_mailpit {
                         port_conflict = true;
                         conflict_pid = Some(pid);
                         conflict_process = Some(proc_path);
@@ -308,11 +312,21 @@ pub fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String> {
             if is_port_in_use(port) {
                 if let Some((pid, proc_path)) = find_port_owner(port) {
                     let proc_path_lower = proc_path.to_lowercase();
+                    let has_path_separator = proc_path_lower.contains('\\') || proc_path_lower.contains('/');
                     
                     let is_our_proc = match key {
-                        "Apache" => proc_path_lower.contains("httpd.exe") && proc_path_lower.contains(&server_dir_str),
-                        "MySQL" => proc_path_lower.contains("mysqld.exe") && proc_path_lower.contains(&server_dir_str),
-                        "Redis" => (proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) && proc_path_lower.contains(&server_dir_str),
+                        "Apache" => {
+                            (proc_path_lower.contains("httpd.exe") || proc_path_lower.contains("apache2") || proc_path_lower.contains("httpd")) &&
+                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                        },
+                        "MySQL" => {
+                            (proc_path_lower.contains("mysqld.exe") || proc_path_lower.contains("mysqld")) &&
+                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                        },
+                        "Redis" => {
+                            (proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) &&
+                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                        },
                         _ => false,
                     };
                     
@@ -365,23 +379,31 @@ pub fn control_service(service: String, action: String) -> Result<String, String
                 if let Some((pid, proc_path)) = find_port_owner(p) {
                     let server_dir = get_server_dir_path().to_string_lossy().to_lowercase();
                     let proc_path_lower = proc_path.to_lowercase();
+                    let has_path_separator = proc_path_lower.contains('\\') || proc_path_lower.contains('/');
+                    
+                    let running = match norm {
+                        "apache" => is_service_running("Apache2.4"),
+                        "mysql" => is_service_running("mysql-server"),
+                        "redis" => is_service_running("redis-server"),
+                        _ => false,
+                    };
                     
                     let is_our_proc = match norm {
                         "apache" => {
-                            (proc_path_lower.contains("httpd.exe") && proc_path_lower.contains(&server_dir)) ||
-                            (proc_path_lower.contains("apache2") && proc_path_lower.contains("/opt/server"))
+                            (proc_path_lower.contains("httpd.exe") || proc_path_lower.contains("apache2") || proc_path_lower.contains("httpd")) &&
+                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
                         },
                         "mysql" => {
-                            (proc_path_lower.contains("mysqld.exe") && proc_path_lower.contains(&server_dir)) ||
-                            (proc_path_lower.contains("mysqld") && proc_path_lower.contains("/opt/server"))
+                            (proc_path_lower.contains("mysqld.exe") || proc_path_lower.contains("mysqld")) &&
+                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
                         },
                         "redis" => {
                             (proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server"))
+                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
                         },
                         "mailpit" => {
-                            proc_path_lower.contains("mailpit") &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server"))
+                            (proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
+                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || !has_path_separator)
                         },
                         _ => false,
                     };
