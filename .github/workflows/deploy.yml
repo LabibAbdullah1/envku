@@ -74,8 +74,9 @@ jobs:
           echo "Current list of files in website/downloads/:"
           ls -lh website/downloads/
 
-      - name: FTP Deploy Website to cPanel
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux'
+      # Opsi A: FTP Deploy saat versi Linux di-build (unggah semua termasuk biner Linux)
+      - name: FTP Deploy Website to cPanel (With Linux Build)
+        if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux') && github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -86,3 +87,22 @@ jobs:
           local-dir: ./website/
           server-dir: ./
           state-name: .ftp-deploy-sync-state.json
+
+      # Opsi B: FTP Deploy saat versi Linux dilompati (jangan hapus biner Linux di cPanel!)
+      - name: FTP Deploy Website to cPanel (Skip Linux Build)
+        if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux') && (github.event.inputs.skip_linux == 'true' || github.event.inputs.skip_linux == true || contains(github.event.head_commit.message, '[skip linux]') || contains(github.event.head_commit.message, '[only windows]')) }}
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          security: loose
+          local-dir: ./website/
+          server-dir: ./
+          state-name: .ftp-deploy-sync-state.json
+          exclude: |
+            **/downloads/*.deb
+            **/downloads/*.AppImage
+            **/downloads/*.AppImage.tar.gz
+            **/downloads/*.AppImage.tar.gz.sig
