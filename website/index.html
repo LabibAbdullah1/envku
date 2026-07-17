@@ -166,7 +166,7 @@
                     </ul>
                     <a href="downloads/Envku_1.3.10_x64-setup.exe" id="download-btn-win" class="btn-primary btn-download">UNDUH INSTALLER (.EXE)</a>
                     <div class="hash-box">
-                        SHA-256: <span class="hash-text" id="hash-win">113e64167872da14d16cbb87...</span>
+                        SHA-256: <span class="hash-text" id="hash-win">2c2ad3563ad3fdc731b3529e...</span>
                     </div>
                 </div>
             </div>
@@ -176,7 +176,7 @@
                 <div class="download-header bg-blue" style="display: flex; flex-direction: column; gap: 8px;">
                     <h3 style="color: #000000; text-shadow: none;">ENVKU PORTABLE LINUX</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <span class="version-tag">V1.3.10 (STABLE)</span>
+                        <span class="version-tag" style="background-color: #F59E0B; color: #000000; border-color: #F59E0B;">COMING SOON</span>
                         <span class="version-tag" style="background-color: #EF4444; color: #ffffff;" id="downloads-badge-appimage">0 UNDUHAN</span>
                     </div>
                 </div>
@@ -187,7 +187,7 @@
                         <li id="file-release-appimage"><strong>Rilis:</strong> 16 Juli 2026</li>
                         <li><strong>Total Unduhan:</strong> <span id="downloads-text-appimage">0</span> kali</li>
                     </ul>
-                    <a href="downloads/envku_1.3.7_amd64.AppImage" id="download-btn-appimage" class="btn-primary btn-download" style="background-color: var(--accent-blue); width: 100%; display: block; text-align: center;">UNDUH PORTABLE (.APPIMAGE)</a>
+                    <a href="downloads/envku_1.3.7_amd64.AppImage" id="download-btn-appimage" class="btn-primary btn-download" style="background-color: #4B5563; color: #D1D5DB; width: 100%; display: block; text-align: center;">COMING SOON (PORTABLE)</a>
                     <div class="hash-box">
                         SHA-256: <span class="hash-text" id="hash-appimage">78e2b8df1a95e0c60959f678...</span>
                     </div>
@@ -199,7 +199,7 @@
                 <div class="download-header bg-emerald" style="display: flex; flex-direction: column; gap: 8px;">
                     <h3 style="color: #000000; text-shadow: none;">ENVKU DEBIAN LINUX</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <span class="version-tag">V1.3.10 (STABLE)</span>
+                        <span class="version-tag" style="background-color: #F59E0B; color: #000000; border-color: #F59E0B;">COMING SOON</span>
                         <span class="version-tag" style="background-color: #EF4444; color: #ffffff;" id="downloads-badge-deb">0 UNDUHAN</span>
                     </div>
                 </div>
@@ -210,7 +210,7 @@
                         <li id="file-release-deb"><strong>Rilis:</strong> 16 Juli 2026</li>
                         <li><strong>Total Unduhan:</strong> <span id="downloads-text-deb">0</span> kali</li>
                     </ul>
-                    <a href="downloads/envku_1.3.7_amd64.deb" id="download-btn-deb" class="btn-primary btn-download" style="background-color: var(--accent-emerald); width: 100%; display: block; text-align: center;">UNDUH INSTALLER (.DEB)</a>
+                    <a href="downloads/envku_1.3.7_amd64.deb" id="download-btn-deb" class="btn-primary btn-download" style="background-color: #4B5563; color: #D1D5DB; width: 100%; display: block; text-align: center;">COMING SOON (.DEB)</a>
                     <div class="hash-box">
                         SHA-256: <span class="hash-text" id="hash-deb">78e2b8df1a95e0c60959f678...</span>
                     </div>
@@ -238,6 +238,32 @@
         const btnWin = document.getElementById('download-btn-win');
         const btnAppImage = document.getElementById('download-btn-appimage');
         const btnDeb = document.getElementById('download-btn-deb');
+
+        // Check developer mode
+        const urlParams = new URLSearchParams(window.location.search);
+        let isDev = urlParams.get('dev') === 'true' || localStorage.getItem('envku_dev_mode') === 'true';
+        if (urlParams.get('dev') === 'true') {
+            localStorage.setItem('envku_dev_mode', 'true');
+            isDev = true;
+        }
+        if (urlParams.get('dev') === 'false') {
+            localStorage.removeItem('envku_dev_mode');
+            isDev = false;
+        }
+
+        // Protect Linux links for public
+        if (!isDev) {
+            if (btnAppImage) {
+                btnAppImage.dataset.href = btnAppImage.getAttribute('href') || '';
+                btnAppImage.removeAttribute('href');
+                btnAppImage.style.cursor = 'not-allowed';
+            }
+            if (btnDeb) {
+                btnDeb.dataset.href = btnDeb.getAttribute('href') || '';
+                btnDeb.removeAttribute('href');
+                btnDeb.style.cursor = 'not-allowed';
+            }
+        }
 
         // Format count (e.g., 4230 -> 4.2K+)
         function formatCount(num) {
@@ -357,7 +383,12 @@
         }
 
         if (btnAppImage) {
-            btnAppImage.addEventListener('click', () => {
+            btnAppImage.addEventListener('click', (e) => {
+                if (!isDev) {
+                    e.preventDefault();
+                    alert("Versi Linux akan segera hadir! Silakan gunakan versi Windows untuk saat ini.");
+                    return;
+                }
                 const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
                 const currentWinNum = parseInt(currentWinText, 10);
                 
