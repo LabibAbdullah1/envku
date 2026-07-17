@@ -156,7 +156,7 @@ pub fn create_desktop_shortcut() -> Result<String, String> {
 
         // Write embedded icon.png
         let icon_path = icons_dir.join("envku.png");
-        const ICON_BYTES: &[u8] = include_bytes!("../../../icons/icon.png");
+        const ICON_BYTES: &[u8] = include_bytes!("../../icons/icon.png");
         fs::write(&icon_path, ICON_BYTES).map_err(|e| format!("Gagal menulis file icon: {}", e))?;
 
         // Get executable path
