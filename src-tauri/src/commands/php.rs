@@ -192,17 +192,30 @@ pub struct PhpExtensionInfo {
     pub enabled: bool,
 }
 
+#[cfg(target_os = "linux")]
+fn get_linux_enabled_extensions(version_id: &str) -> Vec<String> {
+    let php_version_dot = if version_id == "php83" { "8.3" } else { "8.2" };
+    let php_cmd = format!("php{}", php_version_dot);
+    
+    let output = std::process::Command::new(php_cmd)
+        .arg("-m")
+        .output();
+        
+    let mut enabled_exts = Vec::new();
+    if let Ok(out) = output {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        for line in stdout.lines() {
+            let name = line.trim().to_lowercase();
+            if !name.is_empty() {
+                enabled_exts.push(name);
+            }
+        }
+    }
+    enabled_exts
+}
+
 #[tauri::command]
 pub fn get_php_extensions(version_id: String) -> Result<Vec<PhpExtensionInfo>, String> {
-    let server_dir = get_server_dir_path();
-    let php_ini_path = server_dir.join(&version_id).join("php.ini");
-    if !php_ini_path.exists() {
-        return Err(format!("File php.ini tidak ditemukan di {}", php_ini_path.to_string_lossy()));
-    }
-
-    let content = fs::read_to_string(&php_ini_path)
-        .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
-
     let target_extensions = vec![
         "bz2", "curl", "ffi", "fileinfo", "ftp", "gd", "gettext", "gmp", 
         "imap", "intl", "ldap", "mbstring", "exif", "mysqli", "oci8_19", 
@@ -212,13 +225,114 @@ pub fn get_php_extensions(version_id: String) -> Result<Vec<PhpExtensionInfo>, S
         "tidy", "xsl", "zip", "opcache"
     ];
 
-    let mut result = Vec::new();
-    for ext in target_extensions {
-        let is_zend = ext == "opcache";
-        let prefix = if is_zend { "zend_extension" } else { "extension" };
+    #[cfg(target_os = "linux")]
+    {
+        let enabled_exts = get_linux_enabled_extensions(&version_id);
+        let mut result = Vec::new();
+        for ext in target_extensions {
+            let match_name = ext.to_lowercase();
+            let is_enabled = if match_name == "opcache" {
+                enabled_exts.contains(&"zend opcache".to_string()) || enabled_exts.contains(&"opcache".to_string())
+            } else {
+                enabled_exts.contains(&match_name)
+            };
+            
+            result.push(PhpExtensionInfo {
+                name: ext.to_string(),
+                enabled: is_enabled,
+            });
+        }
+        return Ok(result);
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let server_dir = get_server_dir_path();
+        let php_ini_path = server_dir.join(&version_id).join("php.ini");
+        if !php_ini_path.exists() {
+            return Err(format!("File php.ini tidak ditemukan di {}", php_ini_path.to_string_lossy()));
+        }
+
+        let content = fs::read_to_string(&php_ini_path)
+            .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
+
+        let mut result = Vec::new();
+        for ext in target_extensions {
+            let is_zend = ext == "opcache";
+            let prefix = if is_zend { "zend_extension" } else { "extension" };
+            
+            let mut found = false;
+            let mut enabled = false;
+
+            for line in content.lines() {
+                let trimmed = line.trim();
+                let is_commented = trimmed.starts_with(';');
+                let clean_line = if is_commented {
+                    trimmed[1..].trim()
+                } else {
+                    trimmed
+                };
+                
+                let clean_line_no_spaces = clean_line.replace(" ", "").replace("\"", "").replace("'", "");
+                let expected_match = format!("{}={}", prefix, ext);
+                
+                if clean_line_no_spaces == expected_match {
+                    enabled = !is_commented;
+                    found = true;
+                    break;
+                }
+            }
+
+            result.push(PhpExtensionInfo {
+                name: ext.to_string(),
+                enabled: found && enabled,
+            });
+        }
+
+        Ok(result)
+    }
+}
+
+#[tauri::command]
+pub fn toggle_php_extension(version_id: String, extension_name: String, enable: bool) -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let cmd = if enable { "phpenmod" } else { "phpdismod" };
+        let php_version_dot = if version_id == "php83" { "8.3" } else { "8.2" };
         
-        let mut found = false;
-        let mut enabled = false;
+        let output = crate::execute_elevated_command(&[cmd, "-v", php_version_dot, &extension_name])
+            .map_err(|e| format!("Gagal menjalankan perintah elevated {} -v {} {}: {}", cmd, php_version_dot, extension_name, e))?;
+            
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Gagal mengubah status ekstensi {} di Linux: {}", extension_name, stderr.trim()));
+        }
+        
+        // Restart Apache automatically if this is the currently active PHP version!
+        let active_php = get_active_php_version().unwrap_or("unknown".to_string());
+        if active_php == version_id {
+            let _ = crate::commands::services::control_service("apache".to_string(), "restart".to_string());
+        }
+        
+        return Ok(format!("Ekstensi {} berhasil di-{}", extension_name, if enable { "aktifkan" } else { "nonaktifkan" }));
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let server_dir = get_server_dir_path();
+        let php_ini_path = server_dir.join(&version_id).join("php.ini");
+        if !php_ini_path.exists() {
+            return Err(format!("File php.ini tidak ditemukan di {}", php_ini_path.to_string_lossy()));
+        }
+
+        let content = fs::read_to_string(&php_ini_path)
+            .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
+
+        let is_zend = extension_name == "opcache";
+        let prefix = if is_zend { "zend_extension" } else { "extension" };
+
+        let mut new_lines = Vec::new();
+        let mut modified = false;
 
         for line in content.lines() {
             let trimmed = line.trim();
@@ -230,83 +344,37 @@ pub fn get_php_extensions(version_id: String) -> Result<Vec<PhpExtensionInfo>, S
             };
             
             let clean_line_no_spaces = clean_line.replace(" ", "").replace("\"", "").replace("'", "");
-            let expected_match = format!("{}={}", prefix, ext);
-            
+            let expected_match = format!("{}={}", prefix, extension_name);
+
             if clean_line_no_spaces == expected_match {
-                enabled = !is_commented;
-                found = true;
-                break;
+                if enable {
+                    new_lines.push(format!("{}={}", prefix, extension_name));
+                } else {
+                    new_lines.push(format!(";{}={}", prefix, extension_name));
+                }
+                modified = true;
+            } else {
+                new_lines.push(line.to_string());
             }
         }
 
-        result.push(PhpExtensionInfo {
-            name: ext.to_string(),
-            enabled: found && enabled,
-        });
-    }
-
-    Ok(result)
-}
-
-#[tauri::command]
-pub fn toggle_php_extension(version_id: String, extension_name: String, enable: bool) -> Result<String, String> {
-    let server_dir = get_server_dir_path();
-    let php_ini_path = server_dir.join(&version_id).join("php.ini");
-    if !php_ini_path.exists() {
-        return Err(format!("File php.ini tidak ditemukan di {}", php_ini_path.to_string_lossy()));
-    }
-
-    let content = fs::read_to_string(&php_ini_path)
-        .map_err(|e| format!("Gagal membaca php.ini: {}", e))?;
-
-    let is_zend = extension_name == "opcache";
-    let prefix = if is_zend { "zend_extension" } else { "extension" };
-
-    let mut new_lines = Vec::new();
-    let mut modified = false;
-
-    for line in content.lines() {
-        let trimmed = line.trim();
-        let is_commented = trimmed.starts_with(';');
-        let clean_line = if is_commented {
-            trimmed[1..].trim()
-        } else {
-            trimmed
-        };
-        
-        let clean_line_no_spaces = clean_line.replace(" ", "").replace("\"", "").replace("'", "");
-        let expected_match = format!("{}={}", prefix, extension_name);
-
-        if clean_line_no_spaces == expected_match {
+        if !modified {
             if enable {
                 new_lines.push(format!("{}={}", prefix, extension_name));
             } else {
                 new_lines.push(format!(";{}={}", prefix, extension_name));
             }
-            modified = true;
-        } else {
-            new_lines.push(line.to_string());
         }
-    }
 
-    if !modified {
-        if enable {
-            new_lines.push(format!("{}={}", prefix, extension_name));
-        } else {
-            new_lines.push(format!(";{}={}", prefix, extension_name));
+        fs::write(&php_ini_path, new_lines.join("\n"))
+            .map_err(|e| format!("Gagal memperbarui php.ini: {}", e))?;
+
+        // Restart Apache automatically if this is the currently active PHP version!
+        let active_php = get_active_php_version().unwrap_or("unknown".to_string());
+        if active_php == version_id {
+            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "restart".to_string());
         }
+
+        Ok(format!("Ekstensi {} berhasil di-{}", extension_name, if enable { "aktifkan" } else { "nonaktifkan" }))
     }
-
-    fs::write(&php_ini_path, new_lines.join("\n"))
-        .map_err(|e| format!("Gagal memperbarui php.ini: {}", e))?;
-
-    // Restart Apache automatically if this is the currently active PHP version!
-    let active_php = get_active_php_version().unwrap_or("unknown".to_string());
-    if active_php == version_id {
-        let service_name = if cfg!(target_os = "linux") { "apache" } else { "Apache2.4" };
-        let _ = crate::commands::services::control_service(service_name.to_string(), "stop".to_string());
-        let _ = crate::commands::services::control_service(service_name.to_string(), "start".to_string());
-    }
-
-    Ok(format!("Ekstensi {} berhasil di-{}", extension_name, if enable { "aktifkan" } else { "nonaktifkan" }))
 }

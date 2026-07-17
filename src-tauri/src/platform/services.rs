@@ -52,12 +52,17 @@ pub fn check_service_installed(service: &str) -> Result<bool, String> {
 
 /// Mengontrol status layanan (start / stop).
 pub fn control_service(service: &str, action: &str) -> Result<String, String> {
-    if action != "start" && action != "stop" {
-        return Err("Aksi kontrol layanan tidak valid. Gunakan start atau stop.".to_string());
+    if action != "start" && action != "stop" && action != "restart" {
+        return Err("Aksi kontrol layanan tidak valid. Gunakan start, stop, atau restart.".to_string());
     }
 
     #[cfg(target_os = "windows")]
     {
+        if action == "restart" {
+            let _ = control_service(service, "stop");
+            return control_service(service, "start");
+        }
+
         if service == "mailpit" {
             if action == "start" {
                 let server_dir = get_server_dir_path();
@@ -118,8 +123,8 @@ pub fn control_service(service: &str, action: &str) -> Result<String, String> {
     {
         let systemd_service = format!("envku-{}", service);
         
-        // Self-healing: if the service is being started and the unit file doesn't exist, register it first.
-        if action == "start" {
+        // Self-healing: if the service is being started or restarted and the unit file doesn't exist, register it first.
+        if action == "start" || action == "restart" {
             let service_file_path = format!("/etc/systemd/system/{}.service", systemd_service);
             if !std::path::Path::new(&service_file_path).exists() {
                 install_service(service)?;
