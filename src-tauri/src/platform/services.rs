@@ -16,7 +16,7 @@ pub fn check_service_installed(service: &str) -> Result<bool, String> {
             return Ok(mailpit_exe.exists());
         }
 
-        let output = Command::new("sc")
+        let output = crate::create_hidden_command("sc")
             .args(&["query", service])
             .output()
             .map_err(|e| format!("Gagal menjalankan query service: {}", e))?;
@@ -69,7 +69,7 @@ pub fn control_service(service: &str, action: &str) -> Result<String, String> {
                 cmd.spawn().map_err(|e| format!("Gagal menjalankan Mailpit: {}", e))?;
                 return Ok("Layanan Mailpit berhasil dijalankan".to_string());
             } else if action == "stop" {
-                let _ = Command::new("taskkill")
+                let _ = crate::create_hidden_command("taskkill")
                     .args(&["/F", "/IM", "mailpit.exe"])
                     .output();
                 return Ok("Layanan Mailpit berhasil dihentikan".to_string());
@@ -89,7 +89,7 @@ pub fn control_service(service: &str, action: &str) -> Result<String, String> {
             _ => action,
         };
 
-        let output = Command::new("net")
+        let output = crate::create_hidden_command("net")
             .args(&[action_arg, service_name])
             .output()
             .map_err(|e| format!("Gagal mengontrol service: {}", e))?;
@@ -138,7 +138,18 @@ pub fn install_service(service: &str) -> Result<String, String> {
     {
         if service == "apache" {
             let apache_exe = server_dir.join("Apache24").join("bin").join("httpd.exe");
-            let output = Command::new(&apache_exe)
+            
+            // Hapus yang lama jika ada
+            let _ = crate::create_hidden_command("sc").args(&["stop", "Apache2.4"]).output();
+            let _ = crate::create_hidden_command("sc").args(&["delete", "Apache2.4"]).output();
+
+            let mut cmd = Command::new(&apache_exe);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000);
+            }
+            let output = cmd
                 .args(&["-k", "install", "-n", "Apache2.4"])
                 .output()
                 .map_err(|e| format!("Gagal menginstal service Apache: {}", e))?;
@@ -153,10 +164,17 @@ pub fn install_service(service: &str) -> Result<String, String> {
             let my_ini_path = mysql_dir.join("my.ini");
             let defaults_arg = format!("--defaults-file={}", my_ini_path.to_string_lossy());
             
-            // Hapus yang lama
-            let _ = Command::new("sc").args(&["delete", "mysql-server"]).output();
+            // Hapus yang lama jika ada
+            let _ = crate::create_hidden_command("sc").args(&["stop", "mysql-server"]).output();
+            let _ = crate::create_hidden_command("sc").args(&["delete", "mysql-server"]).output();
 
-            let output = Command::new(&mysqld_exe)
+            let mut cmd = Command::new(&mysqld_exe);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000);
+            }
+            let output = cmd
                 .args(&["--install", "mysql-server", &defaults_arg])
                 .output()
                 .map_err(|e| format!("Gagal menginstal service MySQL: {}", e))?;
@@ -170,9 +188,17 @@ pub fn install_service(service: &str) -> Result<String, String> {
             let redis_exe = redis_dir.join("redis-server.exe");
             let conf_path = redis_dir.join("redis.windows.conf");
 
-            let _ = Command::new("sc").args(&["delete", "redis-server"]).output();
+            // Hapus yang lama jika ada
+            let _ = crate::create_hidden_command("sc").args(&["stop", "redis-server"]).output();
+            let _ = crate::create_hidden_command("sc").args(&["delete", "redis-server"]).output();
 
-            let output = Command::new(&redis_exe)
+            let mut cmd = Command::new(&redis_exe);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000);
+            }
+            let output = cmd
                 .args(&[
                     "--service-install",
                     &conf_path.to_string_lossy(),
