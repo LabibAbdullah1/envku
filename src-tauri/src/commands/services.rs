@@ -11,6 +11,22 @@ fn normalize_service_name(service: &str) -> &str {
     }
 }
 
+#[cfg(target_os = "linux")]
+fn is_pid_in_systemd_service(pid: u32, service_name: &str) -> bool {
+    let cgroup_path = format!("/proc/{}/cgroup", pid);
+    if let Ok(content) = std::fs::read_to_string(cgroup_path) {
+        let expected_service = format!("envku-{}.service", service_name);
+        content.contains(&expected_service)
+    } else {
+        false
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn is_pid_in_systemd_service(_pid: u32, _service_name: &str) -> bool {
+    false
+}
+
 #[tauri::command]
 pub fn check_service_installed(service: String) -> Result<bool, String> {
     let norm = normalize_service_name(&service);
@@ -291,8 +307,9 @@ pub fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String> {
                 if let Some((pid, proc_path)) = find_port_owner(port) {
                     let proc_path_lower = proc_path.to_lowercase();
                     let has_path_separator = proc_path_lower.contains('\\') || proc_path_lower.contains('/');
-                    let is_our_mailpit = (proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
-                        (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || !has_path_separator);
+                    let is_our_mailpit = is_pid_in_systemd_service(pid, "mailpit") ||
+                        ((proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
+                        (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || !has_path_separator));
 
                     if !is_our_mailpit {
                         port_conflict = true;
@@ -325,16 +342,19 @@ pub fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String> {
                     
                     let is_our_proc = match key {
                         "Apache" => {
-                            (proc_path_lower.contains("httpd.exe") || proc_path_lower.contains("apache2") || proc_path_lower.contains("httpd")) &&
-                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                            is_pid_in_systemd_service(pid, "apache") ||
+                            ((proc_path_lower.contains("httpd.exe") || proc_path_lower.contains("apache2") || proc_path_lower.contains("httpd")) &&
+                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
                         },
                         "MySQL" => {
-                            (proc_path_lower.contains("mysqld.exe") || proc_path_lower.contains("mysqld")) &&
-                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                            is_pid_in_systemd_service(pid, "mysql") ||
+                            ((proc_path_lower.contains("mysqld.exe") || proc_path_lower.contains("mysqld")) &&
+                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
                         },
                         "Redis" => {
-                            (proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) &&
-                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                            is_pid_in_systemd_service(pid, "redis") ||
+                            ((proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) &&
+                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
                         },
                         _ => false,
                     };
@@ -399,20 +419,24 @@ pub fn control_service(service: String, action: String) -> Result<String, String
                     
                     let is_our_proc = match norm {
                         "apache" => {
-                            (proc_path_lower.contains("httpd.exe") || proc_path_lower.contains("apache2") || proc_path_lower.contains("httpd")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                            is_pid_in_systemd_service(pid, "apache") ||
+                            ((proc_path_lower.contains("httpd.exe") || proc_path_lower.contains("apache2") || proc_path_lower.contains("httpd")) &&
+                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
                         },
                         "mysql" => {
-                            (proc_path_lower.contains("mysqld.exe") || proc_path_lower.contains("mysqld")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                            is_pid_in_systemd_service(pid, "mysql") ||
+                            ((proc_path_lower.contains("mysqld.exe") || proc_path_lower.contains("mysqld")) &&
+                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
                         },
                         "redis" => {
-                            (proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator))
+                            is_pid_in_systemd_service(pid, "redis") ||
+                            ((proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) &&
+                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
                         },
                         "mailpit" => {
-                            (proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || !has_path_separator)
+                            is_pid_in_systemd_service(pid, "mailpit") ||
+                            ((proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
+                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || !has_path_separator))
                         },
                         _ => false,
                     };

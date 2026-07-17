@@ -11,16 +11,16 @@ pub fn check_and_init_environment() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         if !base_path.exists() {
-            // Minta hak akses root untuk membuat /opt/server dan ubah kepemilikannya ke user aktif
-            let output = crate::execute_elevated_command(&["mkdir", "-p", "/opt/server"])
+            let user = std::env::var("USER").unwrap_or_default();
+            if user.is_empty() {
+                return Err("Gagal mendeteksi username aktif untuk inisialisasi folder.".to_string());
+            }
+            let cmd_str = format!("mkdir -p /opt/server && chown -R {} /opt/server", user);
+            let output = crate::execute_elevated_command(&["sh", "-c", &cmd_str])
                 .map_err(|e| format!("Gagal membuat /opt/server via perintah elevated: {}", e))?;
                 
             if !output.status.success() {
                 return Err("Gagal membuat direktori /opt/server. Autentikasi ditolak.".to_string());
-            }
-
-            if let Ok(user) = std::env::var("USER") {
-                let _ = crate::execute_elevated_command(&["chown", "-R", &user, "/opt/server"]);
             }
         }
     }
@@ -212,21 +212,17 @@ pub fn uninstall_envku(app_handle: tauri::AppHandle, delete_data: bool) -> Resul
 
         // 1. Stop and disable all envku-specific services
         let services = vec!["apache", "mysql", "redis", "mailpit"];
+        let mut cmd_parts = Vec::new();
         for service in &services {
             let systemd_service = format!("envku-{}", service);
-            // Stop service
-            let _ = crate::execute_elevated_command(&["systemctl", "stop", &systemd_service]);
-            // Disable service
-            let _ = crate::execute_elevated_command(&["systemctl", "disable", &systemd_service]);
-            // Delete systemd unit file
-            let service_file = format!("/etc/systemd/system/{}.service", systemd_service);
-            if Path::new(&service_file).exists() {
-                let _ = crate::execute_elevated_command(&["rm", "-f", &service_file]);
-            }
+            cmd_parts.push(format!("systemctl stop {} || true", systemd_service));
+            cmd_parts.push(format!("systemctl disable {} || true", systemd_service));
+            cmd_parts.push(format!("rm -f /etc/systemd/system/{}.service", systemd_service));
         }
-
-        // Reload systemd daemon
-        let _ = crate::execute_elevated_command(&["systemctl", "daemon-reload"]);
+        cmd_parts.push("systemctl daemon-reload".to_string());
+        
+        let cmd_str = cmd_parts.join("; ");
+        let _ = crate::execute_elevated_command(&["sh", "-c", &cmd_str]);
 
         // 2. Clean up /etc/hosts entries added by Envku
         // Get all virtual hosts domains to clean up

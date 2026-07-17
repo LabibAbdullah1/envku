@@ -524,32 +524,25 @@ async fn setup_php_repository() -> Result<(), String> {
             .map(|s| s.as_str())
             .unwrap_or("bookworm");
 
-        // Clear any old sury list to avoid conflicts
-        let _ = run_pkexec_command(&["bash", "-c", "rm -f /etc/apt/sources.list.d/sury-php.list"]);
-
-        // Install lsb-release, ca-certificates, curl, etc.
-        let _ = run_pkexec_command(&["apt-get", "update"]);
-        run_pkexec_command(&["apt-get", "install", "-y", "lsb-release", "ca-certificates", "apt-transport-https", "software-properties-common", "gnupg2", "curl"])?;
-
-        // Download Sury Debian PHP repository GPG key
-        run_pkexec_command(&["bash", "-c", "curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg"])?;
-
         // Add repository to sources.list.d
         let repo_entry = format!("deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ {} main\n", codename);
         let temp_sources = std::env::temp_dir().join("sury-php.list");
         fs::write(&temp_sources, repo_entry)
             .map_err(|e| format!("Gagal menulis file list sementara: {}", e))?;
 
-        run_pkexec_command(&["cp", &temp_sources.to_string_lossy(), "/etc/apt/sources.list.d/sury-php.list"])?;
+        let cmd_str = format!(
+            "rm -f /etc/apt/sources.list.d/sury-php.list && \
+             apt-get update && \
+             apt-get install -y lsb-release ca-certificates apt-transport-https software-properties-common gnupg2 curl && \
+             curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg && \
+             cp {} /etc/apt/sources.list.d/sury-php.list && \
+             apt-get update",
+            temp_sources.to_string_lossy()
+        );
+        let run_res = run_pkexec_command(&["bash", "-c", &cmd_str]);
         let _ = fs::remove_file(temp_sources);
+        run_res?;
     } else {
-        // Clear any old ondrej list/sources so they are regenerated fresh using the native codename
-        let _ = run_pkexec_command(&["bash", "-c", "rm -f /etc/apt/sources.list.d/ondrej-*.list /etc/apt/sources.list.d/ondrej-*.sources"]);
-
-        // Setup Ubuntu PPA
-        run_pkexec_command(&["apt-get", "install", "-y", "software-properties-common"])?;
-        run_pkexec_command(&["add-apt-repository", "-y", "ppa:ondrej/php"])?;
-
         // Dapatkan nama codename sistem
         let codename = os_info.get("VERSION_CODENAME")
             .map(|s| s.as_str())
@@ -581,17 +574,21 @@ async fn setup_php_repository() -> Result<(), String> {
             }
         }
 
-        // Jika codename yang didukung berbeda, timpa file konfigurasi PPA menggunakan sed
+        let mut cmd_str = format!(
+            "rm -f /etc/apt/sources.list.d/ondrej-*.list /etc/apt/sources.list.d/ondrej-*.sources && \
+             apt-get install -y software-properties-common && \
+             add-apt-repository -y ppa:ondrej/php"
+        );
         if selected_codename != codename {
-            let sed_cmd = format!(
-                "sed -i -E 's/{}/{}/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true",
+            cmd_str.push_str(&format!(
+                " && sed -i -E 's/{0}/{1}/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true",
                 codename, selected_codename
-            );
-            let _ = run_pkexec_command(&["bash", "-c", &sed_cmd]);
+            ));
         }
+        cmd_str.push_str(" && apt-get update");
+        run_pkexec_command(&["bash", "-c", &cmd_str])?;
     }
 
-    run_pkexec_command(&["apt-get", "update"])?;
     Ok(())
 }
 
@@ -604,18 +601,8 @@ async fn download_and_extract_linux(app: AppHandle, component_id: String) -> Res
     match component_id.as_str() {
         "apache" => {
             emit_progress(&app, &component_id, 10);
-            run_pkexec_command(&["apt-get", "update"])?;
-            emit_progress(&app, &component_id, 40);
-            run_pkexec_command(&["apt-get", "install", "-y", "apache2"])?;
-            emit_progress(&app, &component_id, 60);
-
-            // Enable required apache modules on Linux
-            let _ = run_pkexec_command(&["a2enmod", "ssl"]);
-            let _ = run_pkexec_command(&["a2enmod", "proxy"]);
-            let _ = run_pkexec_command(&["a2enmod", "proxy_http"]);
-            let _ = run_pkexec_command(&["a2enmod", "rewrite"]);
-            let _ = run_pkexec_command(&["a2enmod", "headers"]);
-
+            let cmd_str = "apt-get update && apt-get install -y apache2 && a2enmod ssl && a2enmod proxy && a2enmod proxy_http && a2enmod rewrite && a2enmod headers";
+            run_pkexec_command(&["sh", "-c", cmd_str])?;
             emit_progress(&app, &component_id, 80);
 
             // Create default apache2.conf for Envku if it doesn't exist
@@ -721,9 +708,7 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
         }
         "mysql" => {
             emit_progress(&app, &component_id, 10);
-            run_pkexec_command(&["apt-get", "update"])?;
-            emit_progress(&app, &component_id, 40);
-            run_pkexec_command(&["apt-get", "install", "-y", "mysql-server"])?;
+            run_pkexec_command(&["sh", "-c", "apt-get update && apt-get install -y mysql-server"])?;
             emit_progress(&app, &component_id, 80);
 
             let conf_path = config_dir.join("my.cnf");
@@ -756,9 +741,7 @@ mysqlx-bind-address=127.0.0.1
         }
         "redis" => {
             emit_progress(&app, &component_id, 10);
-            run_pkexec_command(&["apt-get", "update"])?;
-            emit_progress(&app, &component_id, 40);
-            run_pkexec_command(&["apt-get", "install", "-y", "redis-server"])?;
+            run_pkexec_command(&["sh", "-c", "apt-get update && apt-get install -y redis-server"])?;
             emit_progress(&app, &component_id, 80);
 
             let conf_path = config_dir.join("redis.conf");
@@ -812,6 +795,9 @@ dir /var/lib/redis
             if !output.status.success() {
                 return Err("Gagal mengekstrak Mailpit tar.gz".to_string());
             }
+
+            // Auto register mailpit systemd service
+            let _ = crate::platform::services::install_service("mailpit");
 
             emit_progress(&app, &component_id, 100);
             Ok("Mailpit berhasil diinstal di Linux.".to_string())

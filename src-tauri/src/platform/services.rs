@@ -118,6 +118,14 @@ pub fn control_service(service: &str, action: &str) -> Result<String, String> {
     {
         let systemd_service = format!("envku-{}", service);
         
+        // Self-healing: if the service is being started and the unit file doesn't exist, register it first.
+        if action == "start" {
+            let service_file_path = format!("/etc/systemd/system/{}.service", systemd_service);
+            if !std::path::Path::new(&service_file_path).exists() {
+                install_service(service)?;
+            }
+        }
+        
         // Jalankan perintah systemctl melalui pkexec untuk eskalasi hak akses jika diperlukan
         let output = crate::execute_elevated_command(&["systemctl", action, &systemd_service])
             .map_err(|e| format!("Gagal memanggil perintah elevated systemctl: {}", e))?;
@@ -232,22 +240,14 @@ pub fn install_service(service: &str) -> Result<String, String> {
         
         // Hapus & nonaktifkan yang lama jika ada
         let systemd_service = format!("envku-{}", service);
-        let _ = crate::execute_elevated_command(&["systemctl", "stop", &systemd_service]);
-        let _ = crate::execute_elevated_command(&["systemctl", "disable", &systemd_service]);
-        let _ = crate::execute_elevated_command(&["rm", "-f", &service_file_path]);
-
+        
         // Hentikan & nonaktifkan layanan sistem standar yang berpotensi menyebabkan konflik port
         let system_service = match service {
-            "apache" => Some("apache2"),
-            "mysql" => Some("mysql"),
-            "redis" => Some("redis-server"),
-            _ => None,
+            "apache" => "apache2",
+            "mysql" => "mysql",
+            "redis" => "redis-server",
+            _ => "",
         };
-
-        if let Some(sys_svc) = system_service {
-            let _ = crate::execute_elevated_command(&["systemctl", "stop", sys_svc]);
-            let _ = crate::execute_elevated_command(&["systemctl", "disable", sys_svc]);
-        }
 
         // 2. Buat isi berkas unit sesuai jenis layanan
         let service_content = match service {
@@ -320,34 +320,34 @@ WantedBy=multi-user.target
         fs::write(&temp_file, service_content)
             .map_err(|e| format!("Gagal membuat file unit kustom sementara: {}", e))?;
 
-        // 4. Pindahkan berkas kustom unit ke direktori systemd menggunakan pkexec
-        let move_output = crate::execute_elevated_command(&["cp", &temp_file.to_string_lossy(), &service_file_path])
-            .map_err(|e| format!("Gagal memindahkan file unit systemd: {}", e))?;
+        // Construct single command string to execute under root privileges
+        let mut cmd_str = format!(
+            "systemctl stop {0} || true; systemctl disable {0} || true; rm -f {1}; ",
+            systemd_service, service_file_path
+        );
+
+        if !system_service.is_empty() {
+            cmd_str.push_str(&format!(
+                "systemctl stop {0} || true; systemctl disable {0} || true; ",
+                system_service
+            ));
+        }
+
+        cmd_str.push_str(&format!(
+            "cp {0} {1} && systemctl daemon-reload && systemctl enable {2}",
+            temp_file.to_string_lossy(), service_file_path, systemd_service
+        ));
+
+        let output = crate::execute_elevated_command(&["sh", "-c", &cmd_str])
+            .map_err(|e| format!("Gagal mendaftarkan systemd service elevated: {}", e))?;
 
         let _ = fs::remove_file(temp_file);
 
-        if !move_output.status.success() {
-            let stderr = String::from_utf8_lossy(&move_output.stderr);
-            return Err(format!("Gagal mendaftarkan systemd service via pkexec: {}", stderr.trim()));
-        }
-
-        // 5. Reload systemd daemon dan aktifkan service tersebut
-        let reload_output = crate::execute_elevated_command(&["systemctl", "daemon-reload"])
-            .map_err(|e| format!("Gagal me-reload systemd daemon: {}", e))?;
-
-        if !reload_output.status.success() {
-            let stderr = String::from_utf8_lossy(&reload_output.stderr);
-            return Err(format!("Gagal me-reload systemd: {}", stderr.trim()));
-        }
-
-        let enable_output = crate::execute_elevated_command(&["systemctl", "enable", &format!("envku-{}", service)])
-            .map_err(|e| format!("Gagal mengaktifkan layanan systemd: {}", e))?;
-
-        if enable_output.status.success() {
+        if output.status.success() {
             Ok(format!("Layanan envku-{} berhasil didaftarkan di systemd", service))
         } else {
-            let stderr = String::from_utf8_lossy(&enable_output.stderr);
-            Err(format!("Gagal meng-enable layanan: {}", stderr.trim()))
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Gagal mendaftarkan service: {}", stderr.trim()))
         }
     }
 

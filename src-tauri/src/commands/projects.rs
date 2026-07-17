@@ -12,6 +12,31 @@ pub struct VirtualHostInfo {
 
 #[tauri::command]
 pub fn add_project(domain: String, document_root: String, is_node: bool, node_port: Option<u16>, enable_ssl: bool) -> Result<String, String> {
+    let server_dir = get_server_dir_path();
+    let vhosts_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-vhosts.conf");
+    
+    // Check if virtual host already exists
+    let mut vhost_exists = false;
+    if vhosts_path.exists() {
+        if let Ok(vhosts_content) = fs::read_to_string(&vhosts_path) {
+            vhost_exists = vhosts_content.contains(&format!("ServerName {}", domain));
+        }
+    }
+    
+    // Check if host entry already exists
+    let mut hosts_exists = false;
+    if let Ok(hosts_content) = crate::platform::hosts::read_hosts() {
+        hosts_exists = hosts_content.lines().any(|line| {
+            let clean = line.trim();
+            !clean.starts_with('#') && clean.contains(&domain)
+        });
+    }
+
+    // Skip registration and Apache restart if already fully configured
+    if vhost_exists && hosts_exists {
+        return Ok(format!("Proyek {} sudah terdaftar dan terkonfigurasi.", domain));
+    }
+
     // 1. Hosts file modification
     crate::platform::hosts::add_host_entry(&domain, "127.0.0.1")?;
 
@@ -86,17 +111,8 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
 
             // Trust the certificate globally in Linux (Debian/Ubuntu)
             let dest_cert_path = format!("/usr/local/share/ca-certificates/{}.crt", domain);
-            let cp_output = crate::execute_elevated_command(&[
-                "cp",
-                &crt_path.to_string_lossy(),
-                &dest_cert_path
-            ]);
-            
-            if let Ok(out) = cp_output {
-                if out.status.success() {
-                    let _ = crate::execute_elevated_command(&["update-ca-certificates"]);
-                }
-            }
+            let cmd_str = format!("cp {} {} && update-ca-certificates", crt_path.to_string_lossy(), dest_cert_path);
+            let _ = crate::execute_elevated_command(&["sh", "-c", &cmd_str]);
         }
 
         #[cfg(not(any(target_os = "windows", target_os = "linux")))]

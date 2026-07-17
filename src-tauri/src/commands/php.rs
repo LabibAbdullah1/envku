@@ -132,12 +132,12 @@ PHPIniDir "{}/{}"
         let target_mod = if version_id == "php83" { "php8.3" } else { "php8.2" };
         let other_mod = if version_id == "php83" { "php8.2" } else { "php8.3" };
         
-        let _ = crate::execute_elevated_command(&["a2dismod", other_mod]);
-        let _ = crate::execute_elevated_command(&["a2enmod", target_mod]);
-
-        // Restart Apache
-        let _ = crate::commands::services::control_service("apache".to_string(), "stop".to_string());
-        let _ = crate::commands::services::control_service("apache".to_string(), "start".to_string());
+        // Group a2dismod, a2enmod, and apache restart into a single elevated command
+        let cmd_str = format!(
+            "a2dismod {} || true; a2enmod {}; systemctl restart envku-apache",
+            other_mod, target_mod
+        );
+        let _ = crate::execute_elevated_command(&["sh", "-c", &cmd_str]);
     }
 
     Ok(format!("Berhasil beralih ke PHP {}. Apache di-restart dan PATH diperbarui.", version_id.to_uppercase()))
