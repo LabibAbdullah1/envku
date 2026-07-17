@@ -16,8 +16,15 @@ pub fn check_service_installed(service: &str) -> Result<bool, String> {
             return Ok(mailpit_exe.exists());
         }
 
+        let service_name = match service {
+            "apache" => "Apache2.4",
+            "mysql" => "mysql-server",
+            "redis" => "redis-server",
+            _ => service,
+        };
+
         let output = crate::create_hidden_command("sc")
-            .args(&["query", service])
+            .args(&["query", service_name])
             .output()
             .map_err(|e| format!("Gagal menjalankan query service: {}", e))?;
         
