@@ -27,3 +27,10 @@ LangString webview2InstallSuccess ${LANG_INDONESIAN} "WebView2 berhasil terinsta
 LangString deleteAppData ${LANG_INDONESIAN} "Hapus seluruh data aplikasi (PERINGATAN: Seluruh data server, website, dan database akan DIHAPUS PERMANEN!)"
 LangString serverDirTopText ${LANG_INDONESIAN} "Pilih folder tempat meletakkan data server (seperti Apache, MySQL, PHP, dll)."
 LangString serverDirDestination ${LANG_INDONESIAN} "Folder Data Server"
+
+LangString MULTIUSER_TEXT_INSTALLMODE_TITLE ${LANG_INDONESIAN} "Pilih Pengguna"
+LangString MULTIUSER_TEXT_INSTALLMODE_SUBTITLE ${LANG_INDONESIAN} "Pilih pengguna yang ingin Anda pasang ${PRODUCTNAME}."
+LangString MULTIUSER_INNERTEXT_INSTALLMODE_TOP ${LANG_INDONESIAN} "Pilih apakah Anda ingin menginstal ${PRODUCTNAME} untuk semua pengguna atau hanya untuk diri Anda sendiri. $(^ClickNext)"
+LangString MULTIUSER_INNERTEXT_INSTALLMODE_ALLUSERS ${LANG_INDONESIAN} "Instal untuk semua pengguna komputer ini (rekomendasi)"
+LangString MULTIUSER_INNERTEXT_INSTALLMODE_CURRENTUSER ${LANG_INDONESIAN} "Instal hanya untuk saya"
+
