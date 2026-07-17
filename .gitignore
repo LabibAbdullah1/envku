@@ -15,7 +15,7 @@ dist-ssr
 *.key
 .signing-key*
 
-#hai
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
