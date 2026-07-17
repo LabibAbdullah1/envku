@@ -20,6 +20,8 @@ interface ServicesTabProps {
   toggleService: (key: "Apache" | "MySQL" | "Redis" | "Mailpit") => void;
   handleClearRedis: () => void;
   isLinux?: boolean;
+  dirsStatus: { [key: string]: boolean };
+  baseDir: string;
 }
 
 export default function ServicesTab({
@@ -28,7 +30,17 @@ export default function ServicesTab({
   toggleService,
   handleClearRedis,
   isLinux = false,
+  dirsStatus,
+  baseDir,
 }: ServicesTabProps) {
+  const getPath = (pWin: string, pLinux: string) => {
+    return isLinux ? `${baseDir}/${pLinux}` : `${baseDir}\\${pWin}`;
+  };
+
+  const isApacheDownloaded = dirsStatus[getPath("Apache24", "Apache24")] || false;
+  const isMySQLDownloaded = dirsStatus[getPath("mysql", "mysql")] || false;
+  const isRedisDownloaded = dirsStatus[getPath("redis", "redis")] || false;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -68,7 +80,11 @@ export default function ServicesTab({
           </div>
 
           <div className="space-y-2 pt-2">
-            {!services.Apache.installed ? (
+            {!isApacheDownloaded ? (
+              <div className="w-full py-3 bg-zinc-950/40 border border-zinc-850 text-zinc-500 rounded-xl text-xs font-bold text-center">
+                Silakan pasang Apache di menu Downloader
+              </div>
+            ) : !services.Apache.installed ? (
               <button
                 onClick={() => handleInstallService("Apache2.4", "Apache")}
                 disabled={services.Apache.checking}
@@ -129,7 +145,11 @@ export default function ServicesTab({
           </div>
 
           <div className="space-y-2 pt-2">
-            {!services.MySQL.installed ? (
+            {!isMySQLDownloaded ? (
+              <div className="w-full py-3 bg-zinc-950/40 border border-zinc-850 text-zinc-500 rounded-xl text-xs font-bold text-center">
+                Silakan pasang MySQL di menu Downloader
+              </div>
+            ) : !services.MySQL.installed ? (
               <button
                 onClick={() => handleInstallService("mysql-server", "MySQL")}
                 disabled={services.MySQL.checking}
@@ -201,7 +221,11 @@ export default function ServicesTab({
           </div>
 
           <div className="space-y-2 pt-2">
-            {!services.Redis.installed ? (
+            {!isRedisDownloaded ? (
+              <div className="w-full py-3 bg-zinc-950/40 border border-zinc-850 text-zinc-500 rounded-xl text-xs font-bold text-center">
+                Silakan pasang Redis di menu Downloader
+              </div>
+            ) : !services.Redis.installed ? (
               <button
                 onClick={() => handleInstallService("redis-server", "Redis")}
                 disabled={services.Redis.checking}

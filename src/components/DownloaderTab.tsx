@@ -140,7 +140,11 @@ export default function DownloaderTab({
                   <div className="flex justify-between text-xs text-zinc-400 font-mono">
                     <span>{progress.percentage}% Selesai</span>
                     <span>
-                      {(progress.bytes_downloaded / (1024 * 1024)).toFixed(1)} MB / {(progress.bytes_total / (1024 * 1024)).toFixed(1)} MB
+                      {progress.bytes_total > 100 ? (
+                        `${(progress.bytes_downloaded / (1024 * 1024)).toFixed(1)} MB / ${(progress.bytes_total / (1024 * 1024)).toFixed(1)} MB`
+                      ) : (
+                        "Menginstal paket sistem..."
+                      )}
                     </span>
                   </div>
                   <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-zinc-850">

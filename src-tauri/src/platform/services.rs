@@ -38,8 +38,15 @@ pub fn check_service_installed(service: &str) -> Result<bool, String> {
 
     #[cfg(target_os = "linux")]
     {
+        let norm = match service {
+            "Apache2.4" | "Apache" | "apache" => "apache",
+            "mysql-server" | "MySQL" | "mysql" => "mysql",
+            "redis-server" | "Redis" | "redis" => "redis",
+            "mailpit" | "Mailpit" => "mailpit",
+            _ => service,
+        };
         // Untuk Linux, kita periksa keberadaan file unit systemd kustom
-        let service_file = format!("/etc/systemd/system/envku-{}.service", service);
+        let service_file = format!("/etc/systemd/system/envku-{}.service", norm);
         Ok(Path::new(&service_file).exists())
     }
 
@@ -302,7 +309,7 @@ WantedBy=multi-user.target
             },
             "mailpit" => {
                 let mailpit_bin = server_dir.join("mailpit").join("mailpit");
-                let exec_line = format!("ExecStart={} --smtp-bind 0.0.0.0:8025 --ui-bind 0.0.0.0:8025", mailpit_bin.to_string_lossy());
+                let exec_line = format!("ExecStart={} --smtp-bind 0.0.0.0:1025 --ui-bind 0.0.0.0:8025", mailpit_bin.to_string_lossy());
                 format!(r#"[Unit]
 Description=Envku Mailpit Server
 After=network.target

@@ -548,6 +548,8 @@ export default function App() {
               toggleService={toggleService}
               handleClearRedis={handleClearRedisCache}
               isLinux={isLinux}
+              dirsStatus={dirsStatus}
+              baseDir={baseDir}
             />
           )}
 
