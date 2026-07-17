@@ -505,6 +505,13 @@ async fn download_and_extract_linux(app: AppHandle, component_id: String) -> Res
     let config_dir = server_dir.join("config");
     fs::create_dir_all(&config_dir).map_err(|e| format!("Gagal membuat folder config: {}", e))?;
 
+    // Fix existing broken ondrej PPA repositories that might use "resolute", "plucky", or "oracular" instead of "noble"
+    let _ = run_pkexec_command(&[
+        "bash",
+        "-c",
+        "sed -i -E 's/(resolute|plucky|oracular)/noble/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true"
+    ]);
+
     match component_id.as_str() {
         "apache" => {
             emit_progress(&app, &component_id, 10);
@@ -571,6 +578,14 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
             run_pkexec_command(&["apt-get", "update"])?;
             run_pkexec_command(&["apt-get", "install", "-y", "software-properties-common"])?;
             let _ = run_pkexec_command(&["add-apt-repository", "-y", "ppa:ondrej/php"]);
+            
+            // Fix newly added ppa:ondrej/php which might default to "resolute", "plucky", or "oracular"
+            let _ = run_pkexec_command(&[
+                "bash",
+                "-c",
+                "sed -i -E 's/(resolute|plucky|oracular)/noble/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true"
+            ]);
+
             run_pkexec_command(&["apt-get", "update"])?;
             emit_progress(&app, &component_id, 40);
 

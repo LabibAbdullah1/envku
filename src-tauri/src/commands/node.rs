@@ -33,15 +33,33 @@ pub fn get_nvm_versions() -> Result<Vec<String>, String> {
 
         // Directory reading fallback
         if versions.is_empty() {
+            let mut paths_to_check = Vec::new();
             if let Ok(profile) = std::env::var("USERPROFILE") {
-                let nvm_path = Path::new(&profile).join("AppData\\Roaming\\nvm");
+                paths_to_check.push(Path::new(&profile).join("AppData\\Local\\nvm"));
+                paths_to_check.push(Path::new(&profile).join("AppData\\Roaming\\nvm"));
+            }
+            if let Ok(nh) = std::env::var("NVM_HOME") {
+                paths_to_check.push(Path::new(&nh).to_path_buf());
+            }
+            paths_to_check.push(Path::new("C:\\Program Files\\nvm").to_path_buf());
+            paths_to_check.push(Path::new("C:\\Program Files (x86)\\nvm").to_path_buf());
+
+            for nvm_path in paths_to_check {
                 if nvm_path.exists() {
                     if let Ok(entries) = fs::read_dir(nvm_path) {
                         for entry in entries {
                             if let Ok(entry) = entry {
                                 let name = entry.file_name().to_string_lossy().into_owned();
-                                if !name.is_empty() && name.chars().next().unwrap_or(' ').is_numeric() && entry.path().is_dir() {
-                                    versions.push(name);
+                                if !name.is_empty() && entry.path().is_dir() {
+                                    let mut clean_name = name.clone();
+                                    if clean_name.starts_with('v') {
+                                        clean_name = clean_name[1..].to_string();
+                                    }
+                                    if !clean_name.is_empty() && clean_name.chars().next().unwrap_or(' ').is_numeric() {
+                                        if !versions.contains(&clean_name) {
+                                            versions.push(clean_name);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -61,24 +79,62 @@ pub fn get_nvm_versions() -> Result<Vec<String>, String> {
             return Err("NVM tidak terinstal pada sistem ini.".to_string());
         }
 
-        let output = std::process::Command::new("bash")
-            .args(&["-c", &format!("source {} && nvm list", nvm_sh.to_string_lossy())])
-            .output()
-            .map_err(|e| format!("Gagal mengeksekusi nvm list: {}", e))?;
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
         let mut versions = Vec::new();
-        for line in stdout.lines() {
-            let clean = line.replace("->", "").replace('*', "").trim().to_string();
-            if !clean.is_empty() && (clean.starts_with('v') || clean.chars().next().unwrap_or(' ').is_numeric()) {
-                if let Some(version) = clean.split_whitespace().next() {
-                    let version_clean = version.replace('v', "");
-                    if !version_clean.is_empty() && version_clean.chars().next().unwrap_or(' ').is_numeric() {
-                        versions.push(version_clean);
+
+        // 1. Try reading versions directory directly (most reliable & fast)
+        let node_versions_dir = Path::new(&home).join(".nvm").join("versions").join("node");
+        if node_versions_dir.exists() {
+            if let Ok(entries) = fs::read_dir(node_versions_dir) {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let name = entry.file_name().to_string_lossy().into_owned();
+                        if !name.is_empty() && entry.path().is_dir() {
+                            let mut clean_name = name.clone();
+                            if clean_name.starts_with('v') {
+                                clean_name = clean_name[1..].to_string();
+                            }
+                            if !clean_name.is_empty() && clean_name.chars().next().unwrap_or(' ').is_numeric() {
+                                if !versions.contains(&clean_name) {
+                                    versions.push(clean_name);
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+
+        // 2. Fallback to executing 'nvm list' command (with ANSI escapes stripped)
+        if versions.is_empty() {
+            let output = std::process::Command::new("bash")
+                .args(&["-c", &format!("source {} && nvm list", nvm_sh.to_string_lossy())])
+                .output()
+                .map_err(|e| format!("Gagal mengeksekusi nvm list: {}", e))?;
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let line_clean = strip_ansi_escapes(line);
+                let clean = line_clean.replace("->", "").replace('*', "").trim().to_string();
+                if !clean.is_empty() && (clean.starts_with('v') || clean.chars().next().unwrap_or(' ').is_numeric()) {
+                    if let Some(version) = clean.split_whitespace().next() {
+                        let version_clean = version.replace('v', "");
+                        if !version_clean.is_empty() && version_clean.chars().next().unwrap_or(' ').is_numeric() {
+                            if !versions.contains(&version_clean) {
+                                versions.push(version_clean);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort versions descending
+        versions.sort_by(|a, b| {
+            let parse = |s: &str| -> Vec<u32> {
+                s.split('.').map(|x| x.parse::<u32>().unwrap_or(0)).collect()
+            };
+            parse(b).cmp(&parse(a))
+        });
 
         Ok(versions)
     }
@@ -306,4 +362,32 @@ pub async fn install_nvm() -> Result<String, String> {
     {
         Err("Sistem operasi tidak didukung untuk instalasi NVM.".to_string())
     }
+}
+
+#[cfg(target_os = "linux")]
+fn strip_ansi_escapes(s: &str) -> String {
+    let mut result = String::new();
+    let mut in_escape = false;
+    let mut chars = s.chars().peekable();
+    
+    while let Some(c) = chars.next() {
+        if c == '\x1B' {
+            in_escape = true;
+            if chars.peek() == Some(&'[') {
+                chars.next(); // consume '['
+            }
+            continue;
+        }
+        
+        if in_escape {
+            // ANSI escape sequences end with a character between '@' and '~'
+            if c >= '@' && c <= '~' {
+                in_escape = false;
+            }
+            continue;
+        }
+        
+        result.push(c);
+    }
+    result
 }
