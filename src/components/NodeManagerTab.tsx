@@ -18,6 +18,7 @@ interface NodeManagerTabProps {
   installingNode: boolean;
   quickInstallingNode: string | null;
   handleQuickInstallNode: (ver: string) => void;
+  baseDir: string;
 }
 
 export default function NodeManagerTab({
@@ -37,7 +38,9 @@ export default function NodeManagerTab({
   installingNode,
   quickInstallingNode,
   handleQuickInstallNode,
+  baseDir,
 }: NodeManagerTabProps) {
+  const isLinux = baseDir.startsWith("/") || !baseDir.includes("\\");
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -176,10 +179,21 @@ export default function NodeManagerTab({
                 <span>Catatan Integrasi NVM:</span>
               </div>
               <ul className="list-disc pl-4 space-y-1.5 leading-relaxed text-xs">
-                <li>Symlink Node.js dikelola di lokasi `C:\Program Files\nodejs` oleh NVM.</li>
-                <li>
-                  Perintah pergantian versi memerlukan hak akses administrator yang telah didelegasikan saat aplikasi dijalankan.
-                </li>
+                {isLinux ? (
+                  <>
+                    <li>Symlink Node.js dikelola di lokasi `~/.nvm` oleh NVM.</li>
+                    <li>
+                      Perintah pergantian versi akan mengubah default alias secara otomatis dan berlaku pada terminal sesi baru.
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li>Symlink Node.js dikelola di lokasi `C:\Program Files\nodejs` oleh NVM.</li>
+                    <li>
+                      Perintah pergantian versi memerlukan hak akses administrator yang telah didelegasikan saat aplikasi dijalankan.
+                    </li>
+                  </>
+                )}
               </ul>
             </div>
           </>

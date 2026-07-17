@@ -499,8 +499,10 @@ fn run_pkexec_command(args: &[&str]) -> Result<(), String> {
     }
 }
 
+
+
 #[cfg(target_os = "linux")]
-fn setup_php_repository() -> Result<(), String> {
+async fn setup_php_repository() -> Result<(), String> {
     use std::fs;
     let os_release_content = fs::read_to_string("/etc/os-release").unwrap_or_default();
     let mut os_info = std::collections::HashMap::new();
@@ -547,6 +549,46 @@ fn setup_php_repository() -> Result<(), String> {
         // Setup Ubuntu PPA
         run_pkexec_command(&["apt-get", "install", "-y", "software-properties-common"])?;
         run_pkexec_command(&["add-apt-repository", "-y", "ppa:ondrej/php"])?;
+
+        // Dapatkan nama codename sistem
+        let codename = os_info.get("VERSION_CODENAME")
+            .map(|s| s.as_str())
+            .or_else(|| os_info.get("UBUNTU_CODENAME").map(|s| s.as_str()))
+            .unwrap_or("noble");
+
+        // Periksa apakah Launchpad PPA memiliki folder rilis untuk codename ini secara asinkron
+        let client = reqwest::Client::new();
+        let mut selected_codename = codename.to_string();
+        let check_url = format!("https://ppa.launchpadcontent.net/ondrej/php/ubuntu/dists/{}/Release", codename);
+        
+        let is_supported = if let Ok(res) = client.head(&check_url).send().await {
+            res.status().is_success()
+        } else {
+            false
+        };
+
+        if !is_supported {
+            // Urutan fallback dari terdekat ke terlama
+            let fallbacks = vec!["plucky", "oracular", "noble", "jammy"];
+            for fb in fallbacks {
+                let fb_url = format!("https://ppa.launchpadcontent.net/ondrej/php/ubuntu/dists/{}/Release", fb);
+                if let Ok(res) = client.head(&fb_url).send().await {
+                    if res.status().is_success() {
+                        selected_codename = fb.to_string();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Jika codename yang didukung berbeda, timpa file konfigurasi PPA menggunakan sed
+        if selected_codename != codename {
+            let sed_cmd = format!(
+                "sed -i -E 's/{}/{}/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true",
+                codename, selected_codename
+            );
+            let _ = run_pkexec_command(&["bash", "-c", &sed_cmd]);
+        }
     }
 
     run_pkexec_command(&["apt-get", "update"])?;
@@ -631,7 +673,7 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
         "php83" | "php82" => {
             let php_version_dot = if component_id == "php83" { "8.3" } else { "8.2" };
             emit_progress(&app, &component_id, 10);
-            setup_php_repository()?;
+            setup_php_repository().await?;
             emit_progress(&app, &component_id, 40);
 
             let pkgs = vec![

@@ -593,6 +593,7 @@ export default function App() {
               installingNode={installingNode}
               quickInstallingNode={quickInstallingNode}
               handleQuickInstallNode={handleQuickInstallNode}
+              baseDir={baseDir}
             />
           )}
 
