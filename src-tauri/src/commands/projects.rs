@@ -25,11 +25,44 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
 
         let key_path = ssl_dir.join(format!("{}.key", domain));
         let crt_path = ssl_dir.join(format!("{}.crt", domain));
-        let openssl_exe = server_dir.join("Apache24").join("bin").join("openssl.exe");
 
-        if openssl_exe.exists() {
+        #[cfg(target_os = "windows")]
+        {
+            let openssl_exe = server_dir.join("Apache24").join("bin").join("openssl.exe");
+            if openssl_exe.exists() {
+                let subj_arg = format!("/CN={}", domain);
+                let output = crate::create_hidden_command(&openssl_exe.to_string_lossy())
+                    .args(&[
+                        "req", "-x509", "-nodes", "-days", "365",
+                        "-newkey", "rsa:2048",
+                        "-keyout", &key_path.to_string_lossy(),
+                        "-out", &crt_path.to_string_lossy(),
+                        "-subj", &subj_arg
+                    ])
+                    .output();
+
+                if let Ok(out) = output {
+                    if !out.status.success() {
+                        let stderr = String::from_utf8_lossy(&out.stderr);
+                        return Err(format!("Gagal membuat sertifikat SSL: {}", stderr));
+                    }
+                } else {
+                    return Err("Gagal mengeksekusi openssl.exe".to_string());
+                }
+
+                // Trust the certificate globally in Windows Trusted Root store
+                let _ = crate::create_hidden_command("certutil")
+                    .args(&["-addstore", "-user", "root", &crt_path.to_string_lossy()])
+                    .output();
+            } else {
+                return Err("openssl.exe tidak ditemukan di folder Apache. Pastikan Apache sudah terinstal.".to_string());
+            }
+        }
+
+        #[cfg(target_os = "linux")]
+        {
             let subj_arg = format!("/CN={}", domain);
-            let output = crate::create_hidden_command(&openssl_exe.to_string_lossy())
+            let output = std::process::Command::new("openssl")
                 .args(&[
                     "req", "-x509", "-nodes", "-days", "365",
                     "-newkey", "rsa:2048",
@@ -39,21 +72,36 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
                 ])
                 .output();
 
-            if let Ok(out) = output {
-                if !out.status.success() {
-                    let stderr = String::from_utf8_lossy(&out.stderr);
-                    return Err(format!("Gagal membuat sertifikat SSL: {}", stderr));
+            match output {
+                Ok(out) => {
+                    if !out.status.success() {
+                        let stderr = String::from_utf8_lossy(&out.stderr);
+                        return Err(format!("Gagal membuat sertifikat SSL: {}", stderr));
+                    }
                 }
-            } else {
-                return Err("Gagal mengeksekusi openssl.exe".to_string());
+                Err(e) => {
+                    return Err(format!("openssl tidak ditemukan di sistem atau gagal dijalankan: {}", e));
+                }
             }
 
-            // Trust the certificate globally in Windows Trusted Root store
-            let _ = crate::create_hidden_command("certutil")
-                .args(&["-addstore", "-user", "root", &crt_path.to_string_lossy()])
-                .output();
-        } else {
-            return Err("openssl.exe tidak ditemukan di folder Apache. Pastikan Apache sudah terinstal.".to_string());
+            // Trust the certificate globally in Linux (Debian/Ubuntu)
+            let dest_cert_path = format!("/usr/local/share/ca-certificates/{}.crt", domain);
+            let cp_output = crate::execute_elevated_command(&[
+                "cp",
+                &crt_path.to_string_lossy(),
+                &dest_cert_path
+            ]);
+            
+            if let Ok(out) = cp_output {
+                if out.status.success() {
+                    let _ = crate::execute_elevated_command(&["update-ca-certificates"]);
+                }
+            }
+        }
+
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        {
+            let _ = (key_path, crt_path);
         }
     }
 

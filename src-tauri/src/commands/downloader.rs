@@ -518,6 +518,15 @@ async fn download_and_extract_linux(app: AppHandle, component_id: String) -> Res
             run_pkexec_command(&["apt-get", "update"])?;
             emit_progress(&app, &component_id, 40);
             run_pkexec_command(&["apt-get", "install", "-y", "apache2"])?;
+            emit_progress(&app, &component_id, 60);
+
+            // Enable required apache modules on Linux
+            let _ = run_pkexec_command(&["a2enmod", "ssl"]);
+            let _ = run_pkexec_command(&["a2enmod", "proxy"]);
+            let _ = run_pkexec_command(&["a2enmod", "proxy_http"]);
+            let _ = run_pkexec_command(&["a2enmod", "rewrite"]);
+            let _ = run_pkexec_command(&["a2enmod", "headers"]);
+
             emit_progress(&app, &component_id, 80);
 
             // Create default apache2.conf for Envku if it doesn't exist

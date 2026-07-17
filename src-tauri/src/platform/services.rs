@@ -239,6 +239,7 @@ After=network.target
 
 [Service]
 Type=simple
+EnvironmentFile=/etc/apache2/envvars
 ExecStart=/usr/sbin/apache2 -df /opt/server/config/apache2.conf
 Restart=on-failure
 

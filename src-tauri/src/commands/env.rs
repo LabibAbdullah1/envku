@@ -139,3 +139,181 @@ pub fn open_terminal() -> Result<String, String> {
     Ok("Terminal berhasil dibuka.".to_string())
 }
 
+#[tauri::command]
+pub fn create_desktop_shortcut() -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        use std::fs;
+        use std::path::Path;
+
+        let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
+        let apps_dir = Path::new(&home).join(".local").join("share").join("applications");
+        let icons_dir = Path::new(&home).join(".local").join("share").join("icons");
+
+        // Create directories if they do not exist
+        fs::create_dir_all(&apps_dir).map_err(|e| format!("Gagal membuat folder applications: {}", e))?;
+        fs::create_dir_all(&icons_dir).map_err(|e| format!("Gagal membuat folder icons: {}", e))?;
+
+        // Write embedded icon.png
+        let icon_path = icons_dir.join("envku.png");
+        const ICON_BYTES: &[u8] = include_bytes!("../../../icons/icon.png");
+        fs::write(&icon_path, ICON_BYTES).map_err(|e| format!("Gagal menulis file icon: {}", e))?;
+
+        // Get executable path
+        let exec_path = std::env::var("APPIMAGE")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|_| std::env::current_exe().unwrap_or_default());
+
+        if exec_path.as_os_str().is_empty() {
+            return Err("Gagal mendeteksi path executable aplikasi.".to_string());
+        }
+
+        // Write desktop file
+        let desktop_file_path = apps_dir.join("envku.desktop");
+        let desktop_content = format!(
+            r#"[Desktop Entry]
+Type=Application
+Name=Labib Env (Envku)
+Comment=Envku Local Server Manager
+Exec="{}"
+Icon={}
+Terminal=false
+Categories=Development;
+"#,
+            exec_path.to_string_lossy(),
+            icon_path.to_string_lossy()
+        );
+
+        fs::write(&desktop_file_path, desktop_content)
+            .map_err(|e| format!("Gagal menulis file .desktop: {}", e))?;
+
+        // Make desktop file executable
+        let _ = std::process::Command::new("chmod")
+            .args(&["+x", &desktop_file_path.to_string_lossy()])
+            .status();
+
+        Ok("Aplikasi berhasil diintegrasikan ke menu aplikasi GUI Linux Anda.".to_string())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err("Integrasi desktop menu hanya didukung di OS Linux.".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn uninstall_envku(app_handle: tauri::AppHandle, delete_data: bool) -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        use std::fs;
+        use std::path::Path;
+
+        let server_dir = get_server_dir_path();
+
+        // 1. Stop and disable all envku-specific services
+        let services = vec!["apache", "mysql", "redis", "mailpit"];
+        for service in &services {
+            let systemd_service = format!("envku-{}", service);
+            // Stop service
+            let _ = crate::execute_elevated_command(&["systemctl", "stop", &systemd_service]);
+            // Disable service
+            let _ = crate::execute_elevated_command(&["systemctl", "disable", &systemd_service]);
+            // Delete systemd unit file
+            let service_file = format!("/etc/systemd/system/{}.service", systemd_service);
+            if Path::new(&service_file).exists() {
+                let _ = crate::execute_elevated_command(&["rm", "-f", &service_file]);
+            }
+        }
+
+        // Reload systemd daemon
+        let _ = crate::execute_elevated_command(&["systemctl", "daemon-reload"]);
+
+        // 2. Clean up /etc/hosts entries added by Envku
+        // Get all virtual hosts domains to clean up
+        let mut domains = vec!["phpmyadmin.test".to_string()];
+        if let Ok(vhosts) = crate::commands::projects::get_virtual_hosts() {
+            for vhost in vhosts {
+                if !domains.contains(&vhost.domain) {
+                    domains.push(vhost.domain);
+                }
+            }
+        }
+        for domain in &domains {
+            let _ = crate::platform::hosts::remove_host_entry(domain);
+        }
+
+        // 3. Remove system PATH integration from shell files
+        if let Ok(home) = std::env::var("HOME") {
+            let shell_files = vec![
+                format!("{}/.bashrc", home),
+                format!("{}/.zshrc", home),
+                format!("{}/.profile", home),
+            ];
+
+            let path_line = "/opt/server/bin";
+            for file_path in shell_files {
+                let path = Path::new(&file_path);
+                if path.exists() {
+                    if let Ok(content) = fs::read_to_string(path) {
+                        let lines: Vec<&str> = content.lines().collect();
+                        let mut new_lines = Vec::new();
+                        let mut skip = false;
+
+                        for line in lines {
+                            if line.contains("# Added by Envku") {
+                                skip = true;
+                                continue;
+                            }
+                            if skip && line.contains(path_line) {
+                                skip = false;
+                                continue;
+                            }
+                            new_lines.push(line);
+                        }
+                        let _ = fs::write(path, new_lines.join("\n"));
+                    }
+                }
+            }
+
+            // Remove desktop shortcut & icon
+            let apps_dir = Path::new(&home).join(".local").join("share").join("applications");
+            let icons_dir = Path::new(&home).join(".local").join("share").join("icons");
+            let desktop_file = apps_dir.join("envku.desktop");
+            let icon_file = icons_dir.join("envku.png");
+            
+            if desktop_file.exists() {
+                let _ = fs::remove_file(desktop_file);
+            }
+            if icon_file.exists() {
+                let _ = fs::remove_file(icon_file);
+            }
+        }
+
+        // 4. Optionally delete /opt/server directory entirely
+        if delete_data {
+            if server_dir.exists() {
+                if let Err(e) = fs::remove_dir_all(&server_dir) {
+                    // Fallback to elevated rm -rf
+                    let _ = crate::execute_elevated_command(&["rm", "-rf", &server_dir.to_string_lossy()]);
+                    return Err(format!("Gagal menghapus direktori server secara lokal: {}. Namun telah dicoba via elevated command.", e));
+                }
+            }
+        }
+
+        // Exit the application after successful uninstall
+        let app_clone = app_handle.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(1500));
+            app_clone.exit(0);
+        });
+
+        Ok("Aplikasi berhasil di-uninstall sepenuhnya. Aplikasi akan ditutup dalam beberapa saat.".to_string())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (app_handle, delete_data);
+        Err("Proses uninstall ini hanya didukung di OS Linux.".to_string())
+    }
+}
+

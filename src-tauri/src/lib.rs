@@ -129,6 +129,8 @@ pub fn run() {
             commands::env::check_and_init_environment,
             commands::env::check_directories_exist,
             commands::env::open_terminal,
+            commands::env::create_desktop_shortcut,
+            commands::env::uninstall_envku,
             commands::downloader::download_and_extract,
             commands::services::check_service_installed,
             commands::services::control_service,

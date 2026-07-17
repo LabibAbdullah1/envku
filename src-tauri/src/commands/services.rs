@@ -271,7 +271,8 @@ pub fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String> {
         let mut conflict_process = None;
         
         let installed = if key == "Mailpit" {
-            let mailpit_exe = server_dir.join("mailpit").join("mailpit.exe");
+            let exe_name = if cfg!(target_os = "windows") { "mailpit.exe" } else { "mailpit" };
+            let mailpit_exe = server_dir.join("mailpit").join(exe_name);
             mailpit_exe.exists()
         } else {
             check_service_installed(service_name.to_string()).unwrap_or(false)

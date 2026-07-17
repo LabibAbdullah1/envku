@@ -128,6 +128,13 @@ PHPIniDir "{}/{}"
         // Gunakan mekanisme symlink untuk Linux
         crate::platform::env_path::set_php_symlink(&version_id)?;
         
+        // Disable other mod_php and enable target mod_php
+        let target_mod = if version_id == "php83" { "php8.3" } else { "php8.2" };
+        let other_mod = if version_id == "php83" { "php8.2" } else { "php8.3" };
+        
+        let _ = crate::execute_elevated_command(&["a2dismod", other_mod]);
+        let _ = crate::execute_elevated_command(&["a2enmod", target_mod]);
+
         // Restart Apache
         let _ = crate::commands::services::control_service("apache".to_string(), "stop".to_string());
         let _ = crate::commands::services::control_service("apache".to_string(), "start".to_string());
