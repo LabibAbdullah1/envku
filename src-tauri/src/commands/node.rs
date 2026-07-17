@@ -177,7 +177,7 @@ pub fn switch_node_version(version: String) -> Result<String, String> {
         }
 
         let output = std::process::Command::new("bash")
-            .args(&["-c", &format!("source {} && nvm use {}", nvm_sh.to_string_lossy(), version)])
+            .args(&["-c", &format!("source {} && nvm use {} && nvm alias default {}", nvm_sh.to_string_lossy(), version, version)])
             .output()
             .map_err(|e| format!("Gagal menjalankan nvm use: {}", e))?;
 

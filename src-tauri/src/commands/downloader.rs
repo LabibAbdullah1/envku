@@ -522,6 +522,9 @@ fn setup_php_repository() -> Result<(), String> {
             .map(|s| s.as_str())
             .unwrap_or("bookworm");
 
+        // Clear any old sury list to avoid conflicts
+        let _ = run_pkexec_command(&["bash", "-c", "rm -f /etc/apt/sources.list.d/sury-php.list"]);
+
         // Install lsb-release, ca-certificates, curl, etc.
         let _ = run_pkexec_command(&["apt-get", "update"]);
         run_pkexec_command(&["apt-get", "install", "-y", "lsb-release", "ca-certificates", "apt-transport-https", "software-properties-common", "gnupg2", "curl"])?;
@@ -538,15 +541,12 @@ fn setup_php_repository() -> Result<(), String> {
         run_pkexec_command(&["cp", &temp_sources.to_string_lossy(), "/etc/apt/sources.list.d/sury-php.list"])?;
         let _ = fs::remove_file(temp_sources);
     } else {
+        // Clear any old ondrej list/sources so they are regenerated fresh using the native codename
+        let _ = run_pkexec_command(&["bash", "-c", "rm -f /etc/apt/sources.list.d/ondrej-*.list /etc/apt/sources.list.d/ondrej-*.sources"]);
+
         // Setup Ubuntu PPA
         run_pkexec_command(&["apt-get", "install", "-y", "software-properties-common"])?;
-        let _ = run_pkexec_command(&["add-apt-repository", "-y", "ppa:ondrej/php"]);
-        
-        let _ = run_pkexec_command(&[
-            "bash",
-            "-c",
-            "sed -i -E 's/(resolute|plucky|oracular)/noble/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true"
-        ]);
+        run_pkexec_command(&["add-apt-repository", "-y", "ppa:ondrej/php"])?;
     }
 
     run_pkexec_command(&["apt-get", "update"])?;
@@ -558,13 +558,6 @@ async fn download_and_extract_linux(app: AppHandle, component_id: String) -> Res
     let server_dir = get_server_dir_path();
     let config_dir = server_dir.join("config");
     fs::create_dir_all(&config_dir).map_err(|e| format!("Gagal membuat folder config: {}", e))?;
-
-    // Fix existing broken ondrej PPA repositories that might use "resolute", "plucky", or "oracular" instead of "noble"
-    let _ = run_pkexec_command(&[
-        "bash",
-        "-c",
-        "sed -i -E 's/(resolute|plucky|oracular)/noble/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true"
-    ]);
 
     match component_id.as_str() {
         "apache" => {
