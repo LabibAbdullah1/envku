@@ -437,9 +437,13 @@ pub fn control_service(service: String, action: String) -> Result<String, String
                 std::path::PathBuf::from("/usr/bin/mysql")
             };
             let source_arg = format!("source {}", sql_path.to_string_lossy());
-            let _ = Command::new(&mysql_exe)
-                .args(&["-u", "root", "-e", &source_arg])
-                .output();
+            let mut cmd = Command::new(&mysql_exe);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000);
+            }
+            let _ = cmd.args(&["-u", "root", "-e", &source_arg]).output();
         }
     }
 
@@ -483,7 +487,13 @@ pub fn clear_redis_cache() -> Result<String, String> {
         return Err("Redis-cli tidak ditemukan. Pastikan Redis sudah terinstal.".to_string());
     }
 
-    let output = Command::new(&redis_cli)
+    let mut cmd = Command::new(&redis_cli);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+    let output = cmd
         .arg("FLUSHALL")
         .output()
         .map_err(|e| format!("Gagal menjalankan redis-cli: {}", e))?;

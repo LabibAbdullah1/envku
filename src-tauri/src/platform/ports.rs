@@ -1,3 +1,4 @@
+#[cfg(target_os = "linux")]
 use std::process::Command;
 
 /// Mendaftarkan port di firewall sistem (Windows Firewall / Linux UFW).
@@ -5,7 +6,7 @@ pub fn register_firewall_port(port: u16) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         // Jalankan perintah netsh untuk menambahkan aturan firewall masuk
-        let output = Command::new("netsh")
+        let output = crate::create_hidden_command("netsh")
             .args(&[
                 "advfirewall", "firewall", "add", "rule",
                 &format!("name=Envku_Port_{}", port),
@@ -57,7 +58,7 @@ pub fn register_firewall_port(port: u16) -> Result<(), String> {
 pub fn unregister_firewall_port(port: u16) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        let _ = Command::new("netsh")
+        let _ = crate::create_hidden_command("netsh")
             .args(&[
                 "advfirewall", "firewall", "delete", "rule",
                 &format!("name=Envku_Port_{}", port)

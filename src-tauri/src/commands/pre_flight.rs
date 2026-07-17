@@ -1,4 +1,5 @@
 use std::net::TcpListener;
+#[cfg(target_os = "linux")]
 use std::process::Command;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -76,7 +77,7 @@ fn find_port_owner(port: u16) -> Option<(u32, String)> {
 /// Find the PID and process name occupying the specified port on Windows.
 #[cfg(target_os = "windows")]
 fn find_port_owner(port: u16) -> Option<(u32, String)> {
-    let output = Command::new("netstat")
+    let output = crate::create_hidden_command("netstat")
         .args(&["-ano"])
         .output()
         .ok()?;
@@ -110,7 +111,7 @@ fn find_port_owner(port: u16) -> Option<(u32, String)> {
     }
     
     // Get process name using tasklist
-    let output_task = Command::new("tasklist")
+    let output_task = crate::create_hidden_command("tasklist")
         .args(&["/FI", &format!("PID eq {}", pid), "/FO", "CSV", "/NH"])
         .output()
         .ok()?;
@@ -172,7 +173,7 @@ pub fn resolve_port_conflict(pid: u32) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     {
         // 1. Try normal taskkill
-        let output = Command::new("taskkill")
+        let output = crate::create_hidden_command("taskkill")
             .args(&["/F", "/PID", &pid.to_string()])
             .output();
             
@@ -183,7 +184,7 @@ pub fn resolve_port_conflict(pid: u32) -> Result<String, String> {
         }
         
         // 2. Elevate using UAC via PowerShell
-        let output_elevated = Command::new("powershell")
+        let output_elevated = crate::create_hidden_command("powershell")
             .args(&[
                 "-Command",
                 &format!("Start-Process taskkill -ArgumentList '/F', '/PID', '{}' -Verb RunAs -WindowStyle Hidden", pid)

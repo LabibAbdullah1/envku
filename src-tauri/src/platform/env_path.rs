@@ -3,6 +3,7 @@ use std::fs;
 #[cfg(target_os = "linux")]
 use std::path::Path;
 use std::path::PathBuf;
+#[cfg(target_os = "linux")]
 use std::process::Command;
 
 /// Mendapatkan base path server (C:\server di Windows, /opt/server di Linux).
@@ -92,7 +93,7 @@ pub fn register_system_paths() -> Result<(), String> {
                 .map_err(|e| format!("Gagal menulis PATH baru ke registry System: {}", e))?;
 
             // Refresh environment
-            let _ = Command::new("powershell.exe")
+            let _ = crate::create_hidden_command("powershell.exe")
                 .args(&[
                     "-Command",
                     "$signature = @'\n[DllImport(\"user32.dll\", SetLastError = true, CharSet = CharSet.Auto)]\npublic static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);\n'@\n$type = Add-Type -MemberDefinition $signature -Name \"Win32\" -Namespace \"Env\" -PassThru\n$type::SendMessageTimeout(0xffff, 0x001A, 0, \"Environment\", 2, 2000, [ref][IntPtr]::Zero) | Out-Null"
