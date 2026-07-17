@@ -104,6 +104,40 @@ pub fn is_port_in_use(port: u16) -> bool {
     false
 }
 
+#[cfg(target_os = "windows")]
+fn get_process_executable_path(pid: u32) -> Option<String> {
+    // Try using wmic first as it is fast
+    let output = crate::create_hidden_command("wmic")
+        .args(&["process", "where", &format!("processid={}", pid), "get", "ExecutablePath", "/format:list"])
+        .output()
+        .ok()?;
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            if line.to_lowercase().starts_with("executablepath=") {
+                if let Some(path) = line.splitn(2, '=').nth(1) {
+                    let trimmed = path.trim().to_string();
+                    if !trimmed.is_empty() {
+                        return Some(trimmed);
+                    }
+                }
+            }
+        }
+    }
+    // Fallback using PowerShell
+    let output_ps = crate::create_hidden_command("powershell.exe")
+        .args(&["-Command", &format!("(Get-Process -Id {} -ErrorAction SilentlyContinue).Path", pid)])
+        .output()
+        .ok()?;
+    if output_ps.status.success() {
+        let path = String::from_utf8_lossy(&output_ps.stdout).trim().to_string();
+        if !path.is_empty() {
+            return Some(path);
+        }
+    }
+    None
+}
+
 pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
     #[cfg(target_os = "windows")]
     {
@@ -138,6 +172,10 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
         }
         if pid == 4 {
             return Some((4, "System".to_string()));
+        }
+        
+        if let Some(full_path) = get_process_executable_path(pid) {
+            return Some((pid, full_path));
         }
         
         let output_task = crate::create_hidden_command("tasklist")
