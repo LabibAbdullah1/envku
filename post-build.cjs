@@ -30,77 +30,118 @@ const DOWNLOADS   = path.join(WEBSITE_DIR, "downloads");
 const UPDATE_JSON = path.join(WEBSITE_DIR, "update.json");
 const INDEX_HTML  = path.join(WEBSITE_DIR, "index.html");
 
+const https = require("https");
+
+// Helper to fetch live update.json from server to prevent overwriting other platforms
+function getLiveUpdateJson() {
+  return new Promise((resolve) => {
+    https.get("https://envku.subly.my.id/update.json", (res) => {
+      if (res.statusCode !== 200) {
+        resolve(null);
+        return;
+      }
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    }).on("error", () => {
+      resolve(null);
+    });
+  });
+}
+
 // ── Baca versi dari tauri.conf.json ───────────────────────────
 const tauriConf = JSON.parse(fs.readFileSync(TAURI_CONF, "utf8"));
 const VERSION   = tauriConf.version; // contoh: "1.1.0"
 
-console.log("\n🚀 Envku Post-Build Script");
-console.log("━".repeat(50));
-console.log(`   Versi terdeteksi: v${VERSION}`);
+async function main() {
+  console.log("\n🚀 Envku Post-Build Script");
+  console.log("━".repeat(50));
+  console.log(`   Versi terdeteksi: v${VERSION}`);
 
-// ── Nama file yang diharapkan ─────────────────────────────────
-const EXE_NAME = `Envku_${VERSION}_x64-setup.exe`;
-const SIG_NAME = `${EXE_NAME}.sig`;
-const EXE_SRC  = path.join(BUNDLE_DIR, EXE_NAME);
-const SIG_SRC  = path.join(BUNDLE_DIR, SIG_NAME);
+  // ── Nama file yang diharapkan ─────────────────────────────────
+  const EXE_NAME = `Envku_${VERSION}_x64-setup.exe`;
+  const SIG_NAME = `${EXE_NAME}.sig`;
+  const EXE_SRC  = path.join(BUNDLE_DIR, EXE_NAME);
+  const SIG_SRC  = path.join(BUNDLE_DIR, SIG_NAME);
 
-// ── Validasi file hasil build ada ─────────────────────────────
-if (!fs.existsSync(EXE_SRC)) {
-  console.error(`\n❌ File installer tidak ditemukan:`);
-  console.error(`   ${EXE_SRC}`);
-  console.error(`\n   Pastikan Anda sudah menjalankan: npx tauri build`);
-  process.exit(1);
-}
+  // ── Validasi file hasil build ada ─────────────────────────────
+  if (!fs.existsSync(EXE_SRC)) {
+    console.error(`\n❌ File installer tidak ditemukan:`);
+    console.error(`   ${EXE_SRC}`);
+    console.error(`\n   Pastikan Anda sudah menjalankan: npx tauri build`);
+    process.exit(1);
+  }
 
-let hasSig = true;
-if (!fs.existsSync(SIG_SRC)) {
-  console.warn(`\n⚠️  File signature (.sig) tidak ditemukan:`);
-  console.warn(`   ${SIG_SRC}`);
-  console.warn(`   Melanjutkan rilis tanpa file signature (auto-update tidak akan ditandatangani).`);
-  hasSig = false;
-}
+  let hasSig = true;
+  if (!fs.existsSync(SIG_SRC)) {
+    console.warn(`\n⚠️  File signature (.sig) tidak ditemukan:`);
+    console.warn(`   ${SIG_SRC}`);
+    console.warn(`   Melanjutkan rilis tanpa file signature (auto-update tidak akan ditandatangani).`);
+    hasSig = false;
+  }
 
-// ── Buat folder downloads jika belum ada ─────────────────────
-if (!fs.existsSync(DOWNLOADS)) {
-  fs.mkdirSync(DOWNLOADS, { recursive: true });
-  console.log(`\n   📁 Folder dibuat: website/downloads/`);
-}
+  // ── Buat folder downloads jika belum ada ─────────────────────
+  if (!fs.existsSync(DOWNLOADS)) {
+    fs.mkdirSync(DOWNLOADS, { recursive: true });
+    console.log(`\n   📁 Folder dibuat: website/downloads/`);
+  }
 
-// ── Salin .exe ke website/downloads/ ─────────────────────────
-const EXE_DEST = path.join(DOWNLOADS, EXE_NAME);
-console.log(`\n📦 Menyalin installer...`);
-fs.copyFileSync(EXE_SRC, EXE_DEST);
-const exeSizeMB = (fs.statSync(EXE_DEST).size / 1024 / 1024).toFixed(1);
-console.log(`   ✅ Berhasil! (${exeSizeMB} MB)`);
+  // ── Salin .exe ke website/downloads/ ─────────────────────────
+  const EXE_DEST = path.join(DOWNLOADS, EXE_NAME);
+  console.log(`\n📦 Menyalin installer...`);
+  fs.copyFileSync(EXE_SRC, EXE_DEST);
+  const exeSizeMB = (fs.statSync(EXE_DEST).size / 1024 / 1024).toFixed(1);
+  console.log(`   ✅ Berhasil! (${exeSizeMB} MB)`);
 
-// ── Salin .sig ke website/downloads/ ─────────────────────────
-const SIG_DEST = path.join(DOWNLOADS, SIG_NAME);
-if (hasSig) {
-  console.log(`\n🔏 Menyalin file signature...`);
-  fs.copyFileSync(SIG_SRC, SIG_DEST);
-  console.log(`   ✅ Berhasil!`);
-} else {
-  console.log(`\n🔏 Lewati menyalin file signature (tidak ditemukan).`);
-}
+  // ── Salin .sig ke website/downloads/ ─────────────────────────
+  const SIG_DEST = path.join(DOWNLOADS, SIG_NAME);
+  if (hasSig) {
+    console.log(`\n🔏 Menyalin file signature...`);
+    fs.copyFileSync(SIG_SRC, SIG_DEST);
+    console.log(`   ✅ Berhasil!`);
+  } else {
+    console.log(`\n🔏 Lewati menyalin file signature (tidak ditemukan).`);
+  }
 
-// ── Hitung SHA-256 dari .exe ──────────────────────────────────
-console.log(`\n🔢 Menghitung SHA-256 hash...`);
-const exeBuffer  = fs.readFileSync(EXE_DEST);
-const sha256Full = crypto.createHash("sha256").update(exeBuffer).digest("hex");
-const sha256Show = sha256Full.substring(0, 24) + "...";
-console.log(`   SHA-256: ${sha256Full}`);
+  // ── Hitung SHA-256 dari .exe ──────────────────────────────────
+  console.log(`\n🔢 Menghitung SHA-256 hash...`);
+  const exeBuffer  = fs.readFileSync(EXE_DEST);
+  const sha256Full = crypto.createHash("sha256").update(exeBuffer).digest("hex");
+  const sha256Show = sha256Full.substring(0, 24) + "...";
+  console.log(`   SHA-256: ${sha256Full}`);
 
-// ── Baca isi .sig untuk dimasukkan ke update.json ─────────────
-const sigContent = hasSig ? fs.readFileSync(SIG_SRC, "utf8").trim() : "";
+  // ── Baca isi .sig untuk dimasukkan ke update.json ─────────────
+  const sigContent = hasSig ? fs.readFileSync(SIG_SRC, "utf8").trim() : "";
 
-// ── Update update.json secara otomatis ───────────────────────
-const updateJson = JSON.parse(fs.readFileSync(UPDATE_JSON, "utf8"));
-const oldVersion = updateJson.version;
-updateJson.version   = VERSION;
-updateJson.pub_date  = new Date().toISOString();
-updateJson.platforms["windows-x86_64"].url       = `https://envku.subly.my.id/downloads/${EXE_NAME}`;
-updateJson.platforms["windows-x86_64"].signature = sigContent;
-fs.writeFileSync(UPDATE_JSON, JSON.stringify(updateJson, null, 2), "utf8");
+  // ── Update update.json secara otomatis (Live Merge) ───────────
+  console.log(`\n📝 Mengambil update.json terbaru dari server...`);
+  let updateJson = await getLiveUpdateJson();
+  if (updateJson) {
+    console.log(`   ✅ update.json berhasil diunduh dari server.`);
+  } else {
+    console.log(`   ⚠️  Gagal mengunduh live update.json. Menggunakan file lokal.`);
+    updateJson = JSON.parse(fs.readFileSync(UPDATE_JSON, "utf8"));
+  }
+
+  const oldVersion = updateJson.version;
+  updateJson.version   = VERSION;
+  updateJson.pub_date  = new Date().toISOString();
+
+  if (!updateJson.platforms) {
+    updateJson.platforms = {};
+  }
+  updateJson.platforms["windows-x86_64"] = {
+    url: `https://envku.subly.my.id/downloads/${EXE_NAME}`,
+    signature: sigContent
+  };
+
+  fs.writeFileSync(UPDATE_JSON, JSON.stringify(updateJson, null, 2), "utf8");
 
 console.log(`\n📝 update.json diperbarui:`);
 console.log(`   Versi    : ${oldVersion} → ${VERSION}`);
@@ -183,3 +224,5 @@ console.log(`\n   📂 Folder /downloads/:`);
 console.log(`      ✦ website/downloads/${EXE_NAME}`);
 console.log(`${"━".repeat(50)}`);
 console.log(`\n✅ Post-build selesai! Aplikasi siap didistribusikan.\n`);
+}
+main();

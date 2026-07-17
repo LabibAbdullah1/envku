@@ -141,64 +141,7 @@ pub fn open_terminal() -> Result<String, String> {
 
 #[tauri::command]
 pub fn create_desktop_shortcut() -> Result<String, String> {
-    #[cfg(target_os = "linux")]
-    {
-        use std::fs;
-        use std::path::Path;
-
-        let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
-        let apps_dir = Path::new(&home).join(".local").join("share").join("applications");
-        let icons_dir = Path::new(&home).join(".local").join("share").join("icons");
-
-        // Create directories if they do not exist
-        fs::create_dir_all(&apps_dir).map_err(|e| format!("Gagal membuat folder applications: {}", e))?;
-        fs::create_dir_all(&icons_dir).map_err(|e| format!("Gagal membuat folder icons: {}", e))?;
-
-        // Write embedded icon.png
-        let icon_path = icons_dir.join("envku.png");
-        const ICON_BYTES: &[u8] = include_bytes!("../../icons/icon.png");
-        fs::write(&icon_path, ICON_BYTES).map_err(|e| format!("Gagal menulis file icon: {}", e))?;
-
-        // Get executable path
-        let exec_path = std::env::var("APPIMAGE")
-            .map(std::path::PathBuf::from)
-            .unwrap_or_else(|_| std::env::current_exe().unwrap_or_default());
-
-        if exec_path.as_os_str().is_empty() {
-            return Err("Gagal mendeteksi path executable aplikasi.".to_string());
-        }
-
-        // Write desktop file
-        let desktop_file_path = apps_dir.join("envku.desktop");
-        let desktop_content = format!(
-            r#"[Desktop Entry]
-Type=Application
-Name=Labib Env (Envku)
-Comment=Envku Local Server Manager
-Exec="{}"
-Icon={}
-Terminal=false
-Categories=Development;
-"#,
-            exec_path.to_string_lossy(),
-            icon_path.to_string_lossy()
-        );
-
-        fs::write(&desktop_file_path, desktop_content)
-            .map_err(|e| format!("Gagal menulis file .desktop: {}", e))?;
-
-        // Make desktop file executable
-        let _ = std::process::Command::new("chmod")
-            .args(&["+x", &desktop_file_path.to_string_lossy()])
-            .status();
-
-        Ok("Aplikasi berhasil diintegrasikan ke menu aplikasi GUI Linux Anda.".to_string())
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    {
-        Err("Integrasi desktop menu hanya didukung di OS Linux.".to_string())
-    }
+    Ok("Fitur integrasi menu otomatis telah dinonaktifkan. Anda dapat membuatnya secara manual jika diperlukan.".to_string())
 }
 
 #[tauri::command]

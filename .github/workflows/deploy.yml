@@ -106,3 +106,5 @@ jobs:
             **/downloads/*.AppImage
             **/downloads/*.AppImage.tar.gz
             **/downloads/*.AppImage.tar.gz.sig
+            **/downloads/*.deb.tar.gz
+            **/downloads/*.deb.tar.gz.sig

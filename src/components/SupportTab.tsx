@@ -65,7 +65,12 @@ export default function SupportTab({
       }
     } catch (err: any) {
       console.error(err);
-      setUpdateError(err?.message || String(err));
+      const errMsg = err?.message || String(err);
+      if (isLinux && (errMsg.includes("fallback platforms") || errMsg.includes("platforms"))) {
+        setUpdateError("Pembaluan otomatis belum tersedia untuk platform Linux di server update. Silakan periksa rilis versi Linux secara manual di GitHub.");
+      } else {
+        setUpdateError(errMsg);
+      }
     } finally {
       setChecking(false);
     }
@@ -169,14 +174,6 @@ ${folderDetails}`;
     }
   };
 
-  const handleCreateDesktopShortcut = async () => {
-    try {
-      const res = await invoke<string>("create_desktop_shortcut");
-      alert(res);
-    } catch (err: any) {
-      alert(`Gagal membuat shortcut desktop: ${err}`);
-    }
-  };
 
   const handleUninstallEnvku = async (deleteData: boolean) => {
     const msg = deleteData
@@ -375,58 +372,38 @@ ${folderDetails}`;
         </form>
       </div>
 
-      {/* Linux Integration & Clean Uninstall Options */}
+      {/* Linux Clean Uninstall Options */}
       {isLinux && (
         <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl relative overflow-hidden">
           <div className="flex items-center space-x-2 text-rose-400">
             <Info className="w-6 h-6" />
-            <h3 className="text-lg font-bold text-zinc-100">Integrasi & Hapus Bersih (Linux)</h3>
+            <h3 className="text-lg font-bold text-zinc-100">Hapus Bersih Aplikasi (Linux)</h3>
           </div>
           <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
-            Kelola pintasan aplikasi untuk sistem menu Linux Anda atau lakukan penghapusan (uninstall) secara menyeluruh beserta seluruh data komponen Envku.
+            Lakukan penghapusan (uninstall) secara menyeluruh beserta seluruh data komponen Envku dari sistem Linux Anda.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            {/* Shortcut Integration Card */}
-            <div className="p-4 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4 flex flex-col justify-between">
-              <div className="space-y-2">
-                <h4 className="text-sm font-bold text-zinc-200">Integrasikan ke Menu Aplikasi GUI</h4>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Membuat pintasan desktop (.desktop) di sistem aplikasi menu Linux Anda agar aplikasi dapat dijalankan dengan sekali klik langsung dari menu aplikasi (GUI).
-                </p>
-              </div>
-              <div>
-                <button
-                  type="button"
-                  onClick={handleCreateDesktopShortcut}
-                  className="w-full px-4 py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-2"
-                >
-                  <Star className="w-4 h-4" />
-                  <span>Integrasikan Sekarang</span>
-                </button>
-              </div>
-            </div>
-
+          <div className="pt-2">
             {/* Clean Uninstall Card */}
-            <div className="p-4 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4 flex flex-col justify-between">
+            <div className="p-5 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4">
               <div className="space-y-2">
                 <h4 className="text-sm font-bold text-zinc-200">Hapus Bersih Aplikasi (Uninstall)</h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   Menghentikan & menghapus seluruh layanan systemd Envku, membersihkan entri DNS di hosts, membersihkan variabel PATH, serta opsional menghapus folder <code className="text-zinc-300">/opt/server</code> beserta seluruh datanya.
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-4 max-w-md pt-2">
                 <button
                   type="button"
                   onClick={() => handleUninstallEnvku(false)}
-                  className="w-1/2 px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+                  className="w-1/2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
                 >
                   <span>Uninstall Ringan</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleUninstallEnvku(true)}
-                  className="w-1/2 px-3 py-2.5 bg-red-700 hover:bg-red-650 text-white rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+                  className="w-1/2 px-4 py-3 bg-red-700 hover:bg-red-650 text-white rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
                 >
                   <span>Hapus Bersih</span>
                 </button>
