@@ -230,6 +230,25 @@ pub fn install_service(service: &str) -> Result<String, String> {
         // 1. Tentukan path file unit systemd kustom
         let service_file_path = format!("/etc/systemd/system/envku-{}.service", service);
         
+        // Hapus & nonaktifkan yang lama jika ada
+        let systemd_service = format!("envku-{}", service);
+        let _ = crate::execute_elevated_command(&["systemctl", "stop", &systemd_service]);
+        let _ = crate::execute_elevated_command(&["systemctl", "disable", &systemd_service]);
+        let _ = crate::execute_elevated_command(&["rm", "-f", &service_file_path]);
+
+        // Hentikan & nonaktifkan layanan sistem standar yang berpotensi menyebabkan konflik port
+        let system_service = match service {
+            "apache" => Some("apache2"),
+            "mysql" => Some("mysql"),
+            "redis" => Some("redis-server"),
+            _ => None,
+        };
+
+        if let Some(sys_svc) = system_service {
+            let _ = crate::execute_elevated_command(&["systemctl", "stop", sys_svc]);
+            let _ = crate::execute_elevated_command(&["systemctl", "disable", sys_svc]);
+        }
+
         // 2. Buat isi berkas unit sesuai jenis layanan
         let service_content = match service {
             "apache" => {

@@ -207,9 +207,13 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if let Some(pid_str) = stdout.lines().next() {
                 if let Ok(pid) = pid_str.trim().parse::<u32>() {
-                    let name = std::fs::read_to_string(format!("/proc/{}/comm", pid))
-                        .map(|s| s.trim().to_string())
-                        .unwrap_or_else(|_| format!("PID {}", pid));
+                    let name = std::fs::read_to_string(format!("/proc/{}/cmdline", pid))
+                        .map(|s| s.replace('\0', " ").trim().to_string())
+                        .unwrap_or_else(|_| {
+                            std::fs::read_to_string(format!("/proc/{}/comm", pid))
+                                .map(|s| s.trim().to_string())
+                                .unwrap_or_else(|_| format!("PID {}", pid))
+                        });
                     return Some((pid, name));
                 }
             }
@@ -229,9 +233,13 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
                                 .take_while(|c| c.is_numeric())
                                 .collect();
                             if let Ok(pid) = pid_str.parse::<u32>() {
-                                let name = std::fs::read_to_string(format!("/proc/{}/comm", pid))
-                                    .map(|s| s.trim().to_string())
-                                    .unwrap_or_else(|_| format!("PID {}", pid));
+                                let name = std::fs::read_to_string(format!("/proc/{}/cmdline", pid))
+                                    .map(|s| s.replace('\0', " ").trim().to_string())
+                                    .unwrap_or_else(|_| {
+                                        std::fs::read_to_string(format!("/proc/{}/comm", pid))
+                                            .map(|s| s.trim().to_string())
+                                            .unwrap_or_else(|_| format!("PID {}", pid))
+                                    });
                                 return Some((pid, name));
                             }
                         }

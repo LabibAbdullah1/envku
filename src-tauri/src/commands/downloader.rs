@@ -500,6 +500,60 @@ fn run_pkexec_command(args: &[&str]) -> Result<(), String> {
 }
 
 #[cfg(target_os = "linux")]
+fn setup_php_repository() -> Result<(), String> {
+    use std::fs;
+    let os_release_content = fs::read_to_string("/etc/os-release").unwrap_or_default();
+    let mut os_info = std::collections::HashMap::new();
+    for line in os_release_content.lines() {
+        let parts: Vec<&str> = line.splitn(2, '=').collect();
+        if parts.len() == 2 {
+            let key = parts[0].trim();
+            let val = parts[1].trim().trim_matches('"').trim_matches('\'');
+            os_info.insert(key.to_string(), val.to_string());
+        }
+    }
+
+    let os_id = os_info.get("ID").map(|s| s.as_str()).unwrap_or("");
+    let os_like = os_info.get("ID_LIKE").map(|s| s.as_str()).unwrap_or("");
+    let is_debian = os_id == "debian" || (os_like.contains("debian") && !os_like.contains("ubuntu") && !os_id.contains("ubuntu"));
+
+    if is_debian {
+        let codename = os_info.get("VERSION_CODENAME")
+            .map(|s| s.as_str())
+            .unwrap_or("bookworm");
+
+        // Install lsb-release, ca-certificates, curl, etc.
+        let _ = run_pkexec_command(&["apt-get", "update"]);
+        run_pkexec_command(&["apt-get", "install", "-y", "lsb-release", "ca-certificates", "apt-transport-https", "software-properties-common", "gnupg2", "curl"])?;
+
+        // Download Sury Debian PHP repository GPG key
+        run_pkexec_command(&["bash", "-c", "curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg"])?;
+
+        // Add repository to sources.list.d
+        let repo_entry = format!("deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ {} main\n", codename);
+        let temp_sources = std::env::temp_dir().join("sury-php.list");
+        fs::write(&temp_sources, repo_entry)
+            .map_err(|e| format!("Gagal menulis file list sementara: {}", e))?;
+
+        run_pkexec_command(&["cp", &temp_sources.to_string_lossy(), "/etc/apt/sources.list.d/sury-php.list"])?;
+        let _ = fs::remove_file(temp_sources);
+    } else {
+        // Setup Ubuntu PPA
+        run_pkexec_command(&["apt-get", "install", "-y", "software-properties-common"])?;
+        let _ = run_pkexec_command(&["add-apt-repository", "-y", "ppa:ondrej/php"]);
+        
+        let _ = run_pkexec_command(&[
+            "bash",
+            "-c",
+            "sed -i -E 's/(resolute|plucky|oracular)/noble/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true"
+        ]);
+    }
+
+    run_pkexec_command(&["apt-get", "update"])?;
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
 async fn download_and_extract_linux(app: AppHandle, component_id: String) -> Result<String, String> {
     let server_dir = get_server_dir_path();
     let config_dir = server_dir.join("config");
@@ -584,18 +638,7 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
         "php83" | "php82" => {
             let php_version_dot = if component_id == "php83" { "8.3" } else { "8.2" };
             emit_progress(&app, &component_id, 10);
-            run_pkexec_command(&["apt-get", "update"])?;
-            run_pkexec_command(&["apt-get", "install", "-y", "software-properties-common"])?;
-            let _ = run_pkexec_command(&["add-apt-repository", "-y", "ppa:ondrej/php"]);
-            
-            // Fix newly added ppa:ondrej/php which might default to "resolute", "plucky", or "oracular"
-            let _ = run_pkexec_command(&[
-                "bash",
-                "-c",
-                "sed -i -E 's/(resolute|plucky|oracular)/noble/g' /etc/apt/sources.list.d/ondrej-*.sources /etc/apt/sources.list.d/ondrej-*.list 2>/dev/null || true"
-            ]);
-
-            run_pkexec_command(&["apt-get", "update"])?;
+            setup_php_repository()?;
             emit_progress(&app, &component_id, 40);
 
             let pkgs = vec![
