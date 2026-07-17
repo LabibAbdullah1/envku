@@ -3,7 +3,14 @@ name: Hybrid Linux Build & FTP cPanel Deploy
 on:
   push:
     branches:
-      - '**' # Triggered when push occurs on any branch (to verify compilation)
+      - '**'
+  workflow_dispatch:
+    inputs:
+      skip_linux:
+        description: 'Skip Linux Build (only deploy local website/downloads)'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   build-linux-and-deploy:
@@ -17,6 +24,7 @@ jobs:
           lfs: true
 
       - name: Install System Dependencies for Tauri
+        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -33,28 +41,34 @@ jobs:
             libfuse2
 
       - name: Setup Node.js
+        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
       - name: Install Rust Toolchain
+        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Cargo Dependencies (Rust Cache)
+        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
 
       - name: Install npm Dependencies
+        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
         run: npm ci
 
       - name: Build Tauri App (Linux AppImage & deb)
+        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
         run: npm run tauri build
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - name: Process Linux Release (Post-Build Linux)
+        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
         run: |
           node post-build-linux.cjs
           echo "Current list of files in website/downloads/:"
