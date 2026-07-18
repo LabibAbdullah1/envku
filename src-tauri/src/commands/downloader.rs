@@ -891,6 +891,16 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
                 }
             }
 
+            #[cfg(target_os = "linux")]
+            {
+                let pma_path = server_dir.join("www").join("phpmyadmin");
+                let chmod_cmd = format!(
+                    "find {0} -type d -exec chmod 755 {{}} + && find {0} -type f -exec chmod 644 {{}} +",
+                    pma_path.to_string_lossy()
+                );
+                let _ = crate::execute_elevated_command(&["sh", "-c", &chmod_cmd]);
+            }
+
             let pma_path = server_dir.join("www").join("phpmyadmin");
             let _ = crate::commands::projects::add_project(
                 "phpmyadmin.test".to_string(),
