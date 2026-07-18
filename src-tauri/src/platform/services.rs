@@ -347,7 +347,7 @@ WantedBy=multi-user.target
             },
             "mailpit" => {
                 let mailpit_bin = server_dir.join("mailpit").join("mailpit");
-                let exec_line = format!("ExecStart={} --smtp-bind 0.0.0.0:1025 --ui-bind 0.0.0.0:8025", mailpit_bin.to_string_lossy());
+                let exec_line = format!("ExecStart={} --smtp 0.0.0.0:1025 --ui 0.0.0.0:8025", mailpit_bin.to_string_lossy());
                 format!(r#"[Unit]
 Description=Envku Mailpit Server
 After=network.target
