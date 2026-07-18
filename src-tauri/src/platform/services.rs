@@ -128,6 +128,25 @@ pub fn control_service(service: &str, action: &str) -> Result<String, String> {
 
     #[cfg(target_os = "linux")]
     {
+        // Cegah eksekusi dan pemicuan pop-up password jika komponen belum diunduh/dipasang
+        if action == "start" || action == "restart" {
+            let server_dir = get_server_dir_path();
+            let is_installed = match service {
+                "apache" => server_dir.join("Apache24").exists() && server_dir.join("config").join("apache2.conf").exists(),
+                "mysql" => server_dir.join("mysql").exists() && server_dir.join("config").join("my.cnf").exists(),
+                "redis" => server_dir.join("redis").exists() && server_dir.join("config").join("redis.conf").exists(),
+                "mailpit" => server_dir.join("mailpit").join("mailpit").exists(),
+                _ => true,
+            };
+
+            if !is_installed {
+                return Err(format!(
+                    "Layanan {} tidak dapat dijalankan karena file komponen/konfigurasi belum diunduh. Silakan unduh terlebih dahulu di menu Downloader.",
+                    service.to_uppercase()
+                ));
+            }
+        }
+
         let systemd_service = format!("envku-{}", service);
         
         // Self-healing: if the service is being started or restarted and the unit file doesn't exist, register it first.
@@ -247,6 +266,22 @@ pub fn install_service(service: &str) -> Result<String, String> {
 
     #[cfg(target_os = "linux")]
     {
+        // Cegah registrasi service jika biner/direktori belum diunduh
+        let is_downloaded = match service {
+            "apache" => server_dir.join("Apache24").exists(),
+            "mysql" => server_dir.join("mysql").exists(),
+            "redis" => server_dir.join("redis").exists(),
+            "mailpit" => server_dir.join("mailpit").join("mailpit").exists(),
+            _ => true,
+        };
+
+        if !is_downloaded {
+            return Err(format!(
+                "Tidak dapat mendaftarkan layanan: folder komponen {} belum diunduh. Silakan pasang terlebih dahulu.",
+                service.to_uppercase()
+            ));
+        }
+
         // 1. Tentukan path file unit systemd kustom
         let service_file_path = format!("/etc/systemd/system/envku-{}.service", service);
         
