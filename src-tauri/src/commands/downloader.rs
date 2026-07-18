@@ -601,7 +601,7 @@ async fn download_and_extract_linux(app: AppHandle, component_id: String) -> Res
     match component_id.as_str() {
         "apache" => {
             emit_progress(&app, &component_id, 10);
-            let cmd_str = "apt-get update && apt-get install -y apache2 && a2enmod ssl && a2enmod proxy && a2enmod proxy_http && a2enmod rewrite && a2enmod headers";
+            let cmd_str = "apt-get update || true; apt-get install -y apache2 && a2enmod ssl && a2enmod proxy && a2enmod proxy_http && a2enmod rewrite && a2enmod headers";
             run_pkexec_command(&["sh", "-c", cmd_str])?;
             emit_progress(&app, &component_id, 80);
 
@@ -708,7 +708,7 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
         }
         "mysql" => {
             emit_progress(&app, &component_id, 10);
-            run_pkexec_command(&["sh", "-c", "apt-get update && apt-get install -y mysql-server"])?;
+            run_pkexec_command(&["sh", "-c", "apt-get update || true; apt-get install -y mysql-server"])?;
             emit_progress(&app, &component_id, 80);
 
             let conf_path = config_dir.join("my.cnf");
@@ -741,7 +741,7 @@ mysqlx-bind-address=127.0.0.1
         }
         "redis" => {
             emit_progress(&app, &component_id, 10);
-            run_pkexec_command(&["sh", "-c", "apt-get update && apt-get install -y redis-server"])?;
+            run_pkexec_command(&["sh", "-c", "apt-get update || true; apt-get install -y redis-server"])?;
             emit_progress(&app, &component_id, 80);
 
             let conf_path = config_dir.join("redis.conf");

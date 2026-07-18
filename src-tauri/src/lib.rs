@@ -76,10 +76,9 @@ pub fn execute_elevated_command(args: &[&str]) -> Result<std::process::Output, s
                 match fallback_output {
                     Ok(ref out) if out.status.success() => Ok(fallback_output.unwrap()),
                     _ => {
-                        // 4. Ultimate fallback: try running the command directly
-                        let mut direct_cmd = Command::new(args[0]);
-                        direct_cmd.args(&args[1..]);
-                        direct_cmd.output()
+                        // Jika pkexec dan sudo gagal, kembalikan hasil pkexec pertama (output)
+                        // agar pengguna mendapatkan pesan error asli, bukan Permission Denied palsu.
+                        output
                     }
                 }
             }
