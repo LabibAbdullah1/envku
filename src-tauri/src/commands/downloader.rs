@@ -601,7 +601,7 @@ async fn download_and_extract_linux(app: AppHandle, component_id: String) -> Res
     match component_id.as_str() {
         "apache" => {
             emit_progress(&app, &component_id, 10);
-            let cmd_str = "apt-get update || true; apt-get install -y apache2 && a2enmod ssl && a2enmod proxy && a2enmod proxy_http && a2enmod rewrite && a2enmod headers";
+            let cmd_str = "apt-get update || true; apt-get install -o Dpkg::Options::=\"--force-confmiss\" --reinstall -y apache2 apache2-bin && a2enmod ssl && a2enmod proxy && a2enmod proxy_http && a2enmod rewrite && a2enmod headers";
             run_pkexec_command(&["sh", "-c", cmd_str])?;
             emit_progress(&app, &component_id, 80);
 
