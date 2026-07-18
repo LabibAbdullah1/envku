@@ -728,6 +728,10 @@ mysqlx-bind-address=127.0.0.1
                 fs::write(&conf_path, default_cnf).map_err(|e| format!("Gagal menulis my.cnf: {}", e))?;
             }
 
+            // Berikan izin akses agar user systemd 'mysql' bisa membaca config ini
+            let chmod_cmd = format!("chmod 755 {} && chmod 644 {}", config_dir.to_string_lossy(), conf_path.to_string_lossy());
+            run_pkexec_command(&["sh", "-c", &chmod_cmd])?;
+
             let dest_bin_dir = server_dir.join("mysql").join("bin");
             fs::create_dir_all(&dest_bin_dir).unwrap_or(());
             let local_mysql = dest_bin_dir.join("mysql");
@@ -750,11 +754,11 @@ mysqlx-bind-address=127.0.0.1
 port 6379
 daemonize no
 pidfile /var/run/redis/redis-server.pid
-logfile /var/log/redis/redis-server.log
+logfile ""
 databases 16
 save 900 1
 save 300 10
-save 60
+save 60 10000
 dir /var/lib/redis
 "#;
                 fs::write(&conf_path, default_redis_conf).map_err(|e| format!("Gagal menulis redis.conf: {}", e))?;
