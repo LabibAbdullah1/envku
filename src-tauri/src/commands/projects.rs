@@ -14,6 +14,16 @@ pub struct VirtualHostInfo {
 pub fn add_project(domain: String, document_root: String, is_node: bool, node_port: Option<u16>, enable_ssl: bool) -> Result<String, String> {
     let server_dir = get_server_dir_path();
     
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = fs::metadata(&document_root) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o755);
+            let _ = fs::set_permissions(&document_root, perms);
+        }
+    }
+
     // Cegah registrasi proyek atau pemanggilan restart Apache jika Apache belum terinstal
     let is_apache_downloaded = if cfg!(target_os = "windows") {
         server_dir.join("Apache24").exists()
