@@ -245,24 +245,6 @@
         const btnAppImage = document.getElementById('download-btn-appimage');
         const btnDeb = document.getElementById('download-btn-deb');
 
-        // Check developer mode
-        const urlParams = new URLSearchParams(window.location.search);
-        const isDev = urlParams.get('dev') === 'true';
-
-        // Protect Linux links for public
-        if (!isDev) {
-            if (btnAppImage) {
-                btnAppImage.dataset.href = btnAppImage.getAttribute('href') || '';
-                btnAppImage.removeAttribute('href');
-                btnAppImage.style.cursor = 'not-allowed';
-            }
-            if (btnDeb) {
-                btnDeb.dataset.href = btnDeb.getAttribute('href') || '';
-                btnDeb.removeAttribute('href');
-                btnDeb.style.cursor = 'not-allowed';
-            }
-        }
-
         // Format count (e.g., 4230 -> 4.2K+)
         function formatCount(num) {
             if (num >= 1000) {
@@ -382,11 +364,6 @@
 
         if (btnAppImage) {
             btnAppImage.addEventListener('click', (e) => {
-                if (!isDev) {
-                    e.preventDefault();
-                    alert("Versi Linux akan segera hadir! Silakan gunakan versi Windows untuk saat ini.");
-                    return;
-                }
                 const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
                 const currentWinNum = parseInt(currentWinText, 10);
                 
@@ -405,11 +382,6 @@
 
         if (btnDeb) {
             btnDeb.addEventListener('click', (e) => {
-                if (!isDev) {
-                    e.preventDefault();
-                    alert("Versi Linux akan segera hadir! Silakan gunakan versi Windows untuk saat ini.");
-                    return;
-                }
                 const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
                 const currentWinNum = parseInt(currentWinText, 10);
                 
