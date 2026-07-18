@@ -156,6 +156,11 @@ pub fn control_service(service: &str, action: &str) -> Result<String, String> {
                 install_service(service)?;
             }
         }
+
+        // Salin my.cnf ke /etc/mysql/envku-my.cnf agar tidak diblokir oleh AppArmor Linux saat start/restart
+        if (action == "start" || action == "restart") && service == "mysql" {
+            let _ = crate::execute_elevated_command(&["sh", "-c", "mkdir -p /etc/mysql && cp -f /opt/server/config/my.cnf /etc/mysql/envku-my.cnf && chown mysql:mysql /etc/mysql/envku-my.cnf"]);
+        }
         
         // Jalankan perintah systemctl melalui pkexec untuk eskalasi hak akses jika diperlukan
         let output = crate::execute_elevated_command(&["systemctl", action, &systemd_service])
@@ -307,7 +312,13 @@ After=network.target
 Type=simple
 RuntimeDirectory=apache2
 RuntimeDirectoryMode=0755
-ExecStart=/bin/sh -c ". /etc/apache2/envvars && exec /usr/sbin/apache2 -f /opt/server/config/apache2.conf -DFOREGROUND"
+Environment=APACHE_RUN_DIR=/var/run/apache2
+Environment=APACHE_RUN_USER=www-data
+Environment=APACHE_RUN_GROUP=www-data
+Environment=APACHE_PID_FILE=/var/run/apache2/apache2.pid
+Environment=APACHE_LOG_DIR=/var/log/apache2
+Environment=APACHE_LOCK_DIR=/var/lock/apache2
+ExecStart=/usr/sbin/apache2 -f /opt/server/config/apache2.conf -DFOREGROUND
 Restart=on-failure
 
 [Install]
@@ -324,7 +335,7 @@ Type=simple
 User=mysql
 RuntimeDirectory=mysqld
 RuntimeDirectoryMode=0755
-ExecStart=/usr/sbin/mysqld --defaults-file=/opt/server/config/my.cnf
+ExecStart=/usr/sbin/mysqld --defaults-file=/etc/mysql/envku-my.cnf
 Restart=on-failure
 
 [Install]
@@ -383,6 +394,10 @@ WantedBy=multi-user.target
                 "systemctl stop {0} || true; systemctl disable {0} || true; ",
                 system_service
             ));
+        }
+
+        if service == "mysql" {
+            cmd_str.push_str("mkdir -p /etc/mysql && cp -f /opt/server/config/my.cnf /etc/mysql/envku-my.cnf && chown mysql:mysql /etc/mysql/envku-my.cnf && ");
         }
 
         cmd_str.push_str(&format!(
