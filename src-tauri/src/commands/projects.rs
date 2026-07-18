@@ -13,6 +13,18 @@ pub struct VirtualHostInfo {
 #[tauri::command]
 pub fn add_project(domain: String, document_root: String, is_node: bool, node_port: Option<u16>, enable_ssl: bool) -> Result<String, String> {
     let server_dir = get_server_dir_path();
+    
+    // Cegah registrasi proyek atau pemanggilan restart Apache jika Apache belum terinstal
+    let is_apache_downloaded = if cfg!(target_os = "windows") {
+        server_dir.join("Apache24").exists()
+    } else {
+        server_dir.join("Apache24").exists() && server_dir.join("config").join("apache2.conf").exists()
+    };
+
+    if !is_apache_downloaded {
+        return Err("Apache belum terinstal. Silakan pasang Apache terlebih dahulu sebelum menambahkan proyek.".to_string());
+    }
+
     let vhosts_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-vhosts.conf");
     
     // Check if virtual host already exists
@@ -293,9 +305,18 @@ fn delete_project_internal(domain: &str) -> Result<(), String> {
 pub fn delete_project(domain: String) -> Result<String, String> {
     delete_project_internal(&domain)?;
 
-    // 3. Restart Apache to apply changes
-    let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
-    let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+    // 3. Restart Apache to apply changes if it is installed
+    let server_dir = get_server_dir_path();
+    let is_apache_downloaded = if cfg!(target_os = "windows") {
+        server_dir.join("Apache24").exists()
+    } else {
+        server_dir.join("Apache24").exists() && server_dir.join("config").join("apache2.conf").exists()
+    };
+
+    if is_apache_downloaded {
+        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
+        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+    }
 
     Ok(format!("Proyek {} berhasil dihapus.", domain))
 }
