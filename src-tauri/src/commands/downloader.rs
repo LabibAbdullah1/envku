@@ -796,6 +796,21 @@ dir /var/lib/redis
                 return Err("Gagal mengekstrak Mailpit tar.gz".to_string());
             }
 
+            // Set executable permission for mailpit binary on Linux
+            #[cfg(target_os = "linux")]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mailpit_bin = mailpit_dir.join("mailpit");
+                if mailpit_bin.exists() {
+                    let mut perms = fs::metadata(&mailpit_bin)
+                        .map_err(|e| format!("Gagal membaca metadata biner Mailpit: {}", e))?
+                        .permissions();
+                    perms.set_mode(0o755);
+                    fs::set_permissions(&mailpit_bin, perms)
+                        .map_err(|e| format!("Gagal mengatur permission biner Mailpit: {}", e))?;
+                }
+            }
+
             // Auto register mailpit systemd service
             let _ = crate::platform::services::install_service("mailpit");
 

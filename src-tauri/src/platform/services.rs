@@ -306,7 +306,7 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/apache2/envvars
-ExecStart=/usr/sbin/apache2 -df /opt/server/config/apache2.conf
+ExecStart=/usr/sbin/apache2 -f /opt/server/config/apache2.conf -DFOREGROUND
 Restart=on-failure
 
 [Install]
@@ -321,6 +321,8 @@ After=network.target
 [Service]
 Type=simple
 User=mysql
+RuntimeDirectory=mysqld
+RuntimeDirectoryMode=0755
 ExecStart=/usr/sbin/mysqld --defaults-file=/opt/server/config/my.cnf
 Restart=on-failure
 
@@ -335,6 +337,8 @@ After=network.target
 
 [Service]
 Type=simple
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
 ExecStart=/usr/bin/redis-server /opt/server/config/redis.conf
 Restart=on-failure
 
