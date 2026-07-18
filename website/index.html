@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Envku - Portable Web Server Manager</title>
-    <link rel="stylesheet" href="style.css?v=1.3.3">
+    <title>Envku - Portable Local Web Server Orchestrator</title>
+    <link rel="stylesheet" href="style.css?v=1.3.4">
 </head>
 <body class="bg-grid">
     <!-- Navbar -->
@@ -13,9 +13,16 @@
             <img src="envku-logo.svg" alt="Envku Logo" class="logo-icon" width="44" height="44">
             <span class="logo-text">ENVKU <span class="accent-text">ORCHESTRATOR</span></span>
         </div>
-        <nav class="nav-links">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+        <nav class="nav-links" id="nav-links">
             <a href="#features">Fitur</a>
+            <a href="#why">Kelebihan</a>
             <a href="#install">Panduan</a>
+            <a href="#github">GitHub</a>
             <a href="#download" class="btn-primary btn-nav">UNDUH SEKARANG</a>
         </nav>
     </header>
@@ -24,8 +31,8 @@
     <section class="hero">
         <div class="hero-content">
             <span class="badge">V1.3.13 STABLE</span>
-            <h1>KENDALIKAN WEB SERVER LOKAL TANPA RIBET</h1>
-            <p>Pengelola portable Apache, PHP Switcher, MySQL, Composer, Redis, Mailpit, phpMyAdmin, dan Node.js/NVM dalam satu aplikasi Windows & Linux yang cepat, aman, dan bergaya Neo-Brutalist.</p>
+            <h1>PENGELOLA SERVER LOKAL PORTABLE TANPA COMPROMISE</h1>
+            <p>Envku adalah orchestrator server lokal modern bergaya Neo-Brutalist untuk Windows & Linux. Kelola Apache, PHP Switcher, MySQL, Composer, Redis, Mailpit, phpMyAdmin, dan Node.js/NVM dalam satu aplikasi portable yang super ringan dan bebas repot.</p>
             <div class="hero-actions">
                 <a href="#download" class="btn-primary btn-hero">UNDUH SEKARANG</a>
                 <a href="#features" class="btn-secondary btn-hero">PELAJARI FITUR</a>
@@ -49,6 +56,30 @@
                     <div class="terminal-line success">[OK] Composer package manager active globally</div>
                     <div class="terminal-line info">[INFO] Symlink Node.js registered globally</div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Envku? (Kelebihan) Section -->
+    <section id="why" class="section bg-dark-card">
+        <h2 class="section-title text-white">MENGAPA MEMILIH ENVKU?</h2>
+        <p class="section-desc">Solusi cerdas bagi developer lokal yang menginginkan performa maksimal tanpa mengotori berkas registri global sistem operasi.</p>
+        <div class="why-grid">
+            <div class="why-card">
+                <h4>Super Ringan & Portable</h4>
+                <p>Tidak seperti Docker yang memakan banyak memori RAM atau XAMPP yang kaku, Envku berukuran kurang dari 5MB dan menjalankan server lokal asli secara langsung dengan memori minimal.</p>
+            </div>
+            <div class="why-card">
+                <h4>Bebas Polusi Sistem (Zero Registry Pollution)</h4>
+                <p>Semua komponen (Apache, PHP, MySQL) berjalan secara portable di direktori terisolasi. Jika aplikasi dihapus, tidak akan ada berkas sampah atau variabel lingkungan global sistem yang tertinggal.</p>
+            </div>
+            <div class="why-card">
+                <h4>Deteksi & Solusi Konflik Cerdas</h4>
+                <p>Fitur <i>Pre-flight checks</i> bawaan secara otomatis mendeteksi konflik port (seperti port 80, 3306, 6379) dan menampilkan detail proses aplikasi pemblokir agar server bisa berjalan lancar.</p>
+            </div>
+            <div class="why-card">
+                <h4>Keamanan Terintegrasi (AppArmor & PolicyKit)</h4>
+                <p>Di Linux, Envku bekerja harmonis dengan systemd, menangani otentikasi hak akses root secara otomatis saat mendaftarkan modul, dan secara cerdas melompati aturan keamanan AppArmor MySQL.</p>
             </div>
         </div>
     </section>
@@ -122,7 +153,7 @@
                 <div class="step-num">1</div>
                 <div class="step-detail">
                     <h4>Unduh Aplikasi</h4>
-                    <p>Unduh file installer sesuai dengan OS Anda: `.exe` untuk Windows atau `.deb` untuk Linux di bagian unduhan di bawah.</p>
+                    <p>Unduh file installer sesuai dengan OS Anda: `.exe` untuk Windows atau `.deb`/`.AppImage` untuk Linux di bagian unduhan di bawah.</p>
                 </div>
             </div>
             <div class="step-item">
@@ -142,17 +173,33 @@
         </div>
     </section>
 
+    <!-- GitHub Section (Beri Bintang & Issues) -->
+    <section id="github" class="section github-section">
+        <div class="github-card">
+            <div class="github-header">
+                <h2>BANTU ENVKU TUMBUH DI GITHUB!</h2>
+                <p>Envku adalah proyek open-source gratis untuk seluruh developer. Dukung kami dengan memberikan bintang di GitHub atau laporkan masalah jika Anda menemukan kendala.</p>
+            </div>
+            <div class="github-actions">
+                <a href="https://github.com/LabibAbdullah1/envku" target="_blank" class="github-btn btn-star">
+                    <span class="btn-icon">⭐</span> BERI BINTANG DI GITHUB
+                </a>
+                <a href="https://github.com/LabibAbdullah1/envku/issues" target="_blank" class="github-btn btn-issues">
+                    <span class="btn-icon">🐛</span> LAPORKAN BUG / MASALAH
+                </a>
+            </div>
+        </div>
+    </section>
+
     <!-- Download Section -->
     <section id="download" class="section text-center">
         <h2 class="section-title">UNDUH VERSI TERBARU</h2>
         <p class="section-desc">Pilih versi aplikasi stabil di bawah. Rilis yang diunduh dari aplikasi akan mendapatkan pemberitahuan pembaruan otomatis.</p>
         
-        <!-- Windows Section -->
-        <h3 class="os-title">WINDOWS</h3>
         <div class="download-container">
             <!-- Windows Card -->
             <div class="download-card">
-                <div class="download-header bg-yellow" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="download-header bg-yellow">
                     <h3 style="color: #000000; text-shadow: none;">ENVKU UNTUK WINDOWS</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <span class="version-tag">V1.3.13 (STABLE)</span>
@@ -172,14 +219,10 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Linux Section -->
-        <h3 class="os-title linux-title">LINUX (DISTRIBUSI & PORTABLE)</h3>
-        <div class="download-container">
             <!-- Linux AppImage Card -->
             <div class="download-card">
-                <div class="download-header bg-blue" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="download-header bg-blue">
                     <h3 style="color: #000000; text-shadow: none;">ENVKU PORTABLE LINUX</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <span class="version-tag">V1.3.13 (STABLE)</span>
@@ -202,7 +245,7 @@
 
             <!-- Linux DEB Card -->
             <div class="download-card">
-                <div class="download-header bg-emerald" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="download-header bg-emerald">
                     <h3 style="color: #000000; text-shadow: none;">ENVKU DEBIAN LINUX</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <span class="version-tag">V1.3.13 (STABLE)</span>
@@ -395,6 +438,25 @@
                     updateUI(currentWinNum, currentAppImageNum, currentNum + 1);
                 }
                 incrementCount('deb');
+            });
+        }
+
+        // Hamburger Menu Toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+
+        if (menuToggle && navLinks) {
+            menuToggle.addEventListener('click', () => {
+                menuToggle.classList.toggle('active');
+                navLinks.classList.toggle('active');
+            });
+
+            // Close menu when clicking link
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    menuToggle.classList.remove('active');
+                    navLinks.classList.remove('active');
+                });
             });
         }
 
