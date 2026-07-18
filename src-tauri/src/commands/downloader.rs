@@ -680,6 +680,11 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
                 install_args.push(pkg);
             }
             run_pkexec_command(&install_args)?;
+             
+            // Pastikan modul PHP di-enable di Apache
+            let enable_mod_cmd = format!("a2enmod php{} || true", php_version_dot);
+            let _ = run_pkexec_command(&["sh", "-c", &enable_mod_cmd]);
+
             emit_progress(&app, &component_id, 80);
 
             let dest_php_dir = server_dir.join(&component_id).join("bin");
@@ -709,6 +714,17 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
         "mysql" => {
             emit_progress(&app, &component_id, 10);
             run_pkexec_command(&["sh", "-c", "apt-get update || true; apt-get install -y mysql-server"])?;
+
+            // Konfigurasi otomatis: ubah otentikasi root agar bisa login tanpa password via phpMyAdmin
+            let _ = run_pkexec_command(&["systemctl", "start", "mysql"]);
+            let _ = run_pkexec_command(&[
+                "mysql",
+                "-u",
+                "root",
+                "-e",
+                "ALTER USER 'root'@'localhost' IDENTIFIED BY ''; FLUSH PRIVILEGES;",
+            ]);
+
             emit_progress(&app, &component_id, 80);
 
             let conf_path = config_dir.join("my.cnf");
