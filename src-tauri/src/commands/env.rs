@@ -38,6 +38,18 @@ pub fn check_and_init_environment() -> Result<String, String> {
         }
     };
 
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if www_path.exists() {
+            if let Ok(metadata) = fs::metadata(&www_path) {
+                let mut perms = metadata.permissions();
+                perms.set_mode(0o755);
+                let _ = fs::set_permissions(&www_path, perms);
+            }
+        }
+    }
+
     ensure_phpmyadmin_host();
     let _ = crate::platform::env_path::register_system_paths();
     res

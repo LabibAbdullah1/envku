@@ -35,7 +35,7 @@ fn check_port_available(port: u16) -> bool {
 #[cfg(target_os = "linux")]
 fn find_port_owner(port: u16) -> Option<(u32, String)> {
     // 1. Try lsof -t -i:<port> (returns only PID)
-    if let Ok(output) = Command::new("lsof").args(&["-t", &format!("-i:{}", port)]).output() {
+    if let Ok(output) = Command::new("lsof").args(&["-t", &format!("-i:{}", port), "-sTCP:LISTEN"]).output() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         if let Some(pid_str) = stdout.lines().next() {
             if let Ok(pid) = pid_str.trim().parse::<u32>() {
