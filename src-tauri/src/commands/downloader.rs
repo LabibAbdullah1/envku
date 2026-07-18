@@ -728,8 +728,13 @@ mysqlx-bind-address=127.0.0.1
                 fs::write(&conf_path, default_cnf).map_err(|e| format!("Gagal menulis my.cnf: {}", e))?;
             }
 
-            // Berikan izin akses agar user systemd 'mysql' bisa membaca config ini
-            let chmod_cmd = format!("chmod 755 {} && chmod 644 {}", config_dir.to_string_lossy(), conf_path.to_string_lossy());
+            // Berikan izin akses agar user systemd 'mysql' bisa membaca config ini (termasuk folder induk /opt/server)
+            let chmod_cmd = format!(
+                "chmod 755 {} && chmod 755 {} && chmod 644 {}",
+                server_dir.to_string_lossy(),
+                config_dir.to_string_lossy(),
+                conf_path.to_string_lossy()
+            );
             run_pkexec_command(&["sh", "-c", &chmod_cmd])?;
 
             let dest_bin_dir = server_dir.join("mysql").join("bin");

@@ -15,7 +15,7 @@ pub fn check_and_init_environment() -> Result<String, String> {
             if user.is_empty() {
                 return Err("Gagal mendeteksi username aktif untuk inisialisasi folder.".to_string());
             }
-            let cmd_str = format!("mkdir -p /opt/server && chown -R {} /opt/server", user);
+            let cmd_str = format!("mkdir -p /opt/server && chown -R {0} /opt/server && chmod 755 /opt/server", user);
             let output = crate::execute_elevated_command(&["sh", "-c", &cmd_str])
                 .map_err(|e| format!("Gagal membuat /opt/server via perintah elevated: {}", e))?;
                 

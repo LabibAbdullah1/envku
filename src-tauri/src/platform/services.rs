@@ -305,6 +305,8 @@ After=network.target
 
 [Service]
 Type=simple
+RuntimeDirectory=apache2
+RuntimeDirectoryMode=0755
 ExecStart=/bin/sh -c ". /etc/apache2/envvars && exec /usr/sbin/apache2 -f /opt/server/config/apache2.conf -DFOREGROUND"
 Restart=on-failure
 
@@ -347,7 +349,7 @@ WantedBy=multi-user.target
             },
             "mailpit" => {
                 let mailpit_bin = server_dir.join("mailpit").join("mailpit");
-                let exec_line = format!("ExecStart={} --smtp 0.0.0.0:1025 --ui 0.0.0.0:8025", mailpit_bin.to_string_lossy());
+                let exec_line = format!("ExecStart={} --smtp 0.0.0.0:1025 --listen 0.0.0.0:8025", mailpit_bin.to_string_lossy());
                 format!(r#"[Unit]
 Description=Envku Mailpit Server
 After=network.target
