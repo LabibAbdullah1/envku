@@ -305,8 +305,7 @@ After=network.target
 
 [Service]
 Type=simple
-EnvironmentFile=/etc/apache2/envvars
-ExecStart=/usr/sbin/apache2 -f /opt/server/config/apache2.conf -DFOREGROUND
+ExecStart=/bin/sh -c ". /etc/apache2/envvars && exec /usr/sbin/apache2 -f /opt/server/config/apache2.conf -DFOREGROUND"
 Restart=on-failure
 
 [Install]
