@@ -72,52 +72,82 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
 
         let key_path = ssl_dir.join(format!("{}.key", domain));
         let crt_path = ssl_dir.join(format!("{}.crt", domain));
+        let cnf_path = ssl_dir.join(format!("{}_openssl.cnf", domain));
+
+        let cnf_content = format!(
+            r#"[ req ]
+default_bits        = 2048
+distinguished_name  = req_distinguished_name
+req_extensions      = v3_req
+x509_extensions     = v3_req
+prompt              = no
+
+[ req_distinguished_name ]
+CN                  = {domain}
+
+[ v3_req ]
+keyUsage            = critical, digitalSignature, keyEncipherment
+extendedKeyUsage    = serverAuth
+subjectAltName      = @alt_names
+
+[ alt_names ]
+DNS.1               = {domain}
+DNS.2               = *.{domain}
+"#,
+            domain = domain
+        );
+
+        fs::write(&cnf_path, cnf_content).map_err(|e| format!("Gagal membuat file konfigurasi SSL sementara: {}", e))?;
 
         #[cfg(target_os = "windows")]
         {
             let openssl_exe = server_dir.join("Apache24").join("bin").join("openssl.exe");
-            if openssl_exe.exists() {
-                let subj_arg = format!("/CN={}", domain);
+            let result = if openssl_exe.exists() {
                 let output = crate::create_hidden_command(&openssl_exe.to_string_lossy())
                     .args(&[
                         "req", "-x509", "-nodes", "-days", "365",
                         "-newkey", "rsa:2048",
                         "-keyout", &key_path.to_string_lossy(),
                         "-out", &crt_path.to_string_lossy(),
-                        "-subj", &subj_arg
+                        "-config", &cnf_path.to_string_lossy()
                     ])
                     .output();
 
                 if let Ok(out) = output {
-                    if !out.status.success() {
+                    if out.status.success() {
+                        // Trust the certificate globally in Windows Trusted Root store
+                        let _ = crate::create_hidden_command("certutil")
+                            .args(&["-addstore", "-user", "root", &crt_path.to_string_lossy()])
+                            .output();
+                        Ok(())
+                    } else {
                         let stderr = String::from_utf8_lossy(&out.stderr);
-                        return Err(format!("Gagal membuat sertifikat SSL: {}", stderr));
+                        Err(format!("Gagal membuat sertifikat SSL: {}", stderr))
                     }
                 } else {
-                    return Err("Gagal mengeksekusi openssl.exe".to_string());
+                    Err("Gagal mengeksekusi openssl.exe".to_string())
                 }
-
-                // Trust the certificate globally in Windows Trusted Root store
-                let _ = crate::create_hidden_command("certutil")
-                    .args(&["-addstore", "-user", "root", &crt_path.to_string_lossy()])
-                    .output();
             } else {
-                return Err("openssl.exe tidak ditemukan di folder Apache. Pastikan Apache sudah terinstal.".to_string());
-            }
+                Err("openssl.exe tidak ditemukan di folder Apache. Pastikan Apache sudah terinstal.".to_string())
+            };
+
+            let _ = fs::remove_file(&cnf_path);
+            result?;
         }
 
         #[cfg(target_os = "linux")]
         {
-            let subj_arg = format!("/CN={}", domain);
             let output = std::process::Command::new("openssl")
                 .args(&[
                     "req", "-x509", "-nodes", "-days", "365",
                     "-newkey", "rsa:2048",
                     "-keyout", &key_path.to_string_lossy(),
                     "-out", &crt_path.to_string_lossy(),
-                    "-subj", &subj_arg
+                    "-config", &cnf_path.to_string_lossy()
                 ])
                 .output();
+
+            let _ = fs::remove_file(&cnf_path);
 
             match output {
                 Ok(out) => {
@@ -139,6 +169,7 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
 
         #[cfg(not(any(target_os = "windows", target_os = "linux")))]
         {
+            let _ = fs::remove_file(&cnf_path);
             let _ = (key_path, crt_path);
         }
     }
