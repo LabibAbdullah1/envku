@@ -54,7 +54,7 @@ export default function DashboardTab({
       {/* Status Directories Cards Grid */}
       <div className="grid grid-cols-2 gap-5">
         {dirsLoading
-          ? Array.from({ length: 7 }).map((_, i) => (
+          ? Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="p-5 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl flex items-center justify-between shadow-xl min-w-0">
                 <div className="flex items-center space-x-4 min-w-0 flex-1">
                   <div className="p-3 rounded-xl bg-zinc-800/60 animate-pulse shrink-0">

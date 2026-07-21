@@ -20,14 +20,54 @@
 }
 
 :root {
-  color-scheme: dark;
+  --bg-body: #0c0d10;
+  --bg-grid: rgba(255, 255, 255, 0.08);
+  --bg-panel: #16171d;
+  --bg-sub-panel: #0d0e12;
+  --bg-sidebar: #111216;
+  --bg-btn-secondary: #1a1b21;
+  --text-main: #f3f4f6;
+  --text-muted: #d1d5db;
+  --text-headings: #ffffff;
+  --text-btn-inactive: #ffffff;
+  --bg-terminal: #000000;
+  --php-ext-btn-inactive-bg: #27272a;
+  --php-ext-btn-inactive-text: #a1a1aa;
+  --text-shadow: 2px 2px 0px #000000;
+  --text-shadow-label: 1px 1px 0px #000000;
+  --bg-btn-red: rgba(127, 29, 29, 0.45);
+  --text-btn-red: #f87171;
+  --bg-btn-green: rgba(6, 78, 59, 0.45);
+  --text-btn-green: #4ade80;
+}
+
+body.light-mode {
+  --bg-body: #f5f4ee; /* Retro Neobrutalist Cream/Sand */
+  --bg-grid: rgba(0, 0, 0, 0.08);
+  --bg-panel: #ffffff;
+  --bg-sub-panel: #ebeae3; /* Slightly darker cream for nested cards */
+  --bg-sidebar: #ebeae3; /* Slightly darker cream for sidebar */
+  --bg-btn-secondary: #ffffff;
+  --text-main: #000000;
+  --text-muted: #4b5563;
+  --text-headings: #000000;
+  --text-btn-inactive: #000000;
+  --bg-terminal: #111216;
+  --php-ext-btn-inactive-bg: #e4e4e7;
+  --php-ext-btn-inactive-text: #4b5563;
+  --text-shadow: none;
+  --text-shadow-label: none;
+  --bg-btn-red: #ef4444;
+  --text-btn-red: #ffffff;
+  --bg-btn-green: #22c55e;
+  --text-btn-green: #000000;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #0c0d10;
-  color: #f3f4f6;
+  background-color: var(--bg-body);
+  color: var(--text-main);
   font-family: 'Poppins', system-ui, -apple-system, sans-serif;
   overflow: hidden;
   height: 100vh;
@@ -41,8 +81,8 @@ button, .btn, .btn-primary, .btn-secondary {
 
 /* Custom radial background grid - Brutalist Style dots */
 .bg-grid-glow {
-  background-color: #0c0d10 !important;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px) !important;
+  background-color: var(--bg-body) !important;
+  background-image: radial-gradient(var(--bg-grid) 1.5px, transparent 1.5px) !important;
   background-size: 24px 24px !important;
 }
 
@@ -56,21 +96,32 @@ button, .btn, .btn-primary, .btn-secondary {
   border-radius: 0px !important;
 }
 
-/* Overriding panel boxes to be Neobrutalist Cards */
+/* Overriding main panel boxes to be Neobrutalist Cards */
 .bg-zinc-900\/50, 
-.bg-zinc-900\/20, 
 .bg-zinc-950\/80, 
 .bg-zinc-900\/30, 
-.bg-zinc-950\/40, 
-.bg-zinc-950\/30, 
 .bg-zinc-900\/70,
 .bg-zinc-900 {
-  background-color: #16171d !important;
+  background-color: var(--bg-panel) !important;
   opacity: 1 !important;
   border: 3px solid #000000 !important;
   box-shadow: 6px 6px 0px 0px #000000 !important;
   border-radius: 4px !important;
   backdrop-filter: none !important;
+}
+
+/* Overriding nested sub-panels to be Neobrutalist sub-cards */
+.bg-zinc-950\/30,
+.bg-zinc-950\/40,
+.bg-zinc-900\/20,
+.bg-zinc-950\/50,
+.bg-zinc-950\/70 {
+  background-color: var(--bg-sub-panel) !important;
+  opacity: 1 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  border-radius: 4px !important;
+  color: var(--text-main) !important;
 }
 
 /* Overriding borders globally */
@@ -80,7 +131,7 @@ button, .btn, .btn-primary, .btn-secondary {
 
 /* Sidebar Styling */
 aside {
-  background-color: #111216 !important;
+  background-color: var(--bg-sidebar) !important;
   border-right: 4px solid #000000 !important;
   border-radius: 0px !important;
   padding: 24px !important;
@@ -97,9 +148,9 @@ aside .bg-indigo-500\/10 {
 
 /* Inactive Sidebar buttons */
 aside nav button {
-  background-color: #1a1b21 !important;
+  background-color: var(--bg-btn-secondary) !important;
   border: 3px solid #000000 !important;
-  color: #ffffff !important;
+  color: var(--text-btn-inactive) !important;
   margin-bottom: 12px !important;
   box-shadow: 4px 4px 0px 0px #000000 !important;
   border-radius: 4px !important;
@@ -159,11 +210,15 @@ button.bg-indigo-600:active {
 
 /* Secondary Button Overrides (like refresh/switch etc) */
 button.bg-zinc-900, 
+button.bg-zinc-850,
 button.bg-zinc-800,
+button.bg-zinc-950\/70,
 button.bg-zinc-950\/40,
+button.bg-zinc-950\/30,
+button.bg-zinc-950,
 button.border-zinc-800 {
-  background-color: #1a1b21 !important;
-  color: #ffffff !important;
+  background-color: var(--bg-btn-secondary) !important;
+  color: var(--text-btn-inactive) !important;
   border: 3px solid #000000 !important;
   box-shadow: 4px 4px 0px 0px #000000 !important;
   font-weight: 700 !important;
@@ -173,7 +228,12 @@ button.border-zinc-800 {
 }
 
 button.bg-zinc-900:hover, 
-button.bg-zinc-800:hover {
+button.bg-zinc-850:hover,
+button.bg-zinc-800:hover,
+button.bg-zinc-950\/70:hover,
+button.bg-zinc-950\/40:hover,
+button.bg-zinc-950\/30:hover,
+button.bg-zinc-950:hover {
   background-color: #f97316 !important; /* Neon Orange */
   color: #000000 !important;
   transform: translate(-2px, -2px) !important;
@@ -247,8 +307,8 @@ input:focus, select:focus {
 }
 
 .bg-zinc-850 {
-  background-color: #1a1b21 !important;
-  color: #555555 !important;
+  background-color: var(--bg-sub-panel) !important;
+  color: var(--text-main) !important;
   border: 3px solid #000000 !important;
   box-shadow: 3px 3px 0px 0px #000000 !important;
 }
@@ -259,8 +319,8 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 900 !important;
   text-transform: uppercase !important;
   letter-spacing: -0.02em !important;
-  color: #ffffff !important;
-  text-shadow: 2px 2px 0px #000000;
+  color: var(--text-headings) !important;
+  text-shadow: var(--text-shadow);
 }
 
 h2 {
@@ -268,10 +328,14 @@ h2 {
   color: #FFE600 !important; /* Neobrutalist main color */
 }
 
-/* Secondary descriptions */
-.text-zinc-400, .text-sm.text-zinc-400 {
-  color: #d1d5db !important;
+/* Secondary descriptions and text zinc overrides */
+.text-zinc-400, .text-zinc-500, .text-sm.text-zinc-400, .text-xs.text-zinc-500 {
+  color: var(--text-muted) !important;
   font-weight: 500 !important;
+}
+
+.text-zinc-100, .text-zinc-200, .text-zinc-300 {
+  color: var(--text-main) !important;
 }
 
 /* Labels and Subtitle headings */
@@ -282,7 +346,7 @@ span.text-xs.font-bold {
   text-transform: uppercase !important;
   font-weight: 900 !important;
   letter-spacing: 0.1em !important;
-  text-shadow: 1px 1px 0px #000000;
+  text-shadow: var(--text-shadow-label);
 }
 
 /* PHP Version Switcher active selection */
@@ -316,8 +380,8 @@ span.font-mono.bg-indigo-500\/10 {
 }
 
 /* Log output boxes & terminals */
-.bg-zinc-950\/30, .bg-zinc-950\/40, .bg-zinc-950 {
-  background-color: #000000 !important;
+.bg-zinc-950\/60, .bg-zinc-950 {
+  background-color: var(--bg-terminal) !important;
   border: 3px solid #000000 !important;
   box-shadow: 4px 4px 0px 0px #000000 !important;
   color: #34D399 !important; /* Green matrix output */
@@ -345,7 +409,7 @@ span.font-mono.bg-indigo-500\/10 {
   height: 12px;
 }
 ::-webkit-scrollbar-track {
-  background: #111216;
+  background: var(--bg-sidebar);
   border-left: 3px solid #000000;
 }
 ::-webkit-scrollbar-thumb {
@@ -392,7 +456,7 @@ span.font-mono.bg-indigo-500\/10 {
   box-shadow: none !important;
   border-radius: 0px !important;
   background-color: transparent !important;
-  color: #ffffff !important;
+  color: var(--text-headings) !important;
   font-weight: 600 !important;
   transform: none !important;
 }
@@ -461,7 +525,7 @@ span.bg-zinc-800 {
   align-items: center !important;
   justify-content: space-between !important;
   padding: 14px 18px !important;
-  background-color: #16171d !important;
+  background-color: var(--bg-panel) !important;
   border: 3px solid #000000 !important;
   box-shadow: 4px 4px 0px 0px #000000 !important;
   border-radius: 4px !important;
@@ -480,7 +544,7 @@ span.bg-zinc-800 {
   font-family: 'Consolas', 'Courier New', monospace !important;
   font-weight: 700 !important;
   font-size: 0.9rem !important;
-  color: #ffffff !important;
+  color: var(--text-headings) !important;
   text-shadow: none !important;
   text-transform: lowercase !important;
 }
@@ -511,15 +575,16 @@ span.bg-zinc-800 {
 }
 
 .php-ext-btn-inactive {
-  background-color: #27272a !important; /* Dark Grey */
-  color: #a1a1aa !important;
+  background-color: var(--php-ext-btn-inactive-bg) !important;
+  color: var(--php-ext-btn-inactive-text) !important;
   box-shadow: 2px 2px 0px 0px #000000 !important;
   text-shadow: none !important;
 }
 
 .php-ext-btn-inactive:hover {
-  background-color: #3f3f46 !important;
-  color: #ffffff !important;
+  background-color: var(--php-ext-btn-inactive-bg) !important;
+  filter: brightness(1.1);
+  color: var(--text-headings) !important;
   transform: translate(-1px, -1px) !important;
   box-shadow: 3px 3px 0px 0px #000000 !important;
 }
@@ -527,4 +592,84 @@ span.bg-zinc-800 {
 .php-ext-btn:active {
   transform: translate(1px, 1px) !important;
   box-shadow: 1px 1px 0px 0px #000000 !important;
+}
+
+/* Service Panel control button overrides */
+.bg-red-950\/25 {
+  background-color: var(--bg-btn-red) !important;
+  color: var(--text-btn-red) !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+}
+
+.bg-red-950\/25:hover {
+  background-color: #f87171 !important;
+  color: #000000 !important;
+}
+
+.bg-emerald-950\/25 {
+  background-color: var(--bg-btn-green) !important;
+  color: var(--text-btn-green) !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+}
+
+.bg-emerald-950\/25:hover {
+  background-color: #4ade80 !important;
+  color: #000000 !important;
+}
+
+/* Specific override for z-30 dropdown container */
+.absolute.z-30 {
+  background-color: var(--bg-panel) !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 6px 6px 0px 0px #000000 !important;
+}
+
+/* Neobrutalist custom checkbox styles */
+input[type="checkbox"] {
+  background-color: var(--bg-panel) !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+  border-radius: 4px !important;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #FFE600 !important; /* Always yellow when checked */
+}
+
+input[type="checkbox"]:checked::after {
+  content: "✔" !important;
+  color: #000000 !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+/* Skeleton Loader Overrides */
+.animate-pulse,
+.animate-pulse * {
+  background-color: var(--bg-sub-panel) !important;
+  opacity: 0.65;
+}
+
+/* Inactive PHP switcher buttons text colors overrides */
+button.bg-zinc-950\/30 h4,
+button.bg-indigo-950\/20 h4 {
+  color: var(--text-headings) !important;
+  text-shadow: none !important;
+}
+
+button.bg-zinc-950\/30 p,
+button.bg-zinc-950\/30 span,
+button.bg-indigo-950\/20 p,
+button.bg-indigo-950\/20 span {
+  color: var(--text-headings) !important;
 }

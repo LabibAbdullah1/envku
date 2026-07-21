@@ -5,16 +5,20 @@ import {
   Plus, 
   Code, 
   Globe,
-  Bug
+  Bug,
+  Sun,
+  Moon
 } from "lucide-react";
 import envkuLogo from "../assets/envku-logo.svg";
 
 interface SidebarProps {
   activeTab: "dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support";
   setActiveTab: (tab: "dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support") => void;
+  theme: "light" | "dark";
+  setTheme: (theme: "light" | "dark") => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, theme, setTheme }: SidebarProps) {
   return (
     <aside className="w-[240px] border-r border-zinc-800 bg-zinc-950/80 backdrop-blur-2xl flex flex-col justify-between p-6 z-20 shrink-0">
       <div className="space-y-8">
@@ -118,13 +122,46 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </nav>
       </div>
 
-      {/* Footer info */}
-      <div className="border-t border-zinc-800/60 pt-4 text-xs text-zinc-500 font-mono flex items-center justify-between">
-        <span>Admin Elevated</span>
-        <span className="flex h-2.5 w-2.5 relative">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-        </span>
+      <div className="space-y-4">
+        {/* Theme Toggle */}
+        <div className="border-t border-zinc-850 pt-4">
+          <label className="text-[10px] font-black uppercase tracking-wider block mb-2 text-center">
+            Tampilan / Mode
+          </label>
+          <div className="flex items-center justify-between bg-black/15 border-2 border-black p-0.5 rounded">
+            <button
+              onClick={() => setTheme("light")}
+              className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 text-xs font-black uppercase transition-all cursor-pointer ${
+                theme === "light"
+                  ? "bg-[#FFE600] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000000]"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5 shrink-0" />
+              <span>Terang</span>
+            </button>
+            <button
+              onClick={() => setTheme("dark")}
+              className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 text-xs font-black uppercase transition-all cursor-pointer ${
+                theme === "dark"
+                  ? "bg-[#8B5CF6] text-white border-2 border-black shadow-[2px_2px_0px_0px_#000000]"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5 shrink-0" />
+              <span>Gelap</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Footer info */}
+        <div className="border-t border-zinc-800/60 pt-4 text-xs text-zinc-500 font-mono flex items-center justify-between">
+          <span>Admin Elevated</span>
+          <span className="flex h-2.5 w-2.5 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+        </div>
       </div>
     </aside>
   );

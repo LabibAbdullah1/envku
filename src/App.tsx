@@ -43,6 +43,29 @@ export default function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState<"dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support">("dashboard");
 
+  // Theme state
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("envku-theme");
+      if (saved === "light" || saved === "dark") {
+        return saved;
+      }
+    }
+    return "dark";
+  });
+
+  useEffect(() => {
+    const root = window.document.body;
+    if (theme === "light") {
+      root.classList.add("light-mode");
+      root.classList.remove("dark-mode");
+    } else {
+      root.classList.add("dark-mode");
+      root.classList.remove("light-mode");
+    }
+    localStorage.setItem("envku-theme", theme);
+  }, [theme]);
+
   // Splash screen state
   const [appReady, setAppReady] = useState<boolean>(false);
 
@@ -511,10 +534,10 @@ export default function App() {
   }
 
   return (
-    <div className="relative h-screen w-screen flex bg-grid-glow overflow-hidden select-none font-sans text-zinc-100">
+    <div className="relative h-screen w-screen flex bg-grid-glow overflow-hidden select-none font-sans">
       
       {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} setTheme={setTheme} />
 
       {/* Main View Area */}
       <main className="flex-1 bg-transparent p-8 overflow-y-auto flex flex-col justify-between relative z-10">

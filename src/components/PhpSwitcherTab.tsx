@@ -110,7 +110,7 @@ export default function PhpSwitcherTab({
                 }`}
               >
                 <div className="flex justify-between items-start w-full">
-                  <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500">Stable Thread-Safe</span>
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500 dark:text-zinc-100">Stable Thread-Safe</span>
                   {switchingPhp === "php83"
                     ? <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
                     : activePhpVersion === "php83" && <CheckCircle2 className="w-5 h-5 text-indigo-400" />}
@@ -152,7 +152,7 @@ export default function PhpSwitcherTab({
 
       {activePhpVersion !== "unknown" && (
         <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-4 gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
             <div>
               <h3 className="text-lg font-bold text-zinc-100">Ekstensi PHP (php.ini)</h3>
               <p className="text-xs text-zinc-400 mt-1">Aktifkan atau nonaktifkan modul ekstensi PHP secara instan. Apache akan otomatis di-restart setelah perubahan.</p>
@@ -165,7 +165,6 @@ export default function PhpSwitcherTab({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 focus:bg-zinc-950 rounded-xl px-4 py-2 text-xs text-zinc-100 outline-none transition-all duration-200 w-44"
               />
-              {loadingExts && <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />}
             </div>
           </div>
 
