@@ -16,7 +16,7 @@ dist-ssr
 .signing-key*
 
 
-# Editor directories and filess
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
