@@ -74,9 +74,6 @@ jobs:
           echo "Current list of files in website/downloads/:"
           ls -lh website/downloads/
 
-      - name: Sync Support Package Mirror for cPanel
-        run: node sync-packages.cjs
-
       # Opsi A: FTP Deploy saat versi Linux di-build (unggah semua termasuk biner Linux)
       - name: FTP Deploy Website to cPanel (With Linux Build)
         if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux') && github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
