@@ -65,17 +65,24 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
     // 2. SSL Certificate Generation & Trust (if enabled)
     let server_dir = get_server_dir_path();
     let ssl_dir = server_dir.join("ssl");
+    let mut actual_ssl_enabled = enable_ssl;
+    let mut ssl_warning_msg: Option<String> = None;
+
     if enable_ssl {
         if !ssl_dir.exists() {
-            fs::create_dir_all(&ssl_dir).map_err(|e| format!("Gagal membuat folder SSL: {}", e))?;
+            if let Err(e) = fs::create_dir_all(&ssl_dir) {
+                actual_ssl_enabled = false;
+                ssl_warning_msg = Some(format!("Gagal membuat folder SSL ({}), proyek dibuat tanpa SSL.", e));
+            }
         }
 
-        let key_path = ssl_dir.join(format!("{}.key", domain));
-        let crt_path = ssl_dir.join(format!("{}.crt", domain));
-        let cnf_path = ssl_dir.join(format!("{}_openssl.cnf", domain));
+        if actual_ssl_enabled {
+            let key_path = ssl_dir.join(format!("{}.key", domain));
+            let crt_path = ssl_dir.join(format!("{}.crt", domain));
+            let cnf_path = ssl_dir.join(format!("{}_openssl.cnf", domain));
 
-        let cnf_content = format!(
-            r#"[ req ]
+            let cnf_content = format!(
+                r#"[ req ]
 default_bits        = 2048
 distinguished_name  = req_distinguished_name
 req_extensions      = v3_req
@@ -94,83 +101,102 @@ subjectAltName      = @alt_names
 DNS.1               = {domain}
 DNS.2               = *.{domain}
 "#,
-            domain = domain
-        );
+                domain = domain
+            );
 
-        fs::write(&cnf_path, cnf_content).map_err(|e| format!("Gagal membuat file konfigurasi SSL sementara: {}", e))?;
-
-        #[cfg(target_os = "windows")]
-        {
-            let openssl_exe = server_dir.join("Apache24").join("bin").join("openssl.exe");
-            let result = if openssl_exe.exists() {
-                let output = crate::create_hidden_command(&openssl_exe.to_string_lossy())
-                    .args(&[
-                        "req", "-x509", "-nodes", "-days", "365",
-                        "-newkey", "rsa:2048",
-                        "-keyout", &key_path.to_string_lossy(),
-                        "-out", &crt_path.to_string_lossy(),
-                        "-config", &cnf_path.to_string_lossy()
-                    ])
-                    .output();
-
-                if let Ok(out) = output {
-                    if out.status.success() {
-                        // Trust the certificate globally in Windows Trusted Root store
-                        let _ = crate::create_hidden_command("certutil")
-                            .args(&["-addstore", "-user", "root", &crt_path.to_string_lossy()])
-                            .output();
-                        Ok(())
-                    } else {
-                        let stderr = String::from_utf8_lossy(&out.stderr);
-                        Err(format!("Gagal membuat sertifikat SSL: {}", stderr))
-                    }
-                } else {
-                    Err("Gagal mengeksekusi openssl.exe".to_string())
-                }
+            if let Err(e) = fs::write(&cnf_path, &cnf_content) {
+                actual_ssl_enabled = false;
+                ssl_warning_msg = Some(format!("Gagal membuat file konfigurasi SSL ({}), proyek dibuat tanpa SSL.", e));
             } else {
-                Err("openssl.exe tidak ditemukan di folder Apache. Pastikan Apache sudah terinstal.".to_string())
-            };
+                #[cfg(target_os = "windows")]
+                {
+                    let openssl_exe = server_dir.join("Apache24").join("bin").join("openssl.exe");
+                    if openssl_exe.exists() {
+                        let output = crate::create_hidden_command(&openssl_exe.to_string_lossy())
+                            .args(&[
+                                "req", "-x509", "-nodes", "-days", "365",
+                                "-newkey", "rsa:2048",
+                                "-keyout", &key_path.to_string_lossy(),
+                                "-out", &crt_path.to_string_lossy(),
+                                "-config", &cnf_path.to_string_lossy()
+                            ])
+                            .output();
 
-            let _ = fs::remove_file(&cnf_path);
-            result?;
-        }
+                        if let Ok(out) = output {
+                            if out.status.success() {
+                                // Trust the certificate globally in Windows Trusted Root store
+                                let certutil_output = crate::create_hidden_command("certutil")
+                                    .args(&["-addstore", "-user", "root", &crt_path.to_string_lossy()])
+                                    .output();
 
-        #[cfg(target_os = "linux")]
-        {
-            let output = std::process::Command::new("openssl")
-                .args(&[
-                    "req", "-x509", "-nodes", "-days", "365",
-                    "-newkey", "rsa:2048",
-                    "-keyout", &key_path.to_string_lossy(),
-                    "-out", &crt_path.to_string_lossy(),
-                    "-config", &cnf_path.to_string_lossy()
-                ])
-                .output();
+                                let cert_success = match certutil_output {
+                                    Ok(cout) => cout.status.success(),
+                                    Err(_) => false,
+                                };
 
-            let _ = fs::remove_file(&cnf_path);
-
-            match output {
-                Ok(out) => {
-                    if !out.status.success() {
-                        let stderr = String::from_utf8_lossy(&out.stderr);
-                        return Err(format!("Gagal membuat sertifikat SSL: {}", stderr));
+                                if !cert_success {
+                                    actual_ssl_enabled = false;
+                                    ssl_warning_msg = Some("Penginstalan sertifikat SSL dibatalkan pengguna. Proyek tetap dibuat tanpa SSL (HTTP).".to_string());
+                                    let _ = fs::remove_file(&crt_path);
+                                    let _ = fs::remove_file(&key_path);
+                                }
+                            } else {
+                                let stderr = String::from_utf8_lossy(&out.stderr);
+                                actual_ssl_enabled = false;
+                                ssl_warning_msg = Some(format!("Gagal membuat sertifikat SSL ({}), proyek dibuat tanpa SSL.", stderr.trim()));
+                            }
+                        } else {
+                            actual_ssl_enabled = false;
+                            ssl_warning_msg = Some("Gagal mengeksekusi openssl.exe, proyek dibuat tanpa SSL.".to_string());
+                        }
+                    } else {
+                        actual_ssl_enabled = false;
+                        ssl_warning_msg = Some("openssl.exe tidak ditemukan di folder Apache, proyek dibuat tanpa SSL.".to_string());
                     }
+
+                    let _ = fs::remove_file(&cnf_path);
                 }
-                Err(e) => {
-                    return Err(format!("openssl tidak ditemukan di sistem atau gagal dijalankan: {}", e));
+
+                #[cfg(target_os = "linux")]
+                {
+                    let output = std::process::Command::new("openssl")
+                        .args(&[
+                            "req", "-x509", "-nodes", "-days", "365",
+                            "-newkey", "rsa:2048",
+                            "-keyout", &key_path.to_string_lossy(),
+                            "-out", &crt_path.to_string_lossy(),
+                            "-config", &cnf_path.to_string_lossy()
+                        ])
+                        .output();
+
+                    let _ = fs::remove_file(&cnf_path);
+
+                    let openssl_ok = match output {
+                        Ok(out) => out.status.success(),
+                        Err(_) => false,
+                    };
+
+                    if openssl_ok {
+                        let dest_cert_path = format!("/usr/local/share/ca-certificates/{}.crt", domain);
+                        let cmd_str = format!("cp {} {} && update-ca-certificates", crt_path.to_string_lossy(), dest_cert_path);
+                        let cert_res = crate::execute_elevated_command(&["sh", "-c", &cmd_str]);
+                        if let Ok(out) = cert_res {
+                            if !out.status.success() {
+                                actual_ssl_enabled = false;
+                                ssl_warning_msg = Some("Penginstalan sertifikat SSL dibatalkan di Linux. Proyek tetap dibuat tanpa SSL (HTTP).".to_string());
+                                let _ = fs::remove_file(&crt_path);
+                                let _ = fs::remove_file(&key_path);
+                            }
+                        } else {
+                            actual_ssl_enabled = false;
+                            ssl_warning_msg = Some("Gagal mendaftarkan sertifikat SSL di Linux. Proyek dibuat tanpa SSL (HTTP).".to_string());
+                        }
+                    } else {
+                        actual_ssl_enabled = false;
+                        ssl_warning_msg = Some("openssl tidak ditemukan di Linux, proyek dibuat tanpa SSL.".to_string());
+                    }
                 }
             }
-
-            // Trust the certificate globally in Linux (Debian/Ubuntu)
-            let dest_cert_path = format!("/usr/local/share/ca-certificates/{}.crt", domain);
-            let cmd_str = format!("cp {} {} && update-ca-certificates", crt_path.to_string_lossy(), dest_cert_path);
-            let _ = crate::execute_elevated_command(&["sh", "-c", &cmd_str]);
-        }
-
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-        {
-            let _ = fs::remove_file(&cnf_path);
-            let _ = (key_path, crt_path);
         }
     }
 
@@ -220,7 +246,7 @@ DNS.2               = *.{domain}
             )
         };
 
-        if enable_ssl {
+        if actual_ssl_enabled {
             let clean_ssl_dir = ssl_dir.to_string_lossy().replace('\\', "/");
             let ssl_block = if is_node {
                 let port = node_port.unwrap_or(3000);
@@ -273,7 +299,13 @@ DNS.2               = *.{domain}
     let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
     let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
 
-    Ok(format!("Proyek {} berhasil dibuat & didaftarkan.", domain))
+    if let Some(warning) = ssl_warning_msg {
+        Ok(format!("Proyek {} berhasil dibuat. ⚠️ {}", domain, warning))
+    } else if actual_ssl_enabled {
+        Ok(format!("Proyek {} berhasil dibuat dengan SSL (HTTPS).", domain))
+    } else {
+        Ok(format!("Proyek {} berhasil dibuat (tanpa SSL/HTTP).", domain))
+    }
 }
 
 fn delete_project_internal(domain: &str) -> Result<(), String> {
@@ -396,22 +428,25 @@ pub fn get_virtual_hosts() -> Result<Vec<VirtualHostInfo>, String> {
     let mut current_doc_root = String::new();
     let mut current_is_node = false;
     let mut current_node_port = None;
+    let mut current_vhost_is_ssl = false;
     let mut in_vhost = false;
 
     for line in content.lines() {
         let trimmed = line.trim();
-        if trimmed.to_lowercase().starts_with("<virtualhost") {
+        let lower = trimmed.to_lowercase();
+
+        if lower.starts_with("<virtualhost") {
             in_vhost = true;
             current_domain.clear();
             current_doc_root.clear();
             current_is_node = false;
             current_node_port = None;
-        } else if trimmed.to_lowercase().starts_with("</virtualhost>") {
+            current_vhost_is_ssl = lower.contains(":443");
+        } else if lower.starts_with("</virtualhost>") {
             if in_vhost && !current_domain.is_empty() {
-                let crt_exists = server_dir.join("ssl").join(format!("{}.crt", current_domain)).exists();
                 let exists_idx = hosts.iter().position(|h: &VirtualHostInfo| h.domain == current_domain);
                 if let Some(idx) = exists_idx {
-                    if crt_exists {
+                    if current_vhost_is_ssl {
                         hosts[idx].has_ssl = true;
                     }
                 } else {
@@ -420,13 +455,15 @@ pub fn get_virtual_hosts() -> Result<Vec<VirtualHostInfo>, String> {
                         document_root: current_doc_root.clone(),
                         is_node: current_is_node,
                         node_port: current_node_port,
-                        has_ssl: crt_exists,
+                        has_ssl: current_vhost_is_ssl,
                     });
                 }
             }
             in_vhost = false;
         } else if in_vhost {
-            let lower = trimmed.to_lowercase();
+            if lower.contains("sslengine on") {
+                current_vhost_is_ssl = true;
+            }
             if lower.starts_with("servername") {
                 current_domain = trimmed["servername".len()..].trim().to_string();
             } else if lower.starts_with("documentroot") {

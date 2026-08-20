@@ -17,8 +17,36 @@ pub fn get_nvm_versions() -> Result<Vec<String>, String> {
             .map_err(|e| format!("Gagal mengeksekusi nvm list: {}", e))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        if stdout.contains("nvm") && stdout.contains("not found") {
-            return Err("NVM tidak terinstal pada sistem ini.".to_string());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let combined = format!("{} {}", stdout, stderr).to_lowercase();
+
+        let is_nvm_cmd_missing = !output.status.success() 
+            || combined.contains("is not recognized") 
+            || combined.contains("not recognized") 
+            || combined.contains("tidak diakui")
+            || combined.contains("not found");
+
+        if is_nvm_cmd_missing {
+            let mut nvm_exe_found = false;
+            if let Ok(nh) = std::env::var("NVM_HOME") {
+                if Path::new(&nh).join("nvm.exe").exists() {
+                    nvm_exe_found = true;
+                }
+            }
+            if let Ok(profile) = std::env::var("USERPROFILE") {
+                if Path::new(&profile).join("AppData\\Roaming\\nvm\\nvm.exe").exists()
+                    || Path::new(&profile).join("AppData\\Local\\nvm\\nvm.exe").exists() {
+                    nvm_exe_found = true;
+                }
+            }
+            if Path::new("C:\\Program Files\\nvm\\nvm.exe").exists() 
+                || Path::new("C:\\Program Files (x86)\\nvm\\nvm.exe").exists() {
+                nvm_exe_found = true;
+            }
+
+            if !nvm_exe_found {
+                return Err("NVM tidak terinstal pada sistem ini.".to_string());
+            }
         }
 
         let mut versions = Vec::new();

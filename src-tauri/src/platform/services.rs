@@ -205,7 +205,9 @@ pub fn install_service(service: &str) -> Result<String, String> {
                 .output()
                 .map_err(|e| format!("Gagal menginstal service Apache: {}", e))?;
             if output.status.success() {
-                Ok("Service Apache2.4 berhasil diinstal".to_string())
+                // Atur tipe startup ke Manual (demand) agar tidak berjalan otomatis saat Windows dinyalakan
+                let _ = crate::create_hidden_command("sc").args(&["config", "Apache2.4", "start=", "demand"]).output();
+                Ok("Service Apache2.4 berhasil diinstal (Startup Mode: Manual)".to_string())
             } else {
                 Err(String::from_utf8_lossy(&output.stderr).to_string())
             }
@@ -230,7 +232,9 @@ pub fn install_service(service: &str) -> Result<String, String> {
                 .output()
                 .map_err(|e| format!("Gagal menginstal service MySQL: {}", e))?;
             if output.status.success() {
-                Ok("Service mysql-server berhasil diinstal".to_string())
+                // Atur tipe startup ke Manual (demand) agar tidak berjalan otomatis saat Windows dinyalakan
+                let _ = crate::create_hidden_command("sc").args(&["config", "mysql-server", "start=", "demand"]).output();
+                Ok("Service mysql-server berhasil diinstal (Startup Mode: Manual)".to_string())
             } else {
                 Err(String::from_utf8_lossy(&output.stderr).to_string())
             }
@@ -260,7 +264,9 @@ pub fn install_service(service: &str) -> Result<String, String> {
                 .map_err(|e| format!("Gagal menginstal service Redis: {}", e))?;
 
             if output.status.success() {
-                Ok("Service redis-server berhasil diinstal".to_string())
+                // Atur tipe startup ke Manual (demand) agar tidak berjalan otomatis saat Windows dinyalakan
+                let _ = crate::create_hidden_command("sc").args(&["config", "redis-server", "start=", "demand"]).output();
+                Ok("Service redis-server berhasil diinstal (Startup Mode: Manual)".to_string())
             } else {
                 Err(String::from_utf8_lossy(&output.stderr).to_string())
             }
@@ -401,7 +407,7 @@ WantedBy=multi-user.target
         }
 
         cmd_str.push_str(&format!(
-            "cp {0} {1} && systemctl daemon-reload && systemctl enable {2}",
+            "cp {0} {1} && systemctl daemon-reload && systemctl disable {2}",
             temp_file.to_string_lossy(), service_file_path, systemd_service
         ));
 

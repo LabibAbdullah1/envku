@@ -833,7 +833,7 @@ Section Uninstall
     ${EndIf}
   ${EndIf}
 
-  ; Remove registry information for add/remove programs
+  ; Remove ALL registry information for Envku in HKLM, HKCU, and WOW6432Node
   !if "${INSTALLMODE}" == "both"
     DeleteRegKey SHCTX "${UNINSTKEY}"
   !else if "${INSTALLMODE}" == "perMachine"
@@ -842,20 +842,53 @@ Section Uninstall
     DeleteRegKey HKCU "${UNINSTKEY}"
   !endif
 
-  ; Removes the Autostart entry for ${PRODUCTNAME} from the HKCU Run key if it exists.
-  ; This ensures the program does not launch automatically after uninstallation if it exists.
-  ; If it doesn't exist, it does nothing.
-  ; We do this when not updating (to preserve the registry value on updates)
   ${If} $UpdateMode <> 1
+    DeleteRegKey HKLM "${UNINSTKEY}"
+    DeleteRegKey HKCU "${UNINSTKEY}"
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Envku"
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Envku"
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Envku-Orchestrator"
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Envku-Orchestrator"
+    DeleteRegKey HKLM "Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCTNAME}"
+    DeleteRegKey HKLM "Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Envku"
+    DeleteRegKey HKLM "Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Envku-Orchestrator"
+
+    DeleteRegKey HKLM "${MANUPRODUCTKEY}"
+    DeleteRegKey HKCU "${MANUPRODUCTKEY}"
+    DeleteRegKey /ifempty HKLM "${MANUKEY}"
+    DeleteRegKey /ifempty HKCU "${MANUKEY}"
+
+    DeleteRegKey HKLM "Software\Envku"
+    DeleteRegKey HKCU "Software\Envku"
+    DeleteRegKey HKLM "Software\envku"
+    DeleteRegKey HKCU "Software\envku"
+    DeleteRegKey HKLM "Software\envku\Envku"
+    DeleteRegKey HKCU "Software\envku\Envku"
+    DeleteRegKey HKLM "Software\Envku-Orchestrator"
+    DeleteRegKey HKCU "Software\Envku-Orchestrator"
+
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Envku"
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "Envku"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Envku-Orchestrator"
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "Envku-Orchestrator"
+
+    DeleteRegValue HKCU "${MANUPRODUCTKEY}" "Installer Language"
+    DeleteRegValue HKLM "${MANUPRODUCTKEY}" "Installer Language"
   ${EndIf}
 
-  ; Delete app data if the checkbox is selected
-  ; and if not updating
+  ; Delete app data if the checkbox is selected and if not updating
   ${If} $DeleteAppDataCheckboxState = 1
   ${AndIf} $UpdateMode <> 1
     ; Delete the server directory if configured and safe
     ReadRegStr $4 SHCTX "${MANUPRODUCTKEY}" "ServerDir"
+    ${If} $4 == ""
+      ReadRegStr $4 HKCU "Software\envku\Envku" "ServerDir"
+    ${EndIf}
+    ${If} $4 == ""
+      ReadRegStr $4 HKLM "Software\envku\Envku" "ServerDir"
+    ${EndIf}
     ${If} $4 != ""
     ${AndIf} $4 != "C:\"
     ${AndIf} $4 != "C:"
@@ -863,19 +896,22 @@ Section Uninstall
     ${AndIf} $4 != "D:"
       RMDir /r "$4"
     ${EndIf}
-
-    ; Clear the install location $INSTDIR from registry
-    DeleteRegKey SHCTX "${MANUPRODUCTKEY}"
-    DeleteRegKey /ifempty SHCTX "${MANUKEY}"
-
-    ; Clear the install language from registry
-    DeleteRegValue HKCU "${MANUPRODUCTKEY}" "Installer Language"
-    DeleteRegKey /ifempty HKCU "${MANUPRODUCTKEY}"
-    DeleteRegKey /ifempty HKCU "${MANUKEY}"
+    ${If} ${FileExists} "C:\server\*.*"
+      RMDir /r "C:\server"
+    ${EndIf}
 
     SetShellVarContext current
     RmDir /r "$APPDATA\${BUNDLEID}"
     RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
+    RmDir /r "$APPDATA\Envku"
+    RmDir /r "$LOCALAPPDATA\Envku"
+    RmDir /r "$APPDATA\envku"
+    RmDir /r "$LOCALAPPDATA\envku"
+    SetShellVarContext all
+    RmDir /r "$APPDATA\${BUNDLEID}"
+    RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
+    RmDir /r "$APPDATA\Envku"
+    RmDir /r "$LOCALAPPDATA\Envku"
   ${EndIf}
 
   !ifmacrodef NSIS_HOOK_POSTUNINSTALL

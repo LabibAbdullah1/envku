@@ -14,18 +14,83 @@ pub struct DownloadProgressPayload {
     pub bytes_total: u64,
 }
 
-// Helper to resolve component zip urls
-fn get_component_url(component_id: &str) -> Result<&'static str, String> {
+pub struct ComponentUrls {
+    pub primary: &'static str,
+    pub fallback: &'static str,
+}
+
+// Helper to resolve component zip urls (Subdomain Mirror + Upstream Fallback)
+fn get_component_urls(component_id: &str) -> Result<ComponentUrls, String> {
     match component_id {
-        "apache" => Ok("https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.68-260617-Win64-VS18.zip"),
-        "php83" => Ok("https://windows.php.net/downloads/releases/php-8.3.32-Win32-vs16-x64.zip"),
-        "php82" => Ok("https://windows.php.net/downloads/releases/php-8.2.32-Win32-vs16-x64.zip"),
-        "mysql" => Ok("https://cdn.mysql.com/archives/mysql-8.0/mysql-8.0.39-winx64.zip"),
-        "phpmyadmin" => Ok("https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip"),
-        "composer" => Ok("https://getcomposer.org/composer.phar"),
-        "redis" => Ok("https://github.com/tporadowski/redis/releases/download/v5.0.14.1/Redis-x64-5.0.14.1.zip"),
-        "mailpit" => Ok("https://github.com/axllent/mailpit/releases/download/v1.21.1/mailpit-windows-amd64.zip"),
+        "apache" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/win/apache2.4.zip",
+            fallback: "https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.68-260617-Win64-VS18.zip",
+        }),
+        "php83" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/win/php8.3.zip",
+            fallback: "https://windows.php.net/downloads/releases/php-8.3.33-Win32-vs16-x64.zip",
+        }),
+        "php82" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/win/php8.2.zip",
+            fallback: "https://windows.php.net/downloads/releases/php-8.2.33-Win32-vs16-x64.zip",
+        }),
+        "mysql" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/win/mysql8.0.zip",
+            fallback: "https://cdn.mysql.com/archives/mysql-8.0/mysql-8.0.39-winx64.zip",
+        }),
+        "phpmyadmin" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/common/phpmyadmin.zip",
+            fallback: "https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip",
+        }),
+        "composer" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/common/composer.phar",
+            fallback: "https://getcomposer.org/composer.phar",
+        }),
+        "redis" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/win/redis.zip",
+            fallback: "https://github.com/tporadowski/redis/releases/download/v5.0.14.1/Redis-x64-5.0.14.1.zip",
+        }),
+        "mailpit" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/win/mailpit.zip",
+            fallback: "https://github.com/axllent/mailpit/releases/download/v1.21.8/mailpit-windows-amd64.zip",
+        }),
         _ => Err(format!("ID komponen tidak dikenal: {}", component_id)),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn get_linux_component_urls(component_id: &str) -> Result<ComponentUrls, String> {
+    match component_id {
+        "mailpit" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/linux/mailpit.tar.gz",
+            fallback: "https://github.com/axllent/mailpit/releases/download/v1.21.8/mailpit-linux-amd64.tar.gz",
+        }),
+        "phpmyadmin" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/common/phpmyadmin.zip",
+            fallback: "https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip",
+        }),
+        "composer" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/common/composer.phar",
+            fallback: "https://getcomposer.org/composer.phar",
+        }),
+        _ => Err(format!("ID komponen Linux tidak dikenal untuk download langsung: {}", component_id)),
+    }
+}
+
+async fn fetch_response_with_fallback(client: &reqwest::Client, urls: &ComponentUrls) -> Result<reqwest::Response, String> {
+    match client.get(urls.primary).send().await {
+        Ok(resp) if resp.status().is_success() => Ok(resp),
+        _ => {
+            let resp = client.get(urls.fallback).send().await
+                .map_err(|e| format!("Gagal mendownload komponen dari subdomain cPanel maupun upstream: {}", e))?;
+            if !resp.status().is_success() {
+                return Err(format!(
+                    "Gagal mendownload komponen baik dari subdomain cPanel maupun upstream (HTTP {}).",
+                    resp.status()
+                ));
+            }
+            Ok(resp)
+        }
     }
 }
 
@@ -71,21 +136,9 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
         return download_and_extract_linux(app, component_id).await;
     }
 
-    let url = get_component_url(&component_id)?;
+    let urls = get_component_urls(&component_id)?;
     let client = reqwest::Client::new();
-
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("Gagal mendownload komponen: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!(
-            "Gagal mendownload komponen (HTTP {}). URL kemungkinan sudah kadaluarsa.",
-            response.status()
-        ));
-    }
+    let response = fetch_response_with_fallback(&client, &urls).await?;
 
     let total_size = response.content_length().unwrap_or(0);
     let mut downloaded: u64 = 0;
@@ -440,17 +493,10 @@ fn emit_progress(app: &AppHandle, component_id: &str, percentage: u32) {
 }
 
 #[cfg(target_os = "linux")]
-async fn download_file_direct(app: &AppHandle, component_id: &str, url: &str, dest_path: &Path) -> Result<(), String> {
+async fn download_file_direct(app: &AppHandle, component_id: &str, primary_url: &str, fallback_url: &str, dest_path: &Path) -> Result<(), String> {
     let client = reqwest::Client::new();
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("Gagal mendownload file: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!("Gagal mendownload file (HTTP {})", response.status()));
-    }
+    let urls = ComponentUrls { primary: primary_url, fallback: fallback_url };
+    let response = fetch_response_with_fallback(&client, &urls).await?;
 
     let total_size = response.content_length().unwrap_or(0);
     let mut downloaded: u64 = 0;
@@ -798,7 +844,7 @@ dir /var/lib/redis
         }
         "mailpit" => {
             emit_progress(&app, &component_id, 10);
-            let url = "https://github.com/axllent/mailpit/releases/download/v1.21.1/mailpit-linux-amd64.tar.gz";
+            let urls = get_linux_component_urls(&component_id)?;
             let mailpit_dir = server_dir.join("mailpit");
             fs::create_dir_all(&mailpit_dir).map_err(|e| format!("Gagal membuat folder mailpit: {}", e))?;
 
@@ -807,7 +853,7 @@ dir /var/lib/redis
                 fs::create_dir_all(parent).unwrap_or(());
             }
 
-            download_file_direct(&app, &component_id, url, &temp_tar).await?;
+            download_file_direct(&app, &component_id, urls.primary, urls.fallback, &temp_tar).await?;
             emit_progress(&app, &component_id, 80);
 
             let output = std::process::Command::new("tar")
@@ -844,7 +890,7 @@ dir /var/lib/redis
         }
         "phpmyadmin" => {
             emit_progress(&app, &component_id, 10);
-            let url = "https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip";
+            let urls = get_linux_component_urls(&component_id)?;
             let www_dir = server_dir.join("www");
             fs::create_dir_all(&www_dir).map_err(|e| format!("Gagal membuat folder www: {}", e))?;
 
@@ -853,7 +899,7 @@ dir /var/lib/redis
                 fs::create_dir_all(parent).unwrap_or(());
             }
 
-            download_file_direct(&app, &component_id, url, &temp_zip).await?;
+            download_file_direct(&app, &component_id, urls.primary, urls.fallback, &temp_zip).await?;
             emit_progress(&app, &component_id, 60);
 
             extract_zip(&temp_zip, &www_dir)?;
@@ -932,12 +978,12 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
         }
         "composer" => {
             emit_progress(&app, &component_id, 10);
-            let url = "https://getcomposer.org/composer.phar";
+            let urls = get_linux_component_urls(&component_id)?;
             let composer_dir = server_dir.join("composer");
             fs::create_dir_all(&composer_dir).map_err(|e| format!("Gagal membuat folder composer: {}", e))?;
 
             let temp_composer = composer_dir.join("composer.phar");
-            download_file_direct(&app, &component_id, url, &temp_composer).await?;
+            download_file_direct(&app, &component_id, urls.primary, urls.fallback, &temp_composer).await?;
             emit_progress(&app, &component_id, 80);
 
             let _ = crate::platform::env_path::register_system_paths();

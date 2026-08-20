@@ -261,10 +261,126 @@ pub fn uninstall_envku(app_handle: tauri::AppHandle, delete_data: bool) -> Resul
         Ok("Aplikasi berhasil di-uninstall sepenuhnya. Aplikasi akan ditutup dalam beberapa saat.".to_string())
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        use std::fs;
+        use std::path::Path;
+
+        let server_dir = get_server_dir_path();
+
+        // 1. Hentikan & hapus service Windows jika ada
+        let _ = crate::create_hidden_command("sc").args(&["stop", "Apache2.4"]).output();
+        let _ = crate::create_hidden_command("sc").args(&["delete", "Apache2.4"]).output();
+        let _ = crate::create_hidden_command("sc").args(&["stop", "mysql-server"]).output();
+        let _ = crate::create_hidden_command("sc").args(&["delete", "mysql-server"]).output();
+        let _ = crate::create_hidden_command("sc").args(&["stop", "redis-server"]).output();
+        let _ = crate::create_hidden_command("sc").args(&["delete", "redis-server"]).output();
+
+        // 2. Bersihkan hosts file entries
+        let mut domains = vec!["phpmyadmin.test".to_string()];
+        if let Ok(vhosts) = crate::commands::projects::get_virtual_hosts() {
+            for vhost in vhosts {
+                if !domains.contains(&vhost.domain) {
+                    domains.push(vhost.domain);
+                }
+            }
+        }
+        for domain in &domains {
+            let _ = crate::platform::hosts::remove_host_entry(domain);
+        }
+
+        // 3. Hapus seluruh Registry Keys terkait Envku
+        let reg_keys_to_delete = vec![
+            r"HKCU\Software\Envku",
+            r"HKLM\Software\Envku",
+            r"HKCU\Software\envku",
+            r"HKLM\Software\envku",
+            r"HKCU\Software\envku\Envku",
+            r"HKLM\Software\envku\Envku",
+            r"HKCU\Software\Envku-Orchestrator",
+            r"HKLM\Software\Envku-Orchestrator",
+            r"HKCU\Software\Labib",
+            r"HKLM\Software\Labib",
+            r"HKCU\Software\Labib\Envku",
+            r"HKLM\Software\Labib\Envku",
+            r"HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Envku",
+            r"HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\Envku",
+            r"HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Envku-Orchestrator",
+            r"HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\Envku-Orchestrator",
+            r"HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Envku",
+            r"HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Envku-Orchestrator",
+        ];
+
+        for key in reg_keys_to_delete {
+            let _ = crate::create_hidden_command("reg")
+                .args(&["delete", key, "/f"])
+                .output();
+        }
+
+        // Hapus Autostart run key
+        let _ = crate::create_hidden_command("reg")
+            .args(&["delete", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "/v", "Envku", "/f"])
+            .output();
+        let _ = crate::create_hidden_command("reg")
+            .args(&["delete", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "/v", "Envku-Orchestrator", "/f"])
+            .output();
+
+        // 4. Clean System PATH environment variable
+        {
+            use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS, KEY_READ};
+            use winreg::RegKey;
+            if let Ok(hklm) = RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey_with_flags(
+                "System\\CurrentControlSet\\Control\\Session Manager\\Environment",
+                KEY_READ | KEY_ALL_ACCESS
+            ) {
+                if let Ok(path_val) = hklm.get_value::<String, _>("Path") {
+                    let server_dir_str = server_dir.to_string_lossy().to_lowercase();
+                    let updated_paths: Vec<&str> = path_val
+                        .split(';')
+                        .filter(|p| {
+                            let p_clean = p.trim();
+                            if p_clean.is_empty() {
+                                return false;
+                            }
+                            !p_clean.to_lowercase().contains(&server_dir_str)
+                        })
+                        .collect();
+                    let new_path = updated_paths.join(";");
+                    let _ = hklm.set_value("Path", &new_path);
+                }
+            }
+        }
+
+        // 5. Hapus folder server & AppData jika delete_data dipilih
+        if delete_data {
+            if server_dir.exists() {
+                let _ = fs::remove_dir_all(&server_dir);
+            }
+            if let Ok(profile) = std::env::var("USERPROFILE") {
+                let p = Path::new(&profile);
+                let _ = fs::remove_dir_all(p.join("AppData\\Roaming\\com.envku.orchestrator"));
+                let _ = fs::remove_dir_all(p.join("AppData\\Local\\com.envku.orchestrator"));
+                let _ = fs::remove_dir_all(p.join("AppData\\Roaming\\Envku"));
+                let _ = fs::remove_dir_all(p.join("AppData\\Local\\Envku"));
+                let _ = fs::remove_dir_all(p.join("AppData\\Roaming\\envku"));
+                let _ = fs::remove_dir_all(p.join("AppData\\Local\\envku"));
+            }
+        }
+
+        // 6. Tutup aplikasi
+        let app_clone = app_handle.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(1500));
+            app_clone.exit(0);
+        });
+
+        Ok("Seluruh registri dan aplikasi Envku berhasil dicopot dan dibersihkan.".to_string())
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
         let _ = (app_handle, delete_data);
-        Err("Proses uninstall ini hanya didukung di OS Linux.".to_string())
+        Err("Proses uninstall ini belum didukung di OS ini.".to_string())
     }
 }
 

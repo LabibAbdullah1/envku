@@ -37,4 +37,10 @@ website/downloads/*.AppImage.tar.gz.sig
 # Ignore custom cargo check target directory
 src-tauri/target-check/
 
+# Support package mirror binaries (downloaded via node sync-packages.cjs)
+website/packages/win/*.zip
+website/packages/linux/*.tar.gz
+website/packages/common/*.zip
+website/packages/common/*.phar
+
 
