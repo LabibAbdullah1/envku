@@ -75,6 +75,7 @@ Var UpdateMode
 Var NoShortcutMode
 Var WixMode
 Var OldMainBinaryName
+Var UninstServerDir
 
 Name "${PRODUCTNAME}"
 BrandingText "${COPYRIGHT}"
@@ -781,6 +782,23 @@ Section Uninstall
 
   !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
 
+  ; Retrieve ServerDir BEFORE deleting registry keys
+  StrCpy $UninstServerDir "C:\server"
+  ReadRegStr $4 SHCTX "${MANUPRODUCTKEY}" "ServerDir"
+  ${If} $4 == ""
+    ReadRegStr $4 HKCU "Software\envku\Envku" "ServerDir"
+  ${EndIf}
+  ${If} $4 == ""
+    ReadRegStr $4 HKLM "Software\envku\Envku" "ServerDir"
+  ${EndIf}
+  ${If} $4 != ""
+    StrCpy $UninstServerDir $4
+  ${EndIf}
+
+  ; Stop services and kill running server processes to release file locks
+  ExecWait 'cmd.exe /c "sc stop Apache2.4 & sc delete Apache2.4 & sc stop mysql-server & sc delete mysql-server & sc stop redis-server & sc delete redis-server & taskkill /F /T /IM httpd.exe /IM mysqld.exe /IM redis-server.exe /IM mailpit.exe /IM php.exe /IM php-cgi.exe /IM node.exe /IM nvm.exe"'
+  Sleep 1000
+
   ; Delete the app directory and its content from disk
   ; Copy main executable
   Delete "$INSTDIR\${MAINBINARYNAME}.exe"
@@ -882,23 +900,55 @@ Section Uninstall
   ${If} $DeleteAppDataCheckboxState = 1
   ${AndIf} $UpdateMode <> 1
     ; Delete the server directory if configured and safe
-    ReadRegStr $4 SHCTX "${MANUPRODUCTKEY}" "ServerDir"
-    ${If} $4 == ""
-      ReadRegStr $4 HKCU "Software\envku\Envku" "ServerDir"
-    ${EndIf}
-    ${If} $4 == ""
-      ReadRegStr $4 HKLM "Software\envku\Envku" "ServerDir"
-    ${EndIf}
-    ${If} $4 != ""
-    ${AndIf} $4 != "C:\"
-    ${AndIf} $4 != "C:"
-    ${AndIf} $4 != "D:\"
-    ${AndIf} $4 != "D:"
-      RMDir /r "$4"
+    ${If} $UninstServerDir != ""
+    ${AndIf} $UninstServerDir != "C:\"
+    ${AndIf} $UninstServerDir != "C:"
+    ${AndIf} $UninstServerDir != "D:\"
+    ${AndIf} $UninstServerDir != "D:"
+      RMDir /r "$UninstServerDir"
+      ExecWait 'cmd.exe /c "rmdir /s /q \"$UninstServerDir\""'
     ${EndIf}
     ${If} ${FileExists} "C:\server\*.*"
       RMDir /r "C:\server"
+      ExecWait 'cmd.exe /c "rmdir /s /q \"C:\server\""'
     ${EndIf}
+
+    ; Clean up NVM and Node.js
+    ${If} ${FileExists} "$APPDATA\nvm\unins000.exe"
+      ExecWait '"$APPDATA\nvm\unins000.exe" /SILENT /VERYSILENT /SUPPRESSMSGBOXES'
+    ${EndIf}
+    ${If} ${FileExists} "$LOCALAPPDATA\nvm\unins000.exe"
+      ExecWait '"$LOCALAPPDATA\nvm\unins000.exe" /SILENT /VERYSILENT /SUPPRESSMSGBOXES'
+    ${EndIf}
+    ${If} ${FileExists} "C:\Program Files\nvm\unins000.exe"
+      ExecWait '"C:\Program Files\nvm\unins000.exe" /SILENT /VERYSILENT /SUPPRESSMSGBOXES'
+    ${EndIf}
+    ${If} ${FileExists} "C:\Program Files (x86)\nvm\unins000.exe"
+      ExecWait '"C:\Program Files (x86)\nvm\unins000.exe" /SILENT /VERYSILENT /SUPPRESSMSGBOXES'
+    ${EndIf}
+
+    RMDir /r "$APPDATA\nvm"
+    ExecWait 'cmd.exe /c "rmdir /s /q \"$APPDATA\nvm\""'
+    RMDir /r "$LOCALAPPDATA\nvm"
+    ExecWait 'cmd.exe /c "rmdir /s /q \"$LOCALAPPDATA\nvm\""'
+    RMDir /r "C:\Program Files\nvm"
+    ExecWait 'cmd.exe /c "rmdir /s /q \"C:\Program Files\nvm\""'
+    RMDir /r "C:\Program Files (x86)\nvm"
+    ExecWait 'cmd.exe /c "rmdir /s /q \"C:\Program Files (x86)\nvm\""'
+    RMDir /r "C:\Program Files\nodejs"
+    ExecWait 'cmd.exe /c "rmdir /s /q \"C:\Program Files\nodejs\""'
+
+    DeleteRegValue HKCU "Environment" "NVM_HOME"
+    DeleteRegValue HKCU "Environment" "NVM_SYMLINK"
+    DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "NVM_HOME"
+    DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "NVM_SYMLINK"
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\nvm_is1"
+    DeleteRegKey HKLM "Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\nvm_is1"
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\nvm_is1"
+
+    ; Clean PATH environment variables
+    ExecWait 'powershell.exe -Command "$p=[Environment]::GetEnvironmentVariable(\"Path\", \"Machine\"); if ($p) { $np=($p -split \";\" | Where-Object { $_ -notlike \"*server*\" -and $_ -notlike \"*nvm*\" -and $_ -notlike \"*nodejs*\" }) -join \";\"; [Environment]::SetEnvironmentVariable(\"Path\", $np, \"Machine\") }"'
+    ExecWait 'powershell.exe -Command "$p=[Environment]::GetEnvironmentVariable(\"Path\", \"User\"); if ($p) { $np=($p -split \";\" | Where-Object { $_ -notlike \"*server*\" -and $_ -notlike \"*nvm*\" -and $_ -notlike \"*nodejs*\" }) -join \";\"; [Environment]::SetEnvironmentVariable(\"Path\", $np, \"User\") }"'
 
     SetShellVarContext current
     RmDir /r "$APPDATA\${BUNDLEID}"
@@ -907,11 +957,15 @@ Section Uninstall
     RmDir /r "$LOCALAPPDATA\Envku"
     RmDir /r "$APPDATA\envku"
     RmDir /r "$LOCALAPPDATA\envku"
+    RmDir /r "$APPDATA\com.envku.orchestrator"
+    RmDir /r "$LOCALAPPDATA\com.envku.orchestrator"
     SetShellVarContext all
     RmDir /r "$APPDATA\${BUNDLEID}"
     RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
     RmDir /r "$APPDATA\Envku"
     RmDir /r "$LOCALAPPDATA\Envku"
+    RmDir /r "$APPDATA\com.envku.orchestrator"
+    RmDir /r "$LOCALAPPDATA\com.envku.orchestrator"
   ${EndIf}
 
   !ifmacrodef NSIS_HOOK_POSTUNINSTALL

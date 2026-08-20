@@ -177,8 +177,8 @@ ${folderDetails}`;
 
   const handleUninstallEnvku = async (deleteData: boolean) => {
     const msg = deleteData
-      ? "Apakah Anda yakin ingin menghapus bersih aplikasi? Tindakan ini akan menghentikan & menghapus seluruh service systemd Envku, membersihkan entri DNS di hosts, membersihkan PATH, serta MENGHAPUS SELURUH FOLDER /opt/server beserta database dan file web Anda secara permanen!"
-      : "Apakah Anda yakin ingin melakukan uninstall ringan? Tindakan ini akan menghentikan & menghapus seluruh service systemd Envku, membersihkan entri DNS di hosts, membersihkan PATH, tetapi TETAP MEMPERTAHANKAN folder /opt/server.";
+      ? `Apakah Anda yakin ingin menghapus bersih aplikasi? Tindakan ini akan menghentikan & menghapus seluruh service Envku, membersihkan entri DNS di hosts, membersihkan PATH, serta MENGHAPUS SELURUH FOLDER ${baseDir} (beserta database, file web, dan NVM/Node.js) secara permanen!`
+      : `Apakah Anda yakin ingin melakukan uninstall ringan? Tindakan ini akan menghentikan & menghapus seluruh service Envku, membersihkan entri DNS di hosts, membersihkan PATH, tetapi TETAP MEMPERTAHANKAN folder ${baseDir}.`;
 
     if (confirm(msg)) {
       try {
@@ -372,46 +372,44 @@ ${folderDetails}`;
         </form>
       </div>
 
-      {/* Linux Clean Uninstall Options */}
-      {isLinux && (
-        <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl relative overflow-hidden">
-          <div className="flex items-center space-x-2 text-rose-400">
-            <Info className="w-6 h-6" />
-            <h3 className="text-lg font-bold text-zinc-100">Hapus Bersih Aplikasi (Linux)</h3>
-          </div>
-          <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
-            Lakukan penghapusan (uninstall) secara menyeluruh beserta seluruh data komponen Envku dari sistem Linux Anda.
-          </p>
+      {/* Clean Uninstall Options */}
+      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl relative overflow-hidden">
+        <div className="flex items-center space-x-2 text-rose-400">
+          <Info className="w-6 h-6" />
+          <h3 className="text-lg font-bold text-zinc-100">Hapus Bersih Aplikasi (Uninstall)</h3>
+        </div>
+        <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
+          Lakukan penghapusan (uninstall) secara menyeluruh beserta seluruh data komponen Envku dari sistem Anda.
+        </p>
 
-          <div className="pt-2">
-            {/* Clean Uninstall Card */}
-            <div className="p-5 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4">
-              <div className="space-y-2">
-                <h4 className="text-sm font-bold text-zinc-200">Hapus Bersih Aplikasi (Uninstall)</h4>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Menghentikan & menghapus seluruh layanan systemd Envku, membersihkan entri DNS di hosts, membersihkan variabel PATH, serta opsional menghapus folder <code className="text-zinc-300">/opt/server</code> beserta seluruh datanya.
-                </p>
-              </div>
-              <div className="flex gap-4 max-w-md pt-2">
-                <button
-                  type="button"
-                  onClick={() => handleUninstallEnvku(false)}
-                  className="w-1/2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
-                >
-                  <span>Uninstall Ringan</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleUninstallEnvku(true)}
-                  className="w-1/2 px-4 py-3 bg-red-700 hover:bg-red-650 text-white rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
-                >
-                  <span>Hapus Bersih</span>
-                </button>
-              </div>
+        <div className="pt-2">
+          {/* Clean Uninstall Card */}
+          <div className="p-5 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-bold text-zinc-200">Opsi Uninstall Envku</h4>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Menghentikan & menghapus seluruh layanan/service Envku, membersihkan entri DNS di hosts, membersihkan variabel PATH, serta opsional menghapus folder <code className="text-zinc-300">{baseDir}</code> (beserta seluruh database, website, dan NVM/Node.js).
+              </p>
+            </div>
+            <div className="flex gap-4 max-w-md pt-2">
+              <button
+                type="button"
+                onClick={() => handleUninstallEnvku(false)}
+                className="w-1/2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+              >
+                <span>Uninstall Ringan</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUninstallEnvku(true)}
+                className="w-1/2 px-4 py-3 bg-red-700 hover:bg-red-650 text-white rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+              >
+                <span>Hapus Bersih</span>
+              </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

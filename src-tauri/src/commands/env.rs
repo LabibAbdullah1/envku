@@ -268,15 +268,38 @@ pub fn uninstall_envku(app_handle: tauri::AppHandle, delete_data: bool) -> Resul
 
         let server_dir = get_server_dir_path();
 
-        // 1. Hentikan & hapus service Windows jika ada
-        let _ = crate::create_hidden_command("sc").args(&["stop", "Apache2.4"]).output();
-        let _ = crate::create_hidden_command("sc").args(&["delete", "Apache2.4"]).output();
-        let _ = crate::create_hidden_command("sc").args(&["stop", "mysql-server"]).output();
-        let _ = crate::create_hidden_command("sc").args(&["delete", "mysql-server"]).output();
-        let _ = crate::create_hidden_command("sc").args(&["stop", "redis-server"]).output();
-        let _ = crate::create_hidden_command("sc").args(&["delete", "redis-server"]).output();
+        // 1. Force kill active server & node processes to release file locks
+        let processes = vec![
+            "httpd.exe",
+            "mysqld.exe",
+            "redis-server.exe",
+            "mailpit.exe",
+            "php.exe",
+            "php-cgi.exe",
+            "node.exe",
+            "nvm.exe",
+        ];
+        for proc in processes {
+            let _ = crate::create_hidden_command("taskkill")
+                .args(&["/F", "/T", "/IM", proc])
+                .output();
+        }
 
-        // 2. Bersihkan hosts file entries
+        // 2. Hentikan & hapus service Windows jika ada
+        let services = vec![
+            "Apache2.4",
+            "mysql-server",
+            "redis-server",
+            "EnvkuApache",
+            "EnvkuMySQL",
+            "EnvkuRedis",
+        ];
+        for service in services {
+            let _ = crate::create_hidden_command("sc").args(&["stop", service]).output();
+            let _ = crate::create_hidden_command("sc").args(&["delete", service]).output();
+        }
+
+        // 3. Bersihkan hosts file entries
         let mut domains = vec!["phpmyadmin.test".to_string()];
         if let Ok(vhosts) = crate::commands::projects::get_virtual_hosts() {
             for vhost in vhosts {
@@ -289,7 +312,7 @@ pub fn uninstall_envku(app_handle: tauri::AppHandle, delete_data: bool) -> Resul
             let _ = crate::platform::hosts::remove_host_entry(domain);
         }
 
-        // 3. Hapus seluruh Registry Keys terkait Envku
+        // 4. Hapus seluruh Registry Keys terkait Envku
         let reg_keys_to_delete = vec![
             r"HKCU\Software\Envku",
             r"HKLM\Software\Envku",
@@ -325,39 +348,79 @@ pub fn uninstall_envku(app_handle: tauri::AppHandle, delete_data: bool) -> Resul
             .args(&["delete", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "/v", "Envku-Orchestrator", "/f"])
             .output();
 
-        // 4. Clean System PATH environment variable
-        {
-            use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS, KEY_READ};
-            use winreg::RegKey;
-            if let Ok(hklm) = RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey_with_flags(
-                "System\\CurrentControlSet\\Control\\Session Manager\\Environment",
-                KEY_READ | KEY_ALL_ACCESS
-            ) {
-                if let Ok(path_val) = hklm.get_value::<String, _>("Path") {
-                    let server_dir_str = server_dir.to_string_lossy().to_lowercase();
-                    let updated_paths: Vec<&str> = path_val
-                        .split(';')
-                        .filter(|p| {
-                            let p_clean = p.trim();
-                            if p_clean.is_empty() {
-                                return false;
-                            }
-                            !p_clean.to_lowercase().contains(&server_dir_str)
-                        })
-                        .collect();
-                    let new_path = updated_paths.join(";");
-                    let _ = hklm.set_value("Path", &new_path);
+        // 5. Clean System & User PATH environment variables
+        let _ = crate::create_hidden_command("powershell.exe")
+            .args(&[
+                "-Command",
+                "$p=[Environment]::GetEnvironmentVariable('Path', 'Machine'); if ($p) { $np=($p -split ';' | Where-Object { $_ -notlike '*server*' -and $_ -notlike '*nvm*' -and $_ -notlike '*nodejs*' }) -join ';'; [Environment]::SetEnvironmentVariable('Path', $np, 'Machine') }"
+            ])
+            .output();
+
+        let _ = crate::create_hidden_command("powershell.exe")
+            .args(&[
+                "-Command",
+                "$p=[Environment]::GetEnvironmentVariable('Path', 'User'); if ($p) { $np=($p -split ';' | Where-Object { $_ -notlike '*server*' -and $_ -notlike '*nvm*' -and $_ -notlike '*nodejs*' }) -join ';'; [Environment]::SetEnvironmentVariable('Path', $np, 'User') }"
+            ])
+            .output();
+
+        // 6. Hapus folder server, NVM/Node, & AppData jika delete_data dipilih
+        if delete_data {
+            // Hapus server_dir
+            if server_dir.exists() {
+                if fs::remove_dir_all(&server_dir).is_err() {
+                    let _ = crate::create_hidden_command("cmd.exe")
+                        .args(&["/c", "rmdir", "/s", "/q", &server_dir.to_string_lossy()])
+                        .output();
                 }
             }
-        }
 
-        // 5. Hapus folder server & AppData jika delete_data dipilih
-        if delete_data {
-            if server_dir.exists() {
-                let _ = fs::remove_dir_all(&server_dir);
+            let default_server = Path::new("C:\\server");
+            if default_server.exists() {
+                if fs::remove_dir_all(default_server).is_err() {
+                    let _ = crate::create_hidden_command("cmd.exe")
+                        .args(&["/c", "rmdir", "/s", "/q", "C:\\server"])
+                        .output();
+                }
             }
+
+            // Clean up NVM and Node.js
             if let Ok(profile) = std::env::var("USERPROFILE") {
                 let p = Path::new(&profile);
+                
+                let nvm_uninstaller_paths = vec![
+                    p.join("AppData\\Roaming\\nvm\\unins000.exe"),
+                    p.join("AppData\\Local\\nvm\\unins000.exe"),
+                    Path::new("C:\\Program Files\\nvm\\unins000.exe").to_path_buf(),
+                    Path::new("C:\\Program Files (x86)\\nvm\\unins000.exe").to_path_buf(),
+                ];
+
+                for unins in nvm_uninstaller_paths {
+                    if unins.exists() {
+                        let _ = crate::create_hidden_command(&unins.to_string_lossy())
+                            .args(&["/SILENT", "/VERYSILENT", "/SUPPRESSMSGBOXES"])
+                            .output();
+                    }
+                }
+
+                let nvm_dirs_to_remove = vec![
+                    p.join("AppData\\Roaming\\nvm"),
+                    p.join("AppData\\Local\\nvm"),
+                    Path::new("C:\\Program Files\\nvm").to_path_buf(),
+                    Path::new("C:\\Program Files (x86)\\nvm").to_path_buf(),
+                    Path::new("C:\\Program Files\\nodejs").to_path_buf(),
+                ];
+
+                for dir in nvm_dirs_to_remove {
+                    if dir.exists() {
+                        if fs::remove_dir_all(&dir).is_err() {
+                            let _ = crate::create_hidden_command("cmd.exe")
+                                .args(&["/c", "rmdir", "/s", "/q", &dir.to_string_lossy()])
+                                .output();
+                        }
+                    }
+                }
+
+                // Delete AppData
                 let _ = fs::remove_dir_all(p.join("AppData\\Roaming\\com.envku.orchestrator"));
                 let _ = fs::remove_dir_all(p.join("AppData\\Local\\com.envku.orchestrator"));
                 let _ = fs::remove_dir_all(p.join("AppData\\Roaming\\Envku"));
@@ -365,16 +428,39 @@ pub fn uninstall_envku(app_handle: tauri::AppHandle, delete_data: bool) -> Resul
                 let _ = fs::remove_dir_all(p.join("AppData\\Roaming\\envku"));
                 let _ = fs::remove_dir_all(p.join("AppData\\Local\\envku"));
             }
+
+            // Remove NVM environment variables & uninstaller keys
+            let _ = crate::create_hidden_command("reg")
+                .args(&["delete", r"HKCU\Environment", "/v", "NVM_HOME", "/f"])
+                .output();
+            let _ = crate::create_hidden_command("reg")
+                .args(&["delete", r"HKCU\Environment", "/v", "NVM_SYMLINK", "/f"])
+                .output();
+            let _ = crate::create_hidden_command("reg")
+                .args(&["delete", r"HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "NVM_HOME", "/f"])
+                .output();
+            let _ = crate::create_hidden_command("reg")
+                .args(&["delete", r"HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "NVM_SYMLINK", "/f"])
+                .output();
+            let _ = crate::create_hidden_command("reg")
+                .args(&["delete", r"HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\nvm_is1", "/f"])
+                .output();
+            let _ = crate::create_hidden_command("reg")
+                .args(&["delete", r"HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\nvm_is1", "/f"])
+                .output();
+            let _ = crate::create_hidden_command("reg")
+                .args(&["delete", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\nvm_is1", "/f"])
+                .output();
         }
 
-        // 6. Tutup aplikasi
+        // 7. Tutup aplikasi
         let app_clone = app_handle.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(1500));
             app_clone.exit(0);
         });
 
-        Ok("Seluruh registri dan aplikasi Envku berhasil dicopot dan dibersihkan.".to_string())
+        Ok("Seluruh registri, service, NVM/Node, dan aplikasi Envku berhasil dicopot dan dibersihkan.".to_string())
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "linux")))]
