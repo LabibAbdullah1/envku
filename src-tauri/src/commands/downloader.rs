@@ -14,13 +14,13 @@ pub struct DownloadProgressPayload {
     pub bytes_total: u64,
 }
 
-pub struct ComponentUrls {
-    pub primary: &'static str,
-    pub fallback: &'static str,
+pub struct ComponentUrls<'a> {
+    pub primary: &'a str,
+    pub fallback: &'a str,
 }
 
 // Helper to resolve component zip urls (Subdomain Mirror + Upstream Fallback)
-fn get_component_urls(component_id: &str) -> Result<ComponentUrls, String> {
+fn get_component_urls(component_id: &str) -> Result<ComponentUrls<'static>, String> {
     match component_id {
         "apache" => Ok(ComponentUrls {
             primary: "https://envku.subly.my.id/packages/win/apache2.4.zip",
@@ -59,7 +59,7 @@ fn get_component_urls(component_id: &str) -> Result<ComponentUrls, String> {
 }
 
 #[cfg(target_os = "linux")]
-fn get_linux_component_urls(component_id: &str) -> Result<ComponentUrls, String> {
+fn get_linux_component_urls(component_id: &str) -> Result<ComponentUrls<'static>, String> {
     match component_id {
         "mailpit" => Ok(ComponentUrls {
             primary: "https://envku.subly.my.id/packages/linux/mailpit.tar.gz",
@@ -77,7 +77,7 @@ fn get_linux_component_urls(component_id: &str) -> Result<ComponentUrls, String>
     }
 }
 
-async fn fetch_response_with_fallback(client: &reqwest::Client, urls: &ComponentUrls) -> Result<reqwest::Response, String> {
+async fn fetch_response_with_fallback<'a>(client: &reqwest::Client, urls: &ComponentUrls<'a>) -> Result<reqwest::Response, String> {
     match client.get(urls.primary).send().await {
         Ok(resp) if resp.status().is_success() => Ok(resp),
         _ => {
