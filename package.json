@@ -10,6 +10,7 @@
     "tauri": "tauri",
     "post-build": "node post-build.cjs",
     "release": "node release.cjs",
+    "tag-release": "node trigger-release.cjs",
     "sync-packages": "node sync-packages.cjs"
   },
   "dependencies": {
