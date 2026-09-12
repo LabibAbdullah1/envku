@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AlertTriangle, Loader2, CheckCircle2, Cpu, Layers } from "lucide-react";
+import { AlertTriangle, Loader2, Cpu, Layers } from "lucide-react";
 import { formatFriendlyError } from "../utils/formatError";
 
 interface PhpSwitcherTabProps {
@@ -121,23 +121,8 @@ export default function PhpSwitcherTab({
           </div>
 
           {installedVersions.length > 0 && (
-            <div className="flex items-center space-x-3 shrink-0">
-              <label htmlFor="php-dropdown" className="text-xs font-black text-[#09090b] uppercase tracking-wider">
-                Pilih PHP:
-              </label>
-              <select
-                id="php-dropdown"
-                value={activePhpVersion !== "unknown" ? activePhpVersion : installedVersions[0]?.id || ""}
-                onChange={(e) => handleSwitchPhp(e.target.value)}
-                disabled={switchingPhp !== null}
-                className="bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2 text-xs font-black text-[#09090b] outline-none cursor-pointer font-mono"
-              >
-                {installedVersions.map((ver) => (
-                  <option key={ver.id} value={ver.id}>
-                    {ver.name} ({ver.badge})
-                  </option>
-                ))}
-              </select>
+            <div className="text-xs font-black text-[#09090b] bg-[#fffefb] px-3.5 py-2 border-2.5 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] font-mono uppercase shrink-0">
+              {installedVersions.length} VERSI TERPASANG
             </div>
           )}
         </div>
@@ -162,7 +147,15 @@ export default function PhpSwitcherTab({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className={`grid gap-4 ${
+            installedVersions.length === 1
+              ? "grid-cols-1"
+              : installedVersions.length === 2
+                ? "grid-cols-1 sm:grid-cols-2"
+                : installedVersions.length === 3
+                  ? "grid-cols-1 sm:grid-cols-3"
+                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+          }`}>
             {installedVersions.map((ver) => {
               const versionPath = isLinux ? `${baseDir}/${ver.id}` : `${baseDir}\\${ver.id}`;
               const isActive = activePhpVersion === ver.id;
@@ -171,26 +164,31 @@ export default function PhpSwitcherTab({
               return (
                 <button
                   key={ver.id}
-                  onClick={() => handleSwitchPhp(ver.id)}
-                  disabled={switchingPhp !== null}
-                  className={`p-4 border-3 border-[#09090b] text-left transition-all duration-150 cursor-pointer flex flex-col justify-between min-h-[130px] ${
+                  onClick={() => !isActive && handleSwitchPhp(ver.id)}
+                  disabled={switchingPhp !== null || isActive}
+                  className={`p-4 border-3 border-[#09090b] text-left transition-all duration-150 flex flex-col justify-between min-h-[130px] ${
                     isSwitchingThis
-                      ? "bg-[#7dd3fc] text-[#09090b] shadow-[4px_4px_0px_0px_#09090b] animate-pulse"
+                      ? "bg-[#7dd3fc] text-[#09090b] shadow-[4px_4px_0px_0px_#09090b] animate-pulse cursor-wait"
                       : isActive
-                        ? "bg-[#fde047] text-[#09090b] shadow-[4px_4px_0px_0px_#09090b]"
-                        : "bg-[#ffffff] text-[#18181b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#eae6df] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#09090b]"
+                        ? "bg-[#fde047] text-[#09090b] shadow-[4px_4px_0px_0px_#09090b] cursor-default opacity-100"
+                        : "bg-[#ffffff] text-[#18181b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#eae6df] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#09090b] cursor-pointer"
                   }`}
                 >
-                  <div className="flex justify-between items-start w-full gap-2 mb-3">
-                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 border-2 border-[#09090b] ${
-                      isActive ? "bg-[#ffffff] text-[#09090b]" : "bg-[#eae6df] text-[#52525b]"
-                    }`}>
-                      {ver.badge}
-                    </span>
+                  <div className="mb-3">
                     {isSwitchingThis ? (
-                      <Loader2 className="w-4 h-4 text-[#09090b] animate-spin shrink-0" />
+                      <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 border-2 border-[#09090b] bg-[#ffffff] text-[#09090b] inline-flex items-center gap-1.5">
+                        <Loader2 className="w-3 h-3 text-[#09090b] animate-spin shrink-0" />
+                        <span>MENGGANTI...</span>
+                      </span>
+                    ) : isActive ? (
+                      <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 border-2 border-[#09090b] bg-[#ffffff] text-[#09090b] inline-flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#14532d] animate-pulse shrink-0" />
+                        <span>AKTIF • {ver.badge.toUpperCase()}</span>
+                      </span>
                     ) : (
-                      isActive && <CheckCircle2 className="w-4 h-4 text-[#09090b] shrink-0" />
+                      <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 border-2 border-[#09090b] bg-[#eae6df] text-[#52525b] inline-block">
+                        {ver.badge}
+                      </span>
                     )}
                   </div>
                   <div>

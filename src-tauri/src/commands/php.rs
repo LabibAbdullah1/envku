@@ -324,21 +324,21 @@ pub fn get_php_extensions(version_id: String) -> Result<Vec<PhpExtensionInfo>, S
         let mut result = Vec::new();
         for ext in target_extensions {
             let is_zend = ext == "opcache";
-            let mut found = false;
             let mut enabled = false;
 
             for line in content.lines() {
                 if is_real_extension_line(line, ext, is_zend) {
                     let trimmed = line.trim();
-                    enabled = !trimmed.starts_with(';');
-                    found = true;
-                    break;
+                    if !trimmed.starts_with(';') {
+                        enabled = true;
+                        break;
+                    }
                 }
             }
 
             result.push(PhpExtensionInfo {
                 name: ext.to_string(),
-                enabled: found && enabled,
+                enabled,
             });
         }
 
@@ -386,15 +386,24 @@ pub fn toggle_php_extension(version_id: String, extension_name: String, enable: 
 
         let mut new_lines = Vec::new();
         let mut modified = false;
+        let mut first_match = true;
 
         for line in content.lines() {
-            if !modified && is_real_extension_line(line, &extension_name, is_zend) {
+            if is_real_extension_line(line, &extension_name, is_zend) {
                 let parts: Vec<&str> = line.splitn(2, '=').collect();
                 let right_side = if parts.len() == 2 { parts[1] } else { &extension_name };
+                let clean_right = right_side.trim().trim_start_matches(';').trim();
+                
                 if enable {
-                    new_lines.push(format!("{}={}", prefix, right_side.trim()));
+                    if first_match {
+                        new_lines.push(format!("{}={}", prefix, clean_right));
+                        first_match = false;
+                    } else {
+                        // Duplicate match line: comment out to prevent "Module already loaded" warning
+                        new_lines.push(format!(";{}={}", prefix, clean_right));
+                    }
                 } else {
-                    new_lines.push(format!(";{}={}", prefix, right_side.trim()));
+                    new_lines.push(format!(";{}={}", prefix, clean_right));
                 }
                 modified = true;
             } else {
@@ -402,12 +411,8 @@ pub fn toggle_php_extension(version_id: String, extension_name: String, enable: 
             }
         }
 
-        if !modified {
-            if enable {
-                new_lines.push(format!("{}={}", prefix, extension_name));
-            } else {
-                new_lines.push(format!(";{}={}", prefix, extension_name));
-            }
+        if !modified && enable {
+            new_lines.push(format!("{}={}", prefix, extension_name));
         }
 
         fs::write(&php_ini_path, new_lines.join("\n"))

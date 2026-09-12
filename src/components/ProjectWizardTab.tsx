@@ -116,7 +116,6 @@ export default function ProjectWizardTab({
     setTerminalLogs([`[ENVKU] Memulai inisialisasi pembuatan proyek Laravel...`]);
     setTerminalStatus("running");
     setShowTerminalModal(true);
-    setLoading(true);
 
     let unlisten: (() => void) | undefined;
 
@@ -144,7 +143,6 @@ export default function ProjectWizardTab({
       showToastMsg(formatFriendlyError(err), "error");
     } finally {
       if (unlisten) unlisten();
-      setLoading(false);
       updateServiceStates();
     }
   };
@@ -518,6 +516,107 @@ export default function ProjectWizardTab({
         </div>
       </form>
 
+      {/* ─── INLINE LOG TERMINAL CONSOLE BOX ─── */}
+      {showTerminalModal && (
+        <div className="border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] bg-[#ffffff] rounded-[6px] overflow-hidden animate-fade-in my-3">
+          {/* Header Bar */}
+          <div className="bg-[#eae6df] border-b-3 border-[#09090b] px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-5 h-5 text-[#09090b]" />
+              <span className="font-black text-xs sm:text-sm uppercase text-[#09090b] tracking-wider">
+                LOG TERMINAL ENVKU - PEMBUATAN LARAVEL
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {terminalStatus === "running" && (
+                <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#bbf7d0] text-[#14532d] border border-[#09090b] rounded-[6px] flex items-center gap-1.5 animate-pulse">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> BERJALAN
+                </span>
+              )}
+              {terminalStatus === "success" && (
+                <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#bbf7d0] text-[#14532d] border border-[#09090b] rounded-[6px] flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> SELESAI
+                </span>
+              )}
+              {terminalStatus === "error" && (
+                <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#fecaca] text-[#7f1d1d] border border-[#09090b] rounded-[6px] flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" /> GAGAL
+                </span>
+              )}
+              {terminalStatus !== "running" && (
+                <button
+                  type="button"
+                  onClick={() => setShowTerminalModal(false)}
+                  className="p-1 hover:bg-[#fffefb] border border-[#09090b] rounded-[6px] cursor-pointer"
+                  title="Tutup Log Terminal"
+                >
+                  <X className="w-4 h-4 text-[#09090b]" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Log Output Console */}
+          <div className="bg-[#18181b] p-4 font-mono text-xs overflow-y-auto max-h-[360px] flex flex-col gap-1 text-[#f4f4f5] select-text">
+            {terminalLogs.length === 0 ? (
+              <div className="text-[#a1a1aa] italic">Menunggu proses Composer dimulai...</div>
+            ) : (
+              terminalLogs.map((log, index) => {
+                const cleanLog = log
+                  .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "")
+                  .replace(/\[[0-9;]+m/g, "")
+                  .replace(/\[[0-9;]+[a-zA-Z]/g, "");
+
+                let textColor = "text-[#f4f4f5]";
+                if (cleanLog.startsWith("🚀") || cleanLog.startsWith("📂") || cleanLog.startsWith("⚙️")) textColor = "text-[#7dd3fc]";
+                else if (cleanLog.startsWith("📦") || cleanLog.startsWith("🌐")) textColor = "text-[#fde047]";
+                else if (cleanLog.startsWith("✅") || cleanLog.startsWith("🎉") || cleanLog.includes("DONE")) textColor = "text-[#4ade80]";
+                else if (cleanLog.startsWith("❌") || cleanLog.toLowerCase().includes("error") || cleanLog.toLowerCase().includes("failed")) textColor = "text-[#f87171]";
+
+                return (
+                  <div key={index} className={`whitespace-pre-wrap break-all ${textColor}`}>
+                    {cleanLog}
+                  </div>
+                );
+              })
+            )}
+            <div ref={logsEndRef} />
+          </div>
+
+          {/* Footer Bar */}
+          <div className="bg-[#fffefb] border-t-3 border-[#09090b] p-3 flex items-center justify-between flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(terminalLogs.join("\n"));
+                setCopiedLogs(true);
+                setTimeout(() => setCopiedLogs(false), 2000);
+              }}
+              className="px-3 py-1.5 text-xs font-bold uppercase bg-[#ffffff] hover:bg-[#f4f1ea] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] rounded-[6px] flex items-center gap-1.5 cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
+            >
+              {copiedLogs ? <Check className="w-3.5 h-3.5 text-[#14532d]" /> : <Copy className="w-3.5 h-3.5 text-[#09090b]" />}
+              {copiedLogs ? "TERSALIN!" : "SALIN LOG"}
+            </button>
+
+            <div className="flex items-center gap-2">
+              {terminalStatus === "running" ? (
+                <span className="text-xs font-semibold text-[#52525b] italic">
+                  Composer sedang mengunduh dependensi... Anda bebas berpindah tab!
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowTerminalModal(false)}
+                  className="px-4 py-1.5 text-xs font-black uppercase bg-[#fde047] hover:bg-[#fef08a] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] rounded-[6px] cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
+                >
+                  TUTUP TERMINAL LOG
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Active Hosts List */}
       <div className="space-y-4 pt-4">
         <h3 className="text-xs font-black text-[#09090b] uppercase tracking-widest">Daftar Host Lokal Aktif</h3>
@@ -585,100 +684,6 @@ export default function ProjectWizardTab({
           </div>
         )}
       </div>
-
-      {/* ─── LIVE CUSTOM TERMINAL LOG MODAL ─── */}
-      {showTerminalModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#ffffff] border-[3px] border-[#09090b] shadow-[6px_6px_0px_0px_#09090b] rounded-[6px] w-full max-w-2xl flex flex-col overflow-hidden max-h-[85vh]">
-            {/* Modal Header Bar */}
-            <div className="bg-[#eae6df] border-b-[3px] border-[#09090b] px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-5 h-5 text-[#09090b]" />
-                <span className="font-black text-xs sm:text-sm uppercase text-[#09090b] tracking-wider">
-                  LOG TERMINAL ENVKU - PEMBUATAN LARAVEL
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {terminalStatus === "running" && (
-                  <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#bbf7d0] text-[#14532d] border border-[#09090b] rounded-[6px] flex items-center gap-1.5 animate-pulse">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> BERJALAN
-                  </span>
-                )}
-                {terminalStatus === "success" && (
-                  <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#bbf7d0] text-[#14532d] border border-[#09090b] rounded-[6px] flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> SELESAI
-                  </span>
-                )}
-                {terminalStatus === "error" && (
-                  <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#fecaca] text-[#7f1d1d] border border-[#09090b] rounded-[6px] flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5" /> GAGAL
-                  </span>
-                )}
-                {terminalStatus !== "running" && (
-                  <button
-                    onClick={() => setShowTerminalModal(false)}
-                    className="p-1 hover:bg-[#fffefb] border border-[#09090b] rounded-[6px] cursor-pointer"
-                  >
-                    <X className="w-4 h-4 text-[#09090b]" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Terminal Body */}
-            <div className="bg-[#18181b] p-4 font-mono text-xs overflow-y-auto max-h-[55vh] flex flex-col gap-1 text-[#f4f4f5] select-text">
-              {terminalLogs.length === 0 ? (
-                <div className="text-[#a1a1aa] italic">Menunggu proses Composer dimulai...</div>
-              ) : (
-                terminalLogs.map((log, index) => {
-                  let textColor = "text-[#f4f4f5]";
-                  if (log.startsWith("🚀") || log.startsWith("📂") || log.startsWith("⚙️")) textColor = "text-[#7dd3fc]";
-                  else if (log.startsWith("📦") || log.startsWith("🌐")) textColor = "text-[#fde047]";
-                  else if (log.startsWith("✅") || log.startsWith("🎉")) textColor = "text-[#4ade80]";
-                  else if (log.startsWith("❌") || log.toLowerCase().includes("error") || log.toLowerCase().includes("failed")) textColor = "text-[#f87171]";
-
-                  return (
-                    <div key={index} className={`whitespace-pre-wrap break-all ${textColor}`}>
-                      {log}
-                    </div>
-                  );
-                })
-              )}
-              <div ref={logsEndRef} />
-            </div>
-
-            {/* Modal Footer Bar */}
-            <div className="bg-[#fffefb] border-t-[3px] border-[#09090b] p-3 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(terminalLogs.join("\n"));
-                  setCopiedLogs(true);
-                  setTimeout(() => setCopiedLogs(false), 2000);
-                }}
-                className="px-3 py-1.5 text-xs font-bold uppercase bg-[#ffffff] hover:bg-[#f4f1ea] border-[2px] border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] rounded-[6px] flex items-center gap-1.5 cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
-              >
-                {copiedLogs ? <Check className="w-3.5 h-3.5 text-[#14532d]" /> : <Copy className="w-3.5 h-3.5 text-[#09090b]" />}
-                {copiedLogs ? "TERSALIN!" : "SALIN LOG"}
-              </button>
-
-              <div className="flex items-center gap-2">
-                {terminalStatus === "running" ? (
-                  <span className="text-xs font-semibold text-[#52525b] italic">
-                    Composer sedang mengunduh dependensi Laravel...
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => setShowTerminalModal(false)}
-                    className="px-4 py-1.5 text-xs font-black uppercase bg-[#fde047] hover:bg-[#fef08a] border-[2px] border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] rounded-[6px] cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
-                  >
-                    TUTUP LOG
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
