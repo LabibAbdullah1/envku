@@ -173,7 +173,6 @@ export default function App() {
     } catch (err) {
       console.warn("Gagal memeriksa direktori:", err);
     } finally {
-      document.body.style.backgroundColor = ""; // keep existing format
       setDirsLoading(false);
     }
   };
@@ -551,7 +550,7 @@ export default function App() {
   }
 
   if (!appReady) {
-    return <div className="h-screen w-screen bg-[#0c0d10] bg-grid-glow" />;
+    return <div className="h-screen w-screen bg-[#f4f1ea] bg-grid-glow" />;
   }
 
   return (
@@ -657,7 +656,7 @@ export default function App() {
         </div>
 
         {/* Global Footer */}
-        <footer className="max-w-3xl w-full mx-auto border-t border-zinc-900/60 pt-5 text-xs text-zinc-500 font-mono flex justify-between relative z-10">
+        <footer className="max-w-3xl w-full mx-auto border-t-2 border-[#09090b] pt-5 text-xs text-[#52525b] font-mono flex justify-between relative z-10 font-bold">
           <span>Envku Orchestrator</span>
           <span>v{packageJson.version}</span>
         </footer>
@@ -668,12 +667,12 @@ export default function App() {
 
       {/* Global Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border-4 border-black p-8 shadow-[8px_8px_0px_0px_#000000] flex flex-col items-center space-y-5 max-w-xs w-full text-center">
-            <div className="w-12 h-12 border-4 border-black bg-yellow-400 shadow-[4px_4px_0px_0px_#000000] animate-spin" style={{ animationDuration: '1.2s' }} />
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[#ffffff] border-3 border-[#09090b] p-8 shadow-[6px_6px_0px_0px_#09090b] flex flex-col items-center space-y-5 max-w-xs w-full text-center">
+            <div className="w-12 h-12 border-3 border-[#09090b] bg-[#fde047] shadow-[3px_3px_0px_0px_#09090b] animate-spin" style={{ animationDuration: '1.2s' }} />
             <div>
-              <h3 className="text-lg font-black text-yellow-400 uppercase tracking-wider text-shadow-none">MEMPROSES...</h3>
-              <p className="text-xs text-zinc-300 mt-2 font-medium">Mohon tunggu sebentar, sistem sedang melakukan konfigurasi.</p>
+              <h3 className="text-lg font-black text-[#09090b] uppercase tracking-wider">MEMPROSES...</h3>
+              <p className="text-xs text-[#52525b] mt-2 font-semibold">Mohon tunggu sebentar, sistem sedang melakukan konfigurasi.</p>
             </div>
           </div>
         </div>
@@ -681,32 +680,32 @@ export default function App() {
 
       {/* Custom Delete Confirmation Modal */}
       {deleteConfirmOpen && (
-        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-zinc-900 border-4 border-black p-8 shadow-[8px_8px_0px_0px_#000000] flex flex-col items-center space-y-6 max-w-sm w-full text-center">
-            <div className="w-12 h-12 border-4 border-black bg-red-600 shadow-[4px_4px_0px_0px_#000000] flex items-center justify-center text-white font-black text-2xl">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-[#ffffff] border-3 border-[#09090b] p-8 shadow-[6px_6px_0px_0px_#09090b] flex flex-col items-center space-y-6 max-w-sm w-full text-center">
+            <div className="w-12 h-12 border-3 border-[#09090b] bg-[#fecaca] shadow-[3px_3px_0px_0px_#09090b] flex items-center justify-center text-[#7f1d1d] font-black text-2xl">
               !
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-black text-red-600 uppercase tracking-wider">Hapus Host Lokal?</h3>
-              <div className="text-xs text-zinc-300 font-semibold leading-relaxed">
-                Apakah Anda yakin ingin menghapus host <span className="font-mono text-indigo-400 font-bold">{hostToDelete}</span>? Tindakan ini akan menghapusnya dari file hosts {isLinux ? "Linux" : "Windows"} dan httpd-vhosts.conf Apache.
+              <h3 className="text-lg font-black text-[#7f1d1d] uppercase tracking-wider">Hapus Host Lokal?</h3>
+              <div className="text-xs text-[#52525b] font-semibold leading-relaxed">
+                Apakah Anda yakin ingin menghapus host <span className="font-mono text-[#09090b] font-black bg-[#7dd3fc] px-1 py-0.5 border border-[#09090b]">{hostToDelete}</span>? Tindakan ini akan menghapusnya dari file hosts {isLinux ? "Linux" : "Windows"} dan httpd-vhosts.conf Apache.
               </div>
             </div>
-            <div className="flex gap-4 w-full">
+            <div className="flex gap-3 w-full">
               <button
                 type="button"
                 onClick={() => {
                   setDeleteConfirmOpen(false);
                   setHostToDelete("");
                 }}
-                className="flex-1 py-3 bg-zinc-900 text-zinc-300 text-xs font-bold uppercase tracking-wider"
+                className="flex-1 py-3 bg-[#ffffff] text-[#18181b] border-3 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] text-xs font-bold uppercase tracking-wider hover:bg-[#eae6df] cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteHost}
-                className="flex-1 py-3 bg-red-600 text-white text-xs font-bold uppercase tracking-wider"
+                className="flex-1 py-3 bg-[#fecaca] text-[#7f1d1d] border-3 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] text-xs font-bold uppercase tracking-wider hover:bg-[#fca5a5] cursor-pointer"
               >
                 Hapus
               </button>
@@ -717,3 +716,4 @@ export default function App() {
     </div>
   );
 }
+

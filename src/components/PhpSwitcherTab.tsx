@@ -36,7 +36,6 @@ export default function PhpSwitcherTab({
     { id: "php82", name: "PHP 8.2", label: "PHP 8.2 Engine", badge: "Legacy Thread-Safe" },
   ];
 
-  // Dynamically filter ONLY PHP versions that are currently installed on disk
   const installedVersions = allPhpVersions.filter((ver) => {
     const fullPath = isLinux ? `${baseDir}/${ver.id}` : `${baseDir}\\${ver.id}`;
     return dirsStatus[fullPath] === true;
@@ -98,33 +97,32 @@ export default function PhpSwitcherTab({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in text-[#18181b]">
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Cpu className="w-6 h-6 text-indigo-400" />
+        <h2 className="text-2xl font-black text-[#09090b] tracking-tight flex items-center gap-2">
+          <Cpu className="w-6 h-6 text-[#09090b]" />
           <span>PHP Version Switcher</span>
         </h2>
-        <p className="text-sm text-zinc-400 mt-1">
+        <p className="text-sm text-[#52525b] mt-1 font-semibold">
           Ubah versi modul PHP yang dimuat oleh Apache server dan CLI terminal Anda secara instan.
         </p>
       </div>
 
-      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl backdrop-blur-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-5">
-          <div className="flex items-center space-x-3 text-sm text-zinc-200 bg-zinc-950/50 px-4 py-2.5 rounded-xl border border-zinc-800 w-fit shadow-inner">
-            <span className="font-bold text-zinc-400">Versi PHP Aktif:</span>
-            <span className="font-mono bg-indigo-500/15 border border-indigo-500/30 px-3 py-1 rounded-lg text-indigo-400 font-extrabold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+      <div className="p-6 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2.5 border-[#09090b] pb-5">
+          <div className="flex items-center space-x-3 text-xs text-[#09090b] bg-[#fffefb] px-4 py-2.5 border-2.5 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] w-fit">
+            <span className="font-black text-[#52525b] uppercase">Versi PHP Aktif:</span>
+            <span className="font-mono bg-[#fde047] border-2 border-[#09090b] px-3 py-1 text-[#09090b] font-black flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#09090b]">
+              <span className="w-2 h-2 rounded-full bg-[#09090b] animate-pulse" />
               {activePhpVersion === "unknown"
                 ? "BELUM DIPILIH"
                 : activePhpVersion.toUpperCase()}
             </span>
           </div>
 
-          {/* Render Dropdown ONLY if there are installed PHP versions */}
           {installedVersions.length > 0 && (
             <div className="flex items-center space-x-3 shrink-0">
-              <label htmlFor="php-dropdown" className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+              <label htmlFor="php-dropdown" className="text-xs font-black text-[#09090b] uppercase tracking-wider">
                 Pilih PHP:
               </label>
               <select
@@ -132,7 +130,7 @@ export default function PhpSwitcherTab({
                 value={activePhpVersion !== "unknown" ? activePhpVersion : installedVersions[0]?.id || ""}
                 onChange={(e) => handleSwitchPhp(e.target.value)}
                 disabled={switchingPhp !== null}
-                className="bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2 text-xs font-bold text-zinc-100 outline-none cursor-pointer transition shadow-sm font-mono"
+                className="bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2 text-xs font-black text-[#09090b] outline-none cursor-pointer font-mono"
               >
                 {installedVersions.map((ver) => (
                   <option key={ver.id} value={ver.id}>
@@ -144,28 +142,26 @@ export default function PhpSwitcherTab({
           )}
         </div>
 
-        <p className="text-sm text-zinc-400 leading-relaxed">
-          Pilih versi PHP terpasang untuk memperbarui modul DLL di Apache <code className="font-mono text-xs bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-300">httpd.conf</code>, 
+        <p className="text-xs text-[#52525b] font-medium leading-relaxed">
+          Pilih versi PHP terpasang untuk memperbarui modul DLL di Apache <code className="font-mono text-xs bg-[#fffefb] px-1.5 py-0.5 border border-[#09090b] text-[#09090b]">httpd.conf</code>, 
           {isLinux ? " memperbarui tautan symlink biner" : " memperbarui variabel PATH system di registry Windows"}, dan me-restart layanan Apache secara otomatis.
         </p>
 
-        {/* Empty State: If NO PHP version is installed */}
         {installedVersions.length === 0 ? (
-          <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 text-amber-300">
-            <div className="p-3 bg-amber-500/20 rounded-xl shrink-0">
-              <AlertTriangle className="w-6 h-6 text-amber-400" />
+          <div className="bg-[#fef08a] border-2.5 border-[#09090b] p-5 shadow-[3px_3px_0px_0px_#09090b] flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 text-[#713f12]">
+            <div className="p-2.5 bg-[#ffffff] border-2 border-[#09090b] shrink-0">
+              <AlertTriangle className="w-5 h-5 text-[#713f12]" />
             </div>
             <div className="space-y-1">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-amber-400">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#713f12]">
                 Belum ada versi PHP yang terpasang
               </h4>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-[#713f12] font-semibold leading-relaxed">
                 Silakan unduh salah satu modul versi PHP (PHP 8.5, PHP 8.4, PHP 8.3, atau PHP 8.2) terlebih dahulu pada tab Katalog Komponen Server.
               </p>
             </div>
           </div>
         ) : (
-          /* Grid Card Selector for Installed PHP Versions */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {installedVersions.map((ver) => {
               const versionPath = isLinux ? `${baseDir}/${ver.id}` : `${baseDir}\\${ver.id}`;
@@ -177,31 +173,31 @@ export default function PhpSwitcherTab({
                   key={ver.id}
                   onClick={() => handleSwitchPhp(ver.id)}
                   disabled={switchingPhp !== null}
-                  className={`p-5 border rounded-2xl text-left transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[135px] shadow-lg ${
+                  className={`p-4 border-3 border-[#09090b] text-left transition-all duration-150 cursor-pointer flex flex-col justify-between min-h-[130px] ${
                     isSwitchingThis
-                      ? "bg-indigo-950/40 border-indigo-500/70 cursor-wait animate-pulse"
+                      ? "bg-[#7dd3fc] text-[#09090b] shadow-[4px_4px_0px_0px_#09090b] animate-pulse"
                       : isActive
-                        ? "bg-indigo-900/40 border-indigo-500 text-indigo-300 shadow-indigo-950/30 ring-2 ring-indigo-500/50"
-                        : "bg-zinc-950/40 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:text-white"
+                        ? "bg-[#fde047] text-[#09090b] shadow-[4px_4px_0px_0px_#09090b]"
+                        : "bg-[#ffffff] text-[#18181b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#eae6df] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#09090b]"
                   }`}
                 >
                   <div className="flex justify-between items-start w-full gap-2 mb-3">
-                    <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded border ${
-                      isActive ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/50" : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 border-2 border-[#09090b] ${
+                      isActive ? "bg-[#ffffff] text-[#09090b]" : "bg-[#eae6df] text-[#52525b]"
                     }`}>
                       {ver.badge}
                     </span>
                     {isSwitchingThis ? (
-                      <Loader2 className="w-5 h-5 text-indigo-400 animate-spin shrink-0" />
+                      <Loader2 className="w-4 h-4 text-[#09090b] animate-spin shrink-0" />
                     ) : (
-                      isActive && <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
+                      isActive && <CheckCircle2 className="w-4 h-4 text-[#09090b] shrink-0" />
                     )}
                   </div>
                   <div>
-                    <h4 className="text-xl font-black font-mono tracking-tight">
+                    <h4 className="text-lg font-black font-mono tracking-tight text-[#09090b]">
                       {isSwitchingThis ? "Mengganti..." : ver.name}
                     </h4>
-                    <p className="text-[11px] text-zinc-400 font-mono mt-1 truncate" title={versionPath}>
+                    <p className="text-[11px] text-[#52525b] font-mono mt-1 truncate font-semibold" title={versionPath}>
                       Path: {ver.id}
                     </p>
                   </div>
@@ -212,16 +208,15 @@ export default function PhpSwitcherTab({
         )}
       </div>
 
-      {/* Extensions Manager (Only displayed if at least one PHP is installed and active) */}
       {installedVersions.length > 0 && activePhpVersion !== "unknown" && (
-        <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl backdrop-blur-sm">
-          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800/80 pb-4 gap-4">
+        <div className="p-6 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b-2.5 border-[#09090b] pb-4 gap-4">
             <div>
-              <h3 className="text-lg font-black flex items-center gap-2">
-                <Layers className="w-5 h-5 text-indigo-400 shrink-0" />
+              <h3 className="text-base font-black flex items-center gap-2 text-[#09090b]">
+                <Layers className="w-5 h-5 text-[#09090b] shrink-0" />
                 <span>Ekstensi PHP (php.ini - {activePhpVersion.toUpperCase()})</span>
               </h3>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-xs text-[#52525b] mt-1 font-semibold">
                 Aktifkan atau nonaktifkan modul ekstensi PHP secara instan. Apache akan otomatis di-restart setelah perubahan.
               </p>
             </div>
@@ -231,17 +226,17 @@ export default function PhpSwitcherTab({
                 placeholder="Cari ekstensi..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2 text-xs text-zinc-100 outline-none transition-all duration-200 w-full sm:w-48 font-mono"
+                className="bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2 text-xs text-[#18181b] outline-none w-full sm:w-48 font-mono font-bold"
               />
             </div>
           </div>
 
           {loadingExts && extensions.length === 0 ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+              <Loader2 className="w-8 h-8 text-[#09090b] animate-spin" />
             </div>
           ) : filteredExtensions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-zinc-500 text-xs">
+            <div className="flex flex-col items-center justify-center py-10 text-[#52525b] text-xs font-semibold">
               Tidak ada ekstensi yang cocok dengan "{searchQuery}"
             </div>
           ) : (
@@ -249,20 +244,20 @@ export default function PhpSwitcherTab({
               {filteredExtensions.map((ext) => (
                 <div
                   key={ext.name}
-                  className="p-3 bg-zinc-950/40 border border-zinc-850 rounded-xl flex items-center justify-between hover:border-zinc-750 transition"
+                  className="p-3 bg-[#fffefb] border-2.5 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] flex items-center justify-between"
                 >
-                  <span className="text-xs font-mono font-bold text-zinc-200 truncate mr-2" title={ext.name}>
+                  <span className="text-xs font-mono font-bold text-[#18181b] truncate mr-2" title={ext.name}>
                     {ext.name}
                   </span>
                   <button
                     disabled={togglingExt !== null}
                     onClick={() => handleToggleExtension(ext.name, ext.enabled)}
-                    className={`py-1 px-3 rounded-lg text-xs font-bold transition flex items-center space-x-1 cursor-pointer shrink-0 border ${
+                    className={`py-1 px-2.5 text-[11px] font-black transition flex items-center space-x-1 cursor-pointer shrink-0 border-2 border-[#09090b] ${
                       togglingExt === ext.name
-                        ? "bg-zinc-800 border-zinc-700 text-zinc-500 cursor-wait"
+                        ? "bg-[#eae6df] text-[#52525b] cursor-wait"
                         : ext.enabled
-                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25"
-                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                          ? "bg-[#bbf7d0] text-[#14532d] hover:bg-[#86efac]"
+                          : "bg-[#ffffff] text-[#52525b] hover:bg-[#eae6df]"
                     }`}
                   >
                     {togglingExt === ext.name && <Loader2 className="w-3 h-3 animate-spin mr-1" />}

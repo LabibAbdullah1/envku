@@ -164,7 +164,6 @@ ${folderDetails}`;
       
       await invoke("open_in_browser", { url });
       
-      // Clear inputs
       setBugTitle("");
       setBugDesc("");
     } catch (err) {
@@ -175,47 +174,38 @@ ${folderDetails}`;
   };
 
   return (
-    <div className="space-y-6 animate-fade-in text-[var(--text-main)]">
+    <div className="space-y-6 animate-fade-in text-[#18181b]">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--text-main)]">Dukungan & Laporan Kendala</h2>
-        <p className="text-sm text-[var(--text-muted)] mt-1">Dukung proyek open-source Envku dengan memberikan bintang atau laporkan kendala sistem secara instan.</p>
+        <h2 className="text-2xl font-black tracking-tight text-[#09090b]">Dukungan & Laporan Kendala</h2>
+        <p className="text-sm text-[#52525b] mt-1 font-semibold">Dukung proyek open-source Envku dengan memberikan bintang atau laporkan kendala sistem secara instan.</p>
       </div>
 
       {/* Control Panel Uninstallation Information */}
-      <div 
-        className="p-6 border rounded-2xl space-y-3 shadow-xl"
-        style={{ backgroundColor: "var(--bg-panel)", borderColor: "var(--border-color)" }}
-      >
-        <div className="flex items-center space-x-2.5 text-[var(--text-main)]">
-          <Trash2 className="w-5 h-5 text-indigo-500 dark:text-indigo-400 shrink-0" />
-          <h3 className="text-base font-bold text-[var(--text-main)]">Informasi Penghapusan Aplikasi (Uninstall)</h3>
+      <div className="p-6 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] space-y-3">
+        <div className="flex items-center space-x-2.5 text-[#09090b]">
+          <Trash2 className="w-5 h-5 text-[#09090b] shrink-0" />
+          <h3 className="text-base font-black text-[#09090b]">Informasi Penghapusan Aplikasi (Uninstall)</h3>
         </div>
-        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-          Sesuai standar sistem operasi Windows, penghapusan aplikasi Envku Orchestrator dilakukan secara default melalui <strong className="text-[var(--text-main)] font-semibold">Control Panel Windows (Add or Remove Programs / Program dan Fitur)</strong>. Uninstaller resmi Windows akan secara otomatis menghentikan service, membersihkan registry, entri DNS hosts, dan biner server.
+        <p className="text-xs text-[#52525b] font-medium leading-relaxed">
+          Sesuai standar sistem operasi Windows, penghapusan aplikasi Envku Orchestrator dilakukan secara default melalui <strong className="text-[#09090b] font-extrabold">Control Panel Windows (Add or Remove Programs / Program dan Fitur)</strong>. Uninstaller resmi Windows akan secara otomatis menghentikan service, membersihkan registry, entri DNS hosts, dan biner server.
         </p>
       </div>
 
       {/* GitHub Star Card */}
-      <div 
-        className="p-6 border rounded-2xl space-y-6 shadow-xl relative overflow-hidden"
-        style={{ backgroundColor: "var(--bg-panel)", borderColor: "var(--border-color)" }}
-      >
-        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-5 pointer-events-none">
-          <Star className="w-48 h-48 text-yellow-500 fill-current" />
-        </div>
+      <div className="p-6 bg-[#fde047] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] space-y-6 relative overflow-hidden">
         <div className="space-y-3 relative z-10">
-          <div className="flex items-center space-x-2 text-yellow-500 dark:text-yellow-400">
-            <Star className="w-6 h-6 fill-current" />
-            <h3 className="text-lg font-bold text-[var(--text-main)]">Beri Star di GitHub</h3>
+          <div className="flex items-center space-x-2 text-[#09090b]">
+            <Star className="w-6 h-6 fill-current text-[#09090b]" />
+            <h3 className="text-lg font-black text-[#09090b]">Beri Star di GitHub</h3>
           </div>
-          <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-2xl">
+          <p className="text-xs text-[#09090b] font-semibold leading-relaxed max-w-2xl">
             Suka dengan kemudahan yang ditawarkan oleh Envku Orchestrator? Bintang (Star) Anda di GitHub sangatlah berarti untuk mendukung kelangsungan pengembangan proyek open-source ini dan membantu developer lain menemukan Envku!
           </p>
         </div>
         <div className="pt-2">
           <button
             onClick={handleStarGithub}
-            className="px-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-black rounded-xl text-sm font-black transition duration-150 cursor-pointer shadow-md shadow-yellow-950/20 flex items-center justify-center gap-2.5"
+            className="px-6 py-3 bg-[#ffffff] text-[#09090b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#7dd3fc] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#09090b] text-xs font-black uppercase transition cursor-pointer flex items-center justify-center gap-2.5"
           >
             <Star className="w-4.5 h-4.5 fill-current" />
             <span>Star Envku di GitHub</span>
@@ -225,47 +215,38 @@ ${folderDetails}`;
       </div>
 
       {/* Check for Updates Card */}
-      <div 
-        className="p-6 border rounded-2xl space-y-6 shadow-xl relative overflow-hidden"
-        style={{ backgroundColor: "var(--bg-panel)", borderColor: "var(--border-color)" }}
-      >
-        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-5 pointer-events-none">
-          <RefreshCw className="w-48 h-48 text-indigo-500" />
-        </div>
+      <div className="p-6 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] space-y-6">
         <div className="space-y-3 relative z-10">
-          <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
+          <div className="flex items-center space-x-2 text-[#09090b]">
             <RefreshCw className={`w-6 h-6 ${checking ? "animate-spin" : ""}`} />
-            <h3 className="text-lg font-bold text-[var(--text-main)]">Pembaruan Aplikasi</h3>
+            <h3 className="text-lg font-black text-[#09090b]">Pembaruan Aplikasi</h3>
           </div>
-          <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-2xl">
-            Periksa versi terbaru Envku Orchestrator secara manual. Versi Anda saat ini: <span className="font-bold text-[var(--text-main)]">v{currentVersion}</span>.
+          <p className="text-xs text-[#52525b] font-semibold leading-relaxed max-w-2xl">
+            Periksa versi terbaru Envku Orchestrator secara manual. Versi Anda saat ini: <span className="font-mono font-black text-[#09090b] bg-[#fffefb] px-1.5 py-0.5 border border-[#09090b]">v{currentVersion}</span>.
           </p>
         </div>
 
         {/* Update Status / Info */}
         {updateError && (
-          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-600 dark:text-red-300 font-medium">
+          <div className="p-4 bg-[#fecaca] border-2.5 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] text-xs text-[#7f1d1d] font-bold">
             <strong>Gagal memeriksa pembaruan:</strong> {updateError}
           </div>
         )}
 
         {updateInfo && !updateInfo.available && (
-          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 font-semibold">
+          <div className="p-4 bg-[#bbf7d0] border-2.5 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] text-xs text-[#14532d] font-bold">
             Envku Orchestrator sudah menggunakan versi terbaru (v{currentVersion}).
           </div>
         )}
 
         {updateInfo && updateInfo.available && (
-          <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl space-y-3">
-            <div className="text-sm text-indigo-700 dark:text-indigo-300 font-bold flex items-center gap-2">
+          <div className="p-4 bg-[#7dd3fc] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] space-y-3">
+            <div className="text-xs text-[#09090b] font-black uppercase flex items-center gap-2">
               <Info className="w-4 h-4" />
               <span>Versi Baru Tersedia: v{updateInfo.version}</span>
             </div>
             {updateInfo.body && (
-              <p 
-                className="text-xs text-[var(--text-main)] line-clamp-3 p-2.5 rounded-lg border font-mono"
-                style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)" }}
-              >
+              <p className="text-xs text-[#18181b] line-clamp-3 p-2.5 bg-[#ffffff] border-2 border-[#09090b] font-mono font-semibold">
                 {updateInfo.body}
               </p>
             )}
@@ -274,7 +255,7 @@ ${folderDetails}`;
                 type="button"
                 onClick={handleInstallUpdate}
                 disabled={installing}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-wait"
+                className="px-5 py-2.5 bg-[#fde047] text-[#09090b] border-2.5 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] hover:bg-[#fef08a] text-xs font-black uppercase transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 <span>{installing ? `Mengunduh... ${downloadProgress !== null ? `${downloadProgress}%` : ""}` : "Unduh & Pasang Pembaruan"}</span>
@@ -288,8 +269,7 @@ ${folderDetails}`;
             type="button"
             onClick={handleCheckForUpdates}
             disabled={checking || installing}
-            className="px-6 py-3 border rounded-xl text-sm font-bold transition duration-150 cursor-pointer shadow-sm flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-wait"
-            style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)", color: "var(--text-main)" }}
+            className="px-6 py-3 bg-[#ffffff] text-[#18181b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#7dd3fc] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#09090b] text-xs font-black uppercase transition cursor-pointer flex items-center justify-center gap-2.5"
           >
             <RefreshCw className={`w-4.5 h-4.5 ${checking ? "animate-spin" : ""}`} />
             <span>{checking ? "Memeriksa..." : "Cek Pembaruan Sekarang"}</span>
@@ -298,73 +278,65 @@ ${folderDetails}`;
       </div>
 
       {/* Bug Report Form */}
-      <div 
-        className="p-6 border rounded-2xl space-y-6 shadow-xl"
-        style={{ backgroundColor: "var(--bg-panel)", borderColor: "var(--border-color)" }}
-      >
-        <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
+      <div className="p-6 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] space-y-6">
+        <div className="flex items-center space-x-2 text-[#09090b]">
           <Bug className="w-6 h-6" />
-          <h3 className="text-lg font-bold text-[var(--text-main)]">Laporkan Bug / Masalah</h3>
+          <h3 className="text-lg font-black text-[#09090b]">Laporkan Bug / Masalah</h3>
         </div>
 
         <form onSubmit={handleSubmitBug} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-xs font-extrabold text-[var(--text-muted)] uppercase tracking-wider block">Judul Masalah</label>
+            <label className="text-xs font-black text-[#09090b] uppercase tracking-wider block">Judul Masalah</label>
             <input
               type="text"
               placeholder="Contoh: Apache gagal start setelah ubah PHP version"
               value={bugTitle}
               onChange={(e) => setBugTitle(e.target.value)}
-              className="w-full border focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none transition-all duration-200"
-              style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)" }}
+              className="w-full bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-3 text-xs text-[#18181b] outline-none font-semibold"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-extrabold text-[var(--text-muted)] uppercase tracking-wider block">Deskripsi & Langkah Reproduksi</label>
+            <label className="text-xs font-black text-[#09090b] uppercase tracking-wider block">Deskripsi & Langkah Reproduksi</label>
             <textarea
               placeholder="Jelaskan apa yang Anda lakukan sebelum error muncul, rincian pesan error, atau perilaku sistem yang tidak sesuai."
               value={bugDesc}
               onChange={(e) => setBugDesc(e.target.value)}
               rows={4}
-              className="w-full border focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none transition-all duration-200 resize-none"
-              style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)" }}
+              className="w-full bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-3 text-xs text-[#18181b] outline-none resize-none font-semibold"
             />
           </div>
 
           {/* Diagnostics Preview Info box */}
           <div className="space-y-2">
-            <div className="flex items-center space-x-2 text-xs font-extrabold text-[var(--text-muted)] uppercase tracking-wider">
+            <div className="flex items-center space-x-2 text-xs font-black text-[#09090b] uppercase tracking-wider">
               <Info className="w-3.5 h-3.5" />
               <span>Info Diagnostik yang akan Dikirim secara Otomatis</span>
             </div>
-            <div 
-              className="p-4 border rounded-xl space-y-3 font-mono text-[11px] text-[var(--text-main)] max-h-48 overflow-y-auto"
-              style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)" }}
-            >
+            <div className="p-4 bg-[#fffefb] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] space-y-3 font-mono text-[11px] text-[#18181b] max-h-48 overflow-y-auto font-semibold">
               <div>
-                <span className="text-indigo-600 dark:text-indigo-400 font-bold"># Rincian Diagnostik Sistem</span>
+                <span className="text-[#09090b] font-black uppercase"># Rincian Diagnostik Sistem</span>
                 <br />OS: {isLinux ? "Linux" : "Windows"}
                 <br />Server Base Dir: {baseDir}
                 <br />Versi PHP Aktif: {activePhpVersion.toUpperCase()}
               </div>
 
               <div>
-                <span className="text-indigo-600 dark:text-indigo-400 font-bold"># Status Layanan (Services)</span>
+                <span className="text-[#09090b] font-black uppercase"># Status Layanan (Services)</span>
                 {Object.entries(services).map(([name, status]) => (
                   <div key={name} className="flex flex-col gap-0.5 mt-1">
                     <span>
                       - {name}: {status.installed ? "Terinstal" : "Belum Terinstal"} | {status.running ? "Aktif" : "Nonaktif"}
-                      {status.conflict && <span className="text-amber-600 dark:text-amber-400 ml-1 font-bold">⚠️ Konflik</span>}
+                      {status.conflict && <span className="text-[#713f12] bg-[#fef08a] px-1 border border-[#09090b] ml-1 font-bold">⚠️ Konflik</span>}
                     </span>
-                    {status.conflict && <span className="text-amber-700 dark:text-amber-300 text-[10px] pl-4">{status.conflictMessage}</span>}
+                    {status.conflict && <span className="text-[#713f12] text-[10px] pl-4">{status.conflictMessage}</span>}
                   </div>
                 ))}
               </div>
 
               <div>
-                <span className="text-indigo-600 dark:text-indigo-400 font-bold"># Cek Direktori Server</span>
+                <span className="text-[#09090b] font-black uppercase"># Cek Direktori Server</span>
                 {Object.entries(dirsStatus).map(([path, exists]) => (
                   <div key={path}>
                     - {path.replace(baseDir, "") || "\\"}: {exists ? "Ada" : "Tidak Ada"}
@@ -378,7 +350,7 @@ ${folderDetails}`;
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-black transition duration-150 cursor-pointer shadow-md shadow-indigo-950/20 flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-wait"
+              className="px-6 py-3.5 bg-[#fde047] text-[#09090b] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] hover:bg-[#fef08a] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#09090b] text-xs font-black uppercase transition cursor-pointer flex items-center justify-center gap-2"
             >
               <Bug className="w-4.5 h-4.5" />
               <span>{submitting ? "Membuka Browser..." : "Laporkan ke GitHub Issues"}</span>

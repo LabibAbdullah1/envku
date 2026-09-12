@@ -14,24 +14,9 @@ const PUBLIC_DIR = path.join(__dirname, "public");
 const svgBuffer = fs.readFileSync(SVG_PATH);
 
 // Fungsi render SVG ke PNG buffer dengan ukuran tertentu
-// Background: indigo gradient (karena sharp tidak bisa gradient, kita pakai background solid gelap)
 async function renderIcon(size) {
-  // Buat background dengan warna gradient menggunakan SVG wrapper
-  const svgWithBg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="${size}" y2="${size}" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#4f46e5"/>
-          <stop offset="100%" stop-color="#7c3aed"/>
-        </linearGradient>
-      </defs>
-      <rect width="${size}" height="${size}" rx="${Math.round(size * 0.22)}" fill="url(#bg)"/>
-      <image href="data:image/svg+xml;base64,${svgBuffer.toString("base64")}" 
-             x="0" y="0" width="${size}" height="${size}"/>
-    </svg>
-  `;
-
-  return sharp(Buffer.from(svgWithBg))
+  return sharp(svgBuffer)
+    .resize(size, size)
     .png()
     .toBuffer();
 }
@@ -73,7 +58,8 @@ async function main() {
 
   // Generate ICO (multi-size) menggunakan png-to-ico
   try {
-    const pngToIco = require("png-to-ico");
+    const pngToIcoModule = require("png-to-ico");
+    const pngToIco = typeof pngToIcoModule === "function" ? pngToIcoModule : (pngToIcoModule.default || pngToIcoModule);
     const ico16 = await renderIcon(16);
     const ico32 = await renderIcon(32);
     const ico48 = await renderIcon(48);
@@ -84,11 +70,9 @@ async function main() {
     console.log(`  ✅ icon.ico (16, 32, 48, 256px multi-size)`);
   } catch (err) {
     console.warn(`  ⚠️  Melewati icon.ico (png-to-ico tidak tersedia): ${err.message}`);
-    console.warn(`     Jalankan: npm install png-to-ico --save-dev`);
   }
 
-  console.log("\n🎉 Selesai! Semua icon berhasil digenerate dari SVG logo Envku.");
-  console.log("   Untuk icon.icns (macOS), gunakan: npx tauri icon src/assets/envku-logo.svg");
+  console.log("\n🎉 Selesai! Semua icon berhasil digenerate dari SVG logo Envku Neo-Brutalism.");
 }
 
 main().catch(console.error);

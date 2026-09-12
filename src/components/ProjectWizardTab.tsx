@@ -47,7 +47,6 @@ export default function ProjectWizardTab({
 
   const handleProjectNameChange = (name: string) => {
     setProjectName(name);
-    // Auto format local domain if user hasn't typed a custom one or editing
     if (!editingDomain) {
       const cleanSlug = name.toLowerCase().trim().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
       if (cleanSlug) {
@@ -147,7 +146,6 @@ export default function ProjectWizardTab({
     setLoading(true);
     try {
       if (editingDomain) {
-        // Edit mode
         const res = await invoke<string>("edit_project", {
           oldDomain: editingDomain,
           newDomain: projectDomain,
@@ -159,7 +157,6 @@ export default function ProjectWizardTab({
         showToastMsg(res, "success");
         handleCancelEdit();
       } else {
-        // Add mode
         const res = await invoke<string>("add_project", {
           domain: projectDomain,
           documentRoot: finalDocRoot,
@@ -203,27 +200,27 @@ export default function ProjectWizardTab({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in text-[#18181b]">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black tracking-tight">Project Wizard (DNS & VHost)</h2>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+          <h2 className="text-2xl font-black tracking-tight text-[#09090b]">Project Wizard (DNS & VHost)</h2>
+          <p className="text-xs sm:text-sm text-[#52525b] mt-1 font-semibold">
             Buat proyek Laravel baru versi terbaru via Composer atau daftarkan folder proyek lokal Anda secara instan.
           </p>
         </div>
 
         {/* Wizard Mode Tabs */}
-        <div className="flex flex-wrap gap-2 p-1.5 bg-zinc-900 border border-zinc-800 rounded-xl shrink-0">
+        <div className="flex flex-wrap gap-2 p-1.5 bg-[#eae6df] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] shrink-0">
           <button
             type="button"
             onClick={() => {
               setWizardMode("register");
               handleCancelEdit();
             }}
-            className={`px-3.5 py-2 text-xs font-black rounded-lg transition flex items-center justify-center space-x-2 cursor-pointer ${
+            className={`px-3.5 py-2 text-xs font-black transition flex items-center justify-center space-x-2 cursor-pointer border-2 border-[#09090b] ${
               wizardMode === "register"
-                ? "bg-indigo-600 text-white shadow-md"
-                : "bg-zinc-850 text-zinc-300 hover:text-white"
+                ? "bg-[#fde047] text-[#09090b] shadow-[2px_2px_0px_0px_#09090b]"
+                : "bg-[#ffffff] text-[#18181b] hover:bg-[#7dd3fc]"
             }`}
           >
             <FolderPlus className="w-4 h-4 shrink-0" />
@@ -235,24 +232,24 @@ export default function ProjectWizardTab({
               setWizardMode("create_laravel");
               handleCancelEdit();
             }}
-            className={`px-3.5 py-2 text-xs font-black rounded-lg transition flex items-center justify-center space-x-2 cursor-pointer ${
+            className={`px-3.5 py-2 text-xs font-black transition flex items-center justify-center space-x-2 cursor-pointer border-2 border-[#09090b] ${
               wizardMode === "create_laravel"
-                ? "bg-red-600 text-white shadow-md"
-                : "bg-zinc-850 text-zinc-300 hover:text-white"
+                ? "bg-[#fecaca] text-[#7f1d1d] shadow-[2px_2px_0px_0px_#09090b]"
+                : "bg-[#ffffff] text-[#18181b] hover:bg-[#fecaca]"
             }`}
           >
-            <Sparkles className="w-4 h-4 shrink-0 text-yellow-300" />
+            <Sparkles className="w-4 h-4 shrink-0 text-[#7f1d1d]" />
             <span>Buat Laravel Baru (Composer)</span>
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmitProject} className="p-5 sm:p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-5 shadow-xl">
+      <form onSubmit={handleSubmitProject} className="p-5 sm:p-6 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] space-y-5">
         {wizardMode === "register" ? (
           <>
             {/* Preset Selection */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Tipe / Preset Proyek</label>
+              <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">Tipe / Preset Proyek</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   type="button"
@@ -263,10 +260,10 @@ export default function ProjectWizardTab({
                       setProjectPath(projectPath.endsWith("/") || projectPath.endsWith("\\") ? `${projectPath}public` : `${projectPath}/public`);
                     }
                   }}
-                  className={`py-3 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
+                  className={`py-3 px-3 text-xs font-black transition flex items-center justify-center space-x-2 border-2.5 border-[#09090b] cursor-pointer ${
                     projectType === "laravel" && !isNodeProject
-                      ? "bg-red-500/20 border-red-500/60 text-red-400 font-extrabold"
-                      : "bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                      ? "bg-[#fecaca] text-[#7f1d1d] shadow-[3px_3px_0px_0px_#09090b]"
+                      : "bg-[#fffefb] text-[#18181b] hover:bg-[#eae6df]"
                   }`}
                 >
                   <span>🔴 Laravel Framework</span>
@@ -280,10 +277,10 @@ export default function ProjectWizardTab({
                       setProjectPath(projectPath.slice(0, -7));
                     }
                   }}
-                  className={`py-3 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
+                  className={`py-3 px-3 text-xs font-black transition flex items-center justify-center space-x-2 border-2.5 border-[#09090b] cursor-pointer ${
                     projectType === "php" && !isNodeProject
-                      ? "bg-indigo-500/20 border-indigo-500/60 text-indigo-400 font-extrabold"
-                      : "bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                      ? "bg-[#7dd3fc] text-[#09090b] shadow-[3px_3px_0px_0px_#09090b]"
+                      : "bg-[#fffefb] text-[#18181b] hover:bg-[#eae6df]"
                   }`}
                 >
                   <span>🌐 General (PHP / Static)</span>
@@ -294,60 +291,60 @@ export default function ProjectWizardTab({
                     setProjectType("node");
                     setIsNodeProject(true);
                   }}
-                  className={`py-3 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
+                  className={`py-3 px-3 text-xs font-black transition flex items-center justify-center space-x-2 border-2.5 border-[#09090b] cursor-pointer ${
                     isNodeProject
-                      ? "bg-emerald-500/20 border-emerald-500/60 text-emerald-400 font-extrabold"
-                      : "bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                      ? "bg-[#bbf7d0] text-[#14532d] shadow-[3px_3px_0px_0px_#09090b]"
+                      : "bg-[#fffefb] text-[#18181b] hover:bg-[#eae6df]"
                   }`}
                 >
                   <span>⚡ Node.js Reverse Proxy</span>
                 </button>
               </div>
               {projectType === "laravel" && !isNodeProject && (
-                <p className="text-[11px] text-red-400/90 pt-1 font-semibold">
-                  ✨ Preset Laravel: Menautkan DocumentRoot ke folder <code className="font-mono bg-red-950/40 px-1 py-0.5 rounded text-red-300">/public</code> dan mengaktifkan mod_rewrite secara otomatis.
+                <p className="text-[11px] text-[#7f1d1d] pt-1 font-bold">
+                  ✨ Preset Laravel: Menautkan DocumentRoot ke folder <code className="font-mono bg-[#fecaca] px-1 py-0.5 border border-[#09090b] text-[#7f1d1d]">/public</code> dan mengaktifkan mod_rewrite secara otomatis.
                 </p>
               )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Nama Proyek</label>
+                <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">Nama Proyek</label>
                 <input 
                   type="text"
                   placeholder="Contoh: Toko Online"
                   value={projectName}
                   onChange={(e) => handleProjectNameChange(e.target.value)}
-                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200"
+                  className="w-full bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2.5 text-xs font-bold text-[#18181b] outline-none"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Domain Lokal</label>
+                <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">Domain Lokal</label>
                 <input 
                   type="text"
                   placeholder="Contoh: toko.test"
                   value={projectDomain}
                   onChange={(e) => setProjectDomain(e.target.value)}
-                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono text-indigo-400 font-extrabold"
+                  className="w-full bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2.5 text-xs text-[#09090b] outline-none font-mono font-black"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Folder Proyek (Rekomendasi Drive D:)</label>
+              <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">Folder Proyek (Rekomendasi Drive D:)</label>
               <div className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text"
                   placeholder={projectType === "laravel" ? "Contoh: D:\\projects\\toko\\public" : "Contoh: D:\\projects\\toko"}
                   value={projectPath}
                   onChange={(e) => setProjectPath(e.target.value)}
-                  className="flex-1 bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono"
+                  className="flex-1 bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2.5 text-xs text-[#18181b] outline-none font-mono font-semibold"
                 />
                 <button
                   type="button"
                   onClick={() => handleSelectFolder(false)}
-                  className="py-2.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-white rounded-xl text-xs font-extrabold uppercase tracking-wider transition cursor-pointer shrink-0"
+                  className="py-2.5 px-4 bg-[#ffffff] text-[#18181b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#7dd3fc] text-xs font-black uppercase tracking-wider transition cursor-pointer shrink-0"
                 >
                   Pilih Folder...
                 </button>
@@ -356,16 +353,16 @@ export default function ProjectWizardTab({
 
             {/* Node Proxy settings option */}
             {isNodeProject && (
-              <div className="p-4 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4 animate-fade-in">
+              <div className="p-4 bg-[#fffefb] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] space-y-4 animate-fade-in">
                 <div className="flex items-center space-x-3.5">
-                  <span className="text-sm text-zinc-400 shrink-0 font-bold">Port Server Node:</span>
+                  <span className="text-xs text-[#09090b] shrink-0 font-black uppercase">Port Server Node:</span>
                   <input 
                     type="number"
                     min="1"
                     max="65535"
                     value={nodePort}
                     onChange={(e) => setNodePort(parseInt(e.target.value) || 3000)}
-                    className="w-32 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2 text-sm text-zinc-100 outline-none font-mono"
+                    className="w-32 bg-[#ffffff] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] px-3 py-1.5 text-xs text-[#09090b] outline-none font-mono font-bold"
                   />
                 </div>
               </div>
@@ -374,13 +371,13 @@ export default function ProjectWizardTab({
         ) : (
           /* Mode: Create New Laravel Project via Composer */
           <div className="space-y-5 animate-fade-in">
-            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+            <div className="p-4 bg-[#fef08a] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b]">
               <div className="flex items-start space-x-3">
-                <Sparkles className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <Sparkles className="w-5 h-5 text-[#713f12] shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <h4 className="text-sm font-black text-amber-300">Generator Proyek Laravel Resmi Terbaru</h4>
-                  <p className="text-xs text-zinc-300 leading-relaxed font-medium">
-                    Envku akan menjalankan <code className="font-mono bg-zinc-950 px-1 py-0.5 rounded text-amber-300 border border-zinc-800">composer create-project laravel/laravel</code> secara otomatis menggunakan versi PHP aktif & Composer lokal, mengatur DocumentRoot ke <code className="font-mono bg-zinc-950 px-1 py-0.5 rounded text-amber-300 border border-zinc-800">/public</code>, mendaftarkan VirtualHost Apache, serta menambahkan DNS <code className="font-mono bg-zinc-950 px-1 py-0.5 rounded text-amber-300 border border-zinc-800">.test</code> ke hosts file.
+                  <h4 className="text-xs font-black text-[#713f12] uppercase">Generator Proyek Laravel Resmi Terbaru</h4>
+                  <p className="text-xs text-[#713f12] leading-relaxed font-semibold">
+                    Envku akan menjalankan <code className="font-mono bg-[#ffffff] px-1 py-0.5 border border-[#09090b] text-[#09090b]">composer create-project laravel/laravel</code> secara otomatis menggunakan versi PHP aktif & Composer lokal, mengatur DocumentRoot ke <code className="font-mono bg-[#ffffff] px-1 py-0.5 border border-[#09090b] text-[#09090b]">/public</code>, mendaftarkan VirtualHost Apache, serta menambahkan DNS <code className="font-mono bg-[#ffffff] px-1 py-0.5 border border-[#09090b] text-[#09090b]">.test</code> ke hosts file.
                   </p>
                 </div>
               </div>
@@ -388,42 +385,42 @@ export default function ProjectWizardTab({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Nama Proyek Laravel</label>
+                <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">Nama Proyek Laravel</label>
                 <input 
                   type="text"
                   placeholder="Contoh: toko-online"
                   value={projectName}
                   onChange={(e) => handleProjectNameChange(e.target.value)}
-                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200"
+                  className="w-full bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2.5 text-xs font-bold text-[#18181b] outline-none"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Domain Lokal (.test)</label>
+                <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">Domain Lokal (.test)</label>
                 <input 
                   type="text"
                   placeholder="Contoh: toko-online.test"
                   value={projectDomain}
                   onChange={(e) => setProjectDomain(e.target.value)}
-                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono text-red-400 font-extrabold"
+                  className="w-full bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2.5 text-xs text-[#7f1d1d] outline-none font-mono font-black"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Folder Induk (Tempat Proyek Dibuat)</label>
+              <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">Folder Induk (Tempat Proyek Dibuat)</label>
               <div className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text"
                   placeholder="Contoh: D:\projects (akan dibuat folder D:\projects\toko-online)"
                   value={parentPath}
                   onChange={(e) => setParentPath(e.target.value)}
-                  className="flex-1 bg-zinc-950/70 border border-zinc-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono"
+                  className="flex-1 bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2.5 text-xs text-[#18181b] outline-none font-mono font-semibold"
                 />
                 <button
                   type="button"
                   onClick={() => handleSelectFolder(true)}
-                  className="py-2.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-white rounded-xl text-xs font-extrabold uppercase tracking-wider transition cursor-pointer shrink-0"
+                  className="py-2.5 px-4 bg-[#ffffff] text-[#18181b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#7dd3fc] text-xs font-black uppercase tracking-wider transition cursor-pointer shrink-0"
                 >
                   Pilih Folder Induk...
                 </button>
@@ -433,17 +430,17 @@ export default function ProjectWizardTab({
         )}
 
         {/* SSL / HTTPS option */}
-        <div className="p-4 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4">
+        <div className="p-4 bg-[#fffefb] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-sm font-bold block">Aktifkan SSL (HTTPS)</span>
-              <span className="text-xs text-zinc-400 block">Buat sertifikat SSL self-signed lokal dan daftarkan ke trust store {isLinux ? "Linux" : "Windows"}.</span>
+              <span className="text-xs font-black text-[#09090b] block uppercase">Aktifkan SSL (HTTPS)</span>
+              <span className="text-xs text-[#52525b] block font-medium">Buat sertifikat SSL self-signed lokal dan daftarkan ke trust store {isLinux ? "Linux" : "Windows"}.</span>
             </div>
             <input 
               type="checkbox"
               checked={enableSsl}
               onChange={(e) => setEnableSsl(e.target.checked)}
-              className="h-5 w-5 bg-zinc-950 border border-zinc-800 rounded-lg text-indigo-600 outline-none cursor-pointer shrink-0"
+              className="h-5 w-5 bg-[#ffffff] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] cursor-pointer shrink-0"
             />
           </div>
         </div>
@@ -452,10 +449,10 @@ export default function ProjectWizardTab({
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3.5 px-4 text-white rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center space-x-2 cursor-pointer shadow-lg leading-normal ${
+            className={`w-full py-3.5 px-4 text-[#09090b] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#09090b] text-xs font-black transition flex items-center justify-center space-x-2 cursor-pointer uppercase ${
               wizardMode === "create_laravel"
-                ? "bg-red-600 hover:bg-red-550 disabled:bg-zinc-800 shadow-red-950/30"
-                : "bg-indigo-600 hover:bg-indigo-550 disabled:bg-zinc-800 shadow-indigo-950/30"
+                ? "bg-[#fecaca] hover:bg-[#fca5a5] text-[#7f1d1d]"
+                : "bg-[#fde047] hover:bg-[#fef08a]"
             }`}
           >
             {loading ? (
@@ -470,7 +467,7 @@ export default function ProjectWizardTab({
               </>
             ) : wizardMode === "create_laravel" ? (
               <>
-                <Sparkles className="w-4 h-4 shrink-0 text-yellow-300" />
+                <Sparkles className="w-4 h-4 shrink-0 text-[#7f1d1d]" />
                 <span>Buat Proyek Laravel Terbaru (Auto Composer)</span>
               </>
             ) : (
@@ -485,7 +482,7 @@ export default function ProjectWizardTab({
             <button
               type="button"
               onClick={handleCancelEdit}
-              className="py-3.5 px-6 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer shrink-0"
+              className="py-3.5 px-6 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] text-[#18181b] hover:bg-[#eae6df] text-xs font-black transition cursor-pointer shrink-0 uppercase"
             >
               Batal
             </button>
@@ -495,9 +492,9 @@ export default function ProjectWizardTab({
 
       {/* Active Hosts List */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest">Daftar Host Lokal Aktif</h3>
+        <h3 className="text-xs font-black text-[#09090b] uppercase tracking-widest">Daftar Host Lokal Aktif</h3>
         {virtualHosts.length === 0 ? (
-          <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl text-center text-zinc-400 font-mono text-xs">
+          <div className="p-6 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] text-center text-[#52525b] font-mono text-xs font-semibold">
             Belum ada domain lokal yang terdaftar di Apache virtual hosts.
           </div>
         ) : (
@@ -507,48 +504,48 @@ export default function ProjectWizardTab({
               return (
                 <div 
                   key={vh.domain}
-                  className="p-5 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl flex flex-col justify-between space-y-4 shadow-xl hover:border-zinc-700 transition"
+                  className="p-5 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] flex flex-col justify-between space-y-4"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded border font-mono ${
+                      <span className={`text-[10px] font-black px-2 py-0.5 border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] font-mono ${
                         vh.is_node 
-                          ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
+                          ? "bg-[#bbf7d0] text-[#14532d]" 
                           : isLaravelHost 
-                            ? "bg-red-500/15 text-red-400 border-red-500/30" 
-                            : "bg-indigo-500/15 text-indigo-400 border-indigo-500/30"
+                            ? "bg-[#fecaca] text-[#7f1d1d]" 
+                            : "bg-[#7dd3fc] text-[#09090b]"
                       }`}>
                         {vh.is_node ? `NODE (PORT ${vh.node_port})` : isLaravelHost ? "LARAVEL" : "PHP / STATIC"}
                       </span>
                       {vh.has_ssl && (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-mono flex items-center gap-1">
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-[#bbf7d0] text-[#14532d] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] font-mono flex items-center gap-1">
                           🔒 SSL
                         </span>
                       )}
                     </div>
-                    <h4 className="text-sm font-black font-mono select-text break-all">{vh.domain}</h4>
-                    <p className="text-[11px] text-zinc-400 font-mono truncate" title={vh.document_root}>
+                    <h4 className="text-sm font-black font-mono select-text break-all text-[#09090b]">{vh.domain}</h4>
+                    <p className="text-[11px] text-[#52525b] font-mono truncate font-semibold" title={vh.document_root}>
                       Root: {vh.document_root || "Proxy Server"}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleLaunchHost(vh.domain, vh.has_ssl)}
-                      className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-550 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md"
+                      className="flex-1 py-2 bg-[#fde047] text-[#09090b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#fef08a] text-xs font-black transition flex items-center justify-center space-x-1.5 cursor-pointer uppercase"
                     >
-                      <Play className="w-3.5 h-3.5" />
+                      <Play className="w-3.5 h-3.5 fill-current" />
                       <span>Buka</span>
                     </button>
                     <button
                       onClick={() => handleStartEdit(vh)}
-                      className="py-2 px-3 bg-zinc-800 hover:bg-zinc-700 hover:text-white text-zinc-300 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer shadow-md shrink-0"
+                      className="py-2 px-3 bg-[#ffffff] text-[#18181b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#7dd3fc] text-xs font-black transition flex items-center justify-center cursor-pointer shrink-0"
                       title="Edit Host"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteHost(vh.domain)}
-                      className="py-2 px-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer shadow-md shrink-0"
+                      className="py-2 px-3 bg-[#fecaca] text-[#7f1d1d] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#fca5a5] text-xs font-black transition flex items-center justify-center cursor-pointer shrink-0"
                       title="Hapus Host"
                     >
                       <X className="w-4 h-4" />

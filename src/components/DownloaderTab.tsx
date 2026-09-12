@@ -149,11 +149,11 @@ export default function DownloaderTab({
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in text-[#18181b]">
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Katalog Komponen Server</h2>
-        <p className="text-sm text-zinc-400 mt-1">
-          Kelola, pasang ulang, atau hapus biner server portabel dengan mudah di folder <code className="font-mono text-zinc-300 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">{baseDir}</code>.
+        <h2 className="text-2xl font-black text-[#09090b] tracking-tight">Katalog Komponen Server</h2>
+        <p className="text-sm text-[#52525b] mt-1 font-semibold">
+          Kelola, pasang ulang, atau hapus biner server portabel dengan mudah di folder <code className="font-mono text-[#09090b] bg-[#fffefb] px-1.5 py-0.5 border border-[#09090b] font-bold">{baseDir}</code>.
         </p>
       </div>
 
@@ -164,9 +164,9 @@ export default function DownloaderTab({
 
           return (
             <div key={cat.key} className="space-y-4">
-              <div className="flex items-center space-x-2 border-b border-zinc-800/80 pb-2">
-                <CatIcon className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">{cat.title}</h3>
+              <div className="flex items-center space-x-2 border-b-2.5 border-[#09090b] pb-2">
+                <CatIcon className="w-4 h-4 text-[#09090b]" />
+                <h3 className="text-xs font-black text-[#09090b] uppercase tracking-wider">{cat.title}</h3>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
@@ -179,35 +179,31 @@ export default function DownloaderTab({
                   return (
                     <div
                       key={comp.id}
-                      className={`p-5 rounded-2xl border transition-all duration-150 shadow-xl flex flex-col space-y-4 ${
-                        alreadyInstalled
-                          ? "bg-zinc-900/60 border-zinc-800/90 hover:border-zinc-700"
-                          : "bg-zinc-950/40 border-zinc-850 hover:border-zinc-800"
-                      }`}
+                      className="p-5 bg-[#ffffff] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] flex flex-col space-y-4"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-base font-black">{comp.name}</h4>
+                            <h4 className="text-base font-black text-[#09090b]">{comp.name}</h4>
                             {comp.tag && (
-                              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                              <span className="text-[10px] font-black font-mono px-2 py-0.5 bg-[#fffefb] text-[#18181b] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b]">
                                 {comp.tag}
                               </span>
                             )}
                             {alreadyInstalled ? (
-                              <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center gap-1 shrink-0">
+                              <span className="text-[11px] font-black px-2.5 py-0.5 bg-[#bbf7d0] text-[#14532d] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] flex items-center gap-1 shrink-0">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 TERPASANG
                               </span>
                             ) : (
-                              <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 flex items-center gap-1 shrink-0">
-                                <AlertTriangle className="w-3.5 h-3.5 text-zinc-400" />
+                              <span className="text-[11px] font-black px-2.5 py-0.5 bg-[#fecaca] text-[#7f1d1d] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] flex items-center gap-1 shrink-0">
+                                <AlertTriangle className="w-3.5 h-3.5" />
                                 BELUM TERPASANG
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-zinc-400 leading-relaxed font-medium">{comp.description}</p>
-                          <p className="text-[11px] text-zinc-400 font-mono truncate" title={comp.installedPath}>
+                          <p className="text-xs text-[#52525b] leading-relaxed font-medium">{comp.description}</p>
+                          <p className="text-[11px] text-[#52525b] font-mono truncate font-semibold" title={comp.installedPath}>
                             Folder: {comp.installedPath}
                           </p>
                         </div>
@@ -218,7 +214,7 @@ export default function DownloaderTab({
                             <button
                               disabled={isDownloading || isDeleting}
                               onClick={() => startDownload(comp.id)}
-                              className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-550 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-xl text-xs font-black transition duration-150 cursor-pointer shadow-md flex items-center space-x-2"
+                              className="py-2.5 px-4 bg-[#fde047] text-[#09090b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#fef08a] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#09090b] text-xs font-black transition cursor-pointer flex items-center space-x-2 uppercase"
                             >
                               {isDownloading ? (
                                 <>
@@ -238,7 +234,7 @@ export default function DownloaderTab({
                               <button
                                 disabled={isDownloading || isDeleting}
                                 onClick={() => handleReinstall(comp)}
-                                className="py-2.5 px-3.5 bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/40 text-indigo-300 rounded-xl text-xs font-black transition duration-150 cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                                className="py-2.5 px-3.5 bg-[#7dd3fc] text-[#09090b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#38bdf8] text-xs font-black transition cursor-pointer flex items-center space-x-1.5 uppercase"
                                 title="Pasang Ulang Komponen"
                               >
                                 {isDownloading ? (
@@ -253,7 +249,7 @@ export default function DownloaderTab({
                               <button
                                 disabled={isDownloading || isDeleting}
                                 onClick={() => handleDelete(comp)}
-                                className="py-2.5 px-3.5 bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 hover:border-red-400 text-red-400 rounded-xl text-xs font-black transition duration-150 cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                                className="py-2.5 px-3.5 bg-[#fecaca] text-[#7f1d1d] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#fca5a5] text-xs font-black transition cursor-pointer flex items-center space-x-1.5 uppercase"
                                 title="Hapus Komponen"
                               >
                                 {isDeleting ? (
@@ -270,8 +266,8 @@ export default function DownloaderTab({
 
                       {/* Download Progress Bar */}
                       {isDownloading && progress && (
-                        <div className="space-y-2 bg-zinc-950/50 p-3.5 rounded-xl border border-zinc-800/80">
-                          <div className="flex justify-between text-xs text-zinc-300 font-mono">
+                        <div className="space-y-2 bg-[#fffefb] p-3.5 border-2.5 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b]">
+                          <div className="flex justify-between text-xs text-[#09090b] font-mono font-bold">
                             <span>{progress.percentage}% Selesai</span>
                             <span>
                               {progress.bytes_total > 100
@@ -279,9 +275,9 @@ export default function DownloaderTab({
                                 : "Menginstal paket sistem..."}
                             </span>
                           </div>
-                          <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-zinc-800">
+                          <div className="w-full bg-[#eae6df] h-3.5 border-2 border-[#09090b] overflow-hidden">
                             <div
-                              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-300"
+                              className="bg-[#fde047] h-full border-r-2 border-[#09090b] transition-all duration-300"
                               style={{ width: `${progress.percentage}%` }}
                             />
                           </div>

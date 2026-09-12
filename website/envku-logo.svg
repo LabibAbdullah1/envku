@@ -1,39 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#4f46e5"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
-    </linearGradient>
-  </defs>
+  <!-- Hard Offset Shadow -->
+  <rect x="5" y="5" width="55" height="55" rx="10" fill="#09090b"/>
+  
+  <!-- Main Base Container (Lemon Yellow Neo-Brutalist Card) -->
+  <rect x="2" y="2" width="55" height="55" rx="10" fill="#fde047" stroke="#09090b" stroke-width="3.5"/>
 
-  <!-- Background -->
-  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <rect width="64" height="64" rx="14" fill="white" opacity="0.05"/>
+  <!-- Perfectly Symmetrical & Balanced Monogram E V (Equal Width 13px, Equal Margin 8px) -->
+  <g stroke="#09090b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Huruf E (x=10 to x=23) -->
+    <line x1="10" y1="17" x2="10" y2="42"/>
+    <line x1="10" y1="17" x2="23" y2="17"/>
+    <line x1="10" y1="29.5" x2="19" y2="29.5"/>
+    <line x1="10" y1="42" x2="23" y2="42"/>
 
-  <!--
-    Kedua huruf menggunakan stroke yang SAMA (width=5.5, linecap=round, linejoin=round)
-    sehingga ketebalan garis E dan v identik.
-
-    E: garis vertikal + 3 garis horizontal
-    v: dua diagonal bertemu di bawah
-  -->
-  <g stroke="white" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
-
-    <!-- Huruf E -->
-    <!-- Garis vertikal E -->
-    <line x1="10" y1="13" x2="10" y2="51"/>
-    <!-- Garis atas E -->
-    <line x1="10" y1="13" x2="27" y2="13"/>
-    <!-- Garis tengah E (sedikit lebih pendek) -->
-    <line x1="10" y1="32" x2="22" y2="32"/>
-    <!-- Garis bawah E -->
-    <line x1="10" y1="51" x2="27" y2="51"/>
-
-    <!-- Huruf v -->
-    <!-- Diagonal kiri turun ke tengah -->
-    <line x1="32" y1="13" x2="44" y2="51"/>
-    <!-- Diagonal kanan turun ke tengah -->
-    <line x1="56" y1="13" x2="44" y2="51"/>
-
+    <!-- Huruf V (x=36 to x=49, Apex x=42.5) -->
+    <line x1="36" y1="17" x2="42.5" y2="42"/>
+    <line x1="49" y1="17" x2="42.5" y2="42"/>
   </g>
 </svg>
