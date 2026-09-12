@@ -6,8 +6,8 @@ on:
       - '**'
   workflow_dispatch:
     inputs:
-      skip_linux:
-        description: 'Skip Linux Build (only deploy local website/downloads)'
+      build_linux:
+        description: 'Build Linux packages (.deb & .AppImage)'
         type: boolean
         required: false
         default: false
@@ -23,8 +23,22 @@ jobs:
         with:
           lfs: true
 
+      - name: Check if Linux Build is Requested
+        id: check_build
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          INPUT_BUILD="${{ github.event.inputs.build_linux }}"
+          
+          if [ "$INPUT_BUILD" = "true" ] || echo "$COMMIT_MSG" | grep -iqE "\[build linux\]|\[linux build\]|\[linux\]"; then
+            echo "BUILD_LINUX=true" >> $GITHUB_OUTPUT
+            echo "🚀 Linux build IS requested for this run."
+          else
+            echo "BUILD_LINUX=false" >> $GITHUB_OUTPUT
+            echo "⚡ Skipping Linux build by default (include '[build linux]' in commit message or trigger manually to build Linux)."
+          fi
+
       - name: Install System Dependencies for Tauri
-        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
+        if: ${{ steps.check_build.outputs.BUILD_LINUX == 'true' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -41,34 +55,34 @@ jobs:
             libfuse2
 
       - name: Setup Node.js
-        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
+        if: ${{ steps.check_build.outputs.BUILD_LINUX == 'true' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
       - name: Install Rust Toolchain
-        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
+        if: ${{ steps.check_build.outputs.BUILD_LINUX == 'true' }}
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Cargo Dependencies (Rust Cache)
-        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
+        if: ${{ steps.check_build.outputs.BUILD_LINUX == 'true' }}
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
 
       - name: Install npm Dependencies
-        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
+        if: ${{ steps.check_build.outputs.BUILD_LINUX == 'true' }}
         run: npm ci
 
       - name: Build Tauri App (Linux AppImage & deb)
-        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
+        if: ${{ steps.check_build.outputs.BUILD_LINUX == 'true' }}
         run: npm run tauri build
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - name: Process Linux Release (Post-Build Linux)
-        if: ${{ github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
+        if: ${{ steps.check_build.outputs.BUILD_LINUX == 'true' }}
         run: |
           node post-build-linux.cjs
           echo "Current list of files in website/downloads/:"
@@ -76,7 +90,7 @@ jobs:
 
       # Opsi A: FTP Deploy saat versi Linux di-build (unggah semua termasuk biner Linux)
       - name: FTP Deploy Website to cPanel (With Linux Build)
-        if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux') && github.event.inputs.skip_linux != 'true' && github.event.inputs.skip_linux != true && !contains(github.event.head_commit.message, '[skip linux]') && !contains(github.event.head_commit.message, '[only windows]') }}
+        if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux') && steps.check_build.outputs.BUILD_LINUX == 'true' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -88,9 +102,9 @@ jobs:
           server-dir: ./
           state-name: .ftp-deploy-sync-state.json
 
-      # Opsi B: FTP Deploy saat versi Linux dilompati (jangan hapus biner Linux di cPanel!)
-      - name: FTP Deploy Website to cPanel (Skip Linux Build)
-        if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux') && (github.event.inputs.skip_linux == 'true' || github.event.inputs.skip_linux == true || contains(github.event.head_commit.message, '[skip linux]') || contains(github.event.head_commit.message, '[only windows]')) }}
+      # Opsi B: FTP Deploy saat versi Linux dilompati (Default: jangan hapus biner Linux di cPanel!)
+      - name: FTP Deploy Website to cPanel (Default: Skip Linux Build)
+        if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux') && steps.check_build.outputs.BUILD_LINUX != 'true' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}

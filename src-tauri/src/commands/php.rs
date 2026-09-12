@@ -228,6 +228,7 @@ fn get_linux_enabled_extensions(version_id: &str) -> Vec<String> {
     enabled_exts
 }
 
+#[allow(dead_code)]
 fn is_real_extension_line(line: &str, ext_name: &str, is_zend: bool) -> bool {
     let raw_trimmed = line.trim_end();
     let (_is_commented, rest) = if raw_trimmed.starts_with(';') {
