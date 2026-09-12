@@ -103,7 +103,7 @@ jobs:
           state-name: .ftp-deploy-sync-state.json
 
       # Opsi B: FTP Deploy saat versi Linux dilompati (Default: jangan hapus biner Linux di cPanel!)
-      - name: FTP Deploy Website to cPanel (Default: Skip Linux Build)
+      - name: "FTP Deploy Website to cPanel (Default: Skip Linux Build)"
         if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/windows-linux') && steps.check_build.outputs.BUILD_LINUX != 'true' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
