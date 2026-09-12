@@ -373,6 +373,15 @@ body {
     border-radius: var(--radius-default) !important;
 }
 
+.feature-card.border-yellow { border-top: 6px solid var(--accent-yellow); }
+.feature-card.border-blue { border-top: 6px solid var(--accent-blue); }
+.feature-card.border-violet { border-top: 6px solid var(--accent-violet); }
+.feature-card.border-emerald { border-top: 6px solid var(--accent-emerald); }
+.feature-card.border-orange { border-top: 6px solid var(--accent-orange); }
+.feature-card.border-red { border-top: 6px solid var(--accent-red); }
+.feature-card.border-pink { border-top: 6px solid var(--accent-pink); }
+.feature-card.border-cyan { border-top: 6px solid var(--accent-cyan); }
+
 .feature-card:hover {
     transform: translate(-3px, -3px);
     box-shadow: var(--shadow-offset-lg);
@@ -551,6 +560,12 @@ body {
     font-weight: 900;
     letter-spacing: 0.05em;
     border-radius: var(--radius-default) !important;
+}
+
+.downloads-badge {
+    background-color: var(--accent-emerald) !important;
+    color: var(--accent-emerald-text) !important;
+    border: 1.5px solid var(--border-black) !important;
 }
 
 .download-body {
