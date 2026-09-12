@@ -1,4 +1,7 @@
 use std::fs;
+use std::io::{BufRead, BufReader};
+use std::process::Stdio;
+use tauri::Emitter;
 use crate::config::get_server_dir_path;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -12,6 +15,7 @@ pub struct VirtualHostInfo {
 
 #[tauri::command]
 pub async fn create_laravel_project(
+    app: tauri::AppHandle,
     project_name: String,
     domain: String,
     parent_dir: String,
@@ -62,38 +66,87 @@ pub async fn create_laravel_project(
         return Err(format!("Folder {} sudah ada di {}.", clean_name, parent_dir));
     }
 
-    let output = if cfg!(target_os = "windows") {
-        crate::create_hidden_command(&php_exe.to_string_lossy())
-            .args(&[
-                composer_phar.to_string_lossy().as_ref(),
-                "create-project",
-                "laravel/laravel",
-                &clean_name,
-                "--prefer-dist",
-            ])
-            .current_dir(&parent_path)
-            .output()
-    } else {
-        std::process::Command::new(&php_exe)
-            .args(&[
-                composer_phar.to_string_lossy().as_ref(),
-                "create-project",
-                "laravel/laravel",
-                &clean_name,
-                "--prefer-dist",
-            ])
-            .current_dir(&parent_path)
-            .output()
-    }.map_err(|e| format!("Gagal mengeksekusi Composer: {}", e))?;
+    let _ = app.emit("laravel_creation_log", format!("🚀 Memulai pembuatan proyek Laravel: {}", clean_name));
+    let _ = app.emit("laravel_creation_log", format!("📂 Direktori induk: {}", parent_dir));
+    let _ = app.emit("laravel_creation_log", format!("⚙️ Menggunakan biner PHP: {}", php_exe.display()));
+    let _ = app.emit("laravel_creation_log", format!("📦 Mengeksekusi: php composer.phar create-project laravel/laravel {} --prefer-dist --no-ansi", clean_name));
+    let _ = app.emit("laravel_creation_log", "--------------------------------------------------------------------------------".to_string());
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        return Err(format!("Gagal membuat proyek Laravel: {}\n{}", stderr.trim(), stdout.trim()));
+    let mut child = if cfg!(target_os = "windows") {
+        let mut cmd = crate::create_hidden_command(&php_exe.to_string_lossy());
+        cmd.args(&[
+            composer_phar.to_string_lossy().as_ref(),
+            "create-project",
+            "laravel/laravel",
+            &clean_name,
+            "--prefer-dist",
+            "--no-ansi",
+        ])
+        .current_dir(&parent_path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+        cmd.spawn()
+    } else {
+        let mut cmd = std::process::Command::new(&php_exe);
+        cmd.args(&[
+            composer_phar.to_string_lossy().as_ref(),
+            "create-project",
+            "laravel/laravel",
+            &clean_name,
+            "--prefer-dist",
+            "--no-ansi",
+        ])
+        .current_dir(&parent_path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+        cmd.spawn()
+    }.map_err(|e| format!("Gagal memicu perintah Composer: {}", e))?;
+
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+
+    let app_stdout = app.clone();
+    let handle_stdout = std::thread::spawn(move || {
+        if let Some(out) = stdout {
+            let reader = BufReader::new(out);
+            for line in reader.lines() {
+                if let Ok(l) = line {
+                    let _ = app_stdout.emit("laravel_creation_log", l);
+                }
+            }
+        }
+    });
+
+    let app_stderr = app.clone();
+    let handle_stderr = std::thread::spawn(move || {
+        if let Some(err) = stderr {
+            let reader = BufReader::new(err);
+            for line in reader.lines() {
+                if let Ok(l) = line {
+                    let _ = app_stderr.emit("laravel_creation_log", l);
+                }
+            }
+        }
+    });
+
+    let status = child.wait().map_err(|e| format!("Gagal menunggu proses Composer: {}", e))?;
+
+    handle_stdout.join().ok();
+    handle_stderr.join().ok();
+
+    if !status.success() {
+        let _ = app.emit("laravel_creation_log", "\n❌ ERROR: Composer gagal mengunduh atau mengonfigurasi proyek Laravel.".to_string());
+        return Err(format!("Gagal membuat proyek Laravel {}. Silakan periksa rincian log terminal di atas.", clean_name));
     }
+
+    let _ = app.emit("laravel_creation_log", "\n--------------------------------------------------------------------------------".to_string());
+    let _ = app.emit("laravel_creation_log", format!("✅ Berkas proyek Laravel {} berhasil diunduh.", clean_name));
+    let _ = app.emit("laravel_creation_log", format!("🌐 Mendaftarkan VirtualHost & DNS lokal: http://{}", domain));
 
     let doc_root = project_dir.join("public").to_string_lossy().to_string();
     add_project(domain.clone(), doc_root, false, None, enable_ssl)?;
+
+    let _ = app.emit("laravel_creation_log", format!("🎉 SELESAI: Proyek Laravel {} siap digunakan!", clean_name));
 
     Ok(format!("Proyek Laravel {} versi terbaru berhasil dibuat dan terdaftar di http://{}", clean_name, domain))
 }

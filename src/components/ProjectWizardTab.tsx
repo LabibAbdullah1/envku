@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { RefreshCw, Plus, Play, X, Edit, Check, FolderPlus, Sparkles } from "lucide-react";
+import { listen } from "@tauri-apps/api/event";
+import { RefreshCw, Plus, Play, X, Edit, Check, FolderPlus, Sparkles, Terminal, Copy, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { formatFriendlyError } from "../utils/formatError";
 
 interface VirtualHostInfo {
@@ -44,6 +45,19 @@ export default function ProjectWizardTab({
   const [nodePort, setNodePort] = useState<number>(3000);
   const [enableSsl, setEnableSsl] = useState<boolean>(false);
   const [editingDomain, setEditingDomain] = useState<string | null>(null);
+
+  // Terminal log modal states
+  const [showTerminalModal, setShowTerminalModal] = useState<boolean>(false);
+  const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
+  const [terminalStatus, setTerminalStatus] = useState<"running" | "success" | "error">("running");
+  const [copiedLogs, setCopiedLogs] = useState<boolean>(false);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showTerminalModal) {
+      logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [terminalLogs, showTerminalModal]);
 
   const handleProjectNameChange = (name: string) => {
     setProjectName(name);
@@ -99,14 +113,26 @@ export default function ProjectWizardTab({
       return;
     }
 
+    setTerminalLogs([`[ENVKU] Memulai inisialisasi pembuatan proyek Laravel...`]);
+    setTerminalStatus("running");
+    setShowTerminalModal(true);
     setLoading(true);
+
+    let unlisten: (() => void) | undefined;
+
     try {
+      unlisten = await listen<string>("laravel_creation_log", (event) => {
+        setTerminalLogs((prev) => [...prev, event.payload]);
+      });
+
       const res = await invoke<string>("create_laravel_project", {
         projectName: projectName.trim(),
         domain: projectDomain.trim(),
         parentDir: parentPath.trim(),
         enableSsl: enableSsl,
       });
+
+      setTerminalStatus("success");
       showToastMsg(res, "success");
       setProjectName("");
       setProjectDomain("");
@@ -114,8 +140,10 @@ export default function ProjectWizardTab({
       setEnableSsl(false);
       fetchVirtualHosts();
     } catch (err) {
+      setTerminalStatus("error");
       showToastMsg(formatFriendlyError(err), "error");
     } finally {
+      if (unlisten) unlisten();
       setLoading(false);
       updateServiceStates();
     }
@@ -557,6 +585,100 @@ export default function ProjectWizardTab({
           </div>
         )}
       </div>
+
+      {/* ─── LIVE CUSTOM TERMINAL LOG MODAL ─── */}
+      {showTerminalModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#ffffff] border-[3px] border-[#09090b] shadow-[6px_6px_0px_0px_#09090b] rounded-[6px] w-full max-w-2xl flex flex-col overflow-hidden max-h-[85vh]">
+            {/* Modal Header Bar */}
+            <div className="bg-[#eae6df] border-b-[3px] border-[#09090b] px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-[#09090b]" />
+                <span className="font-black text-xs sm:text-sm uppercase text-[#09090b] tracking-wider">
+                  LOG TERMINAL ENVKU - PEMBUATAN LARAVEL
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {terminalStatus === "running" && (
+                  <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#bbf7d0] text-[#14532d] border border-[#09090b] rounded-[6px] flex items-center gap-1.5 animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> BERJALAN
+                  </span>
+                )}
+                {terminalStatus === "success" && (
+                  <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#bbf7d0] text-[#14532d] border border-[#09090b] rounded-[6px] flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> SELESAI
+                  </span>
+                )}
+                {terminalStatus === "error" && (
+                  <span className="px-2.5 py-1 text-[11px] font-black uppercase bg-[#fecaca] text-[#7f1d1d] border border-[#09090b] rounded-[6px] flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" /> GAGAL
+                  </span>
+                )}
+                {terminalStatus !== "running" && (
+                  <button
+                    onClick={() => setShowTerminalModal(false)}
+                    className="p-1 hover:bg-[#fffefb] border border-[#09090b] rounded-[6px] cursor-pointer"
+                  >
+                    <X className="w-4 h-4 text-[#09090b]" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Terminal Body */}
+            <div className="bg-[#18181b] p-4 font-mono text-xs overflow-y-auto max-h-[55vh] flex flex-col gap-1 text-[#f4f4f5] select-text">
+              {terminalLogs.length === 0 ? (
+                <div className="text-[#a1a1aa] italic">Menunggu proses Composer dimulai...</div>
+              ) : (
+                terminalLogs.map((log, index) => {
+                  let textColor = "text-[#f4f4f5]";
+                  if (log.startsWith("🚀") || log.startsWith("📂") || log.startsWith("⚙️")) textColor = "text-[#7dd3fc]";
+                  else if (log.startsWith("📦") || log.startsWith("🌐")) textColor = "text-[#fde047]";
+                  else if (log.startsWith("✅") || log.startsWith("🎉")) textColor = "text-[#4ade80]";
+                  else if (log.startsWith("❌") || log.toLowerCase().includes("error") || log.toLowerCase().includes("failed")) textColor = "text-[#f87171]";
+
+                  return (
+                    <div key={index} className={`whitespace-pre-wrap break-all ${textColor}`}>
+                      {log}
+                    </div>
+                  );
+                })
+              )}
+              <div ref={logsEndRef} />
+            </div>
+
+            {/* Modal Footer Bar */}
+            <div className="bg-[#fffefb] border-t-[3px] border-[#09090b] p-3 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(terminalLogs.join("\n"));
+                  setCopiedLogs(true);
+                  setTimeout(() => setCopiedLogs(false), 2000);
+                }}
+                className="px-3 py-1.5 text-xs font-bold uppercase bg-[#ffffff] hover:bg-[#f4f1ea] border-[2px] border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] rounded-[6px] flex items-center gap-1.5 cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
+              >
+                {copiedLogs ? <Check className="w-3.5 h-3.5 text-[#14532d]" /> : <Copy className="w-3.5 h-3.5 text-[#09090b]" />}
+                {copiedLogs ? "TERSALIN!" : "SALIN LOG"}
+              </button>
+
+              <div className="flex items-center gap-2">
+                {terminalStatus === "running" ? (
+                  <span className="text-xs font-semibold text-[#52525b] italic">
+                    Composer sedang mengunduh dependensi Laravel...
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setShowTerminalModal(false)}
+                    className="px-4 py-1.5 text-xs font-black uppercase bg-[#fde047] hover:bg-[#fef08a] border-[2px] border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] rounded-[6px] cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
+                  >
+                    TUTUP LOG
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
