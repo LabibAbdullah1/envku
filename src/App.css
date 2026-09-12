@@ -74,9 +74,11 @@ body {
   width: 100vw;
 }
 
-/* Prevent text wrapping on buttons for better brutalist layout */
+/* Prevent button text from overflowing while allowing clean responsive wrapping */
 button, .btn, .btn-primary, .btn-secondary {
-  white-space: nowrap !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  text-align: center;
 }
 
 /* Custom radial background grid - Brutalist Style dots */
@@ -277,19 +279,24 @@ button.bg-red-600:active {
   box-shadow: 2px 2px 0px 0px #000000 !important;
 }
 
-/* Input, Select, and Textarea styling */
+/* Input, Select, and Textarea styling with responsive theme contrast */
 input[type="text"], 
 input[type="number"], 
 select, 
 textarea {
-  background-color: #ffffff !important;
-  color: #000000 !important;
+  background-color: var(--bg-panel) !important;
+  color: var(--text-main) !important;
   border: 3px solid #000000 !important;
-  box-shadow: 4px 4px 0px 0px #000000 !important;
+  box-shadow: 3px 3px 0px 0px #000000 !important;
   border-radius: 4px !important;
   font-family: 'Poppins', sans-serif !important;
   font-weight: 700 !important;
   padding: 10px 14px !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.85 !important;
 }
 
 input:focus, select:focus {

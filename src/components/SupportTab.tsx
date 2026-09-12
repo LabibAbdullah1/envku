@@ -175,34 +175,40 @@ ${folderDetails}`;
   };
 
   return (
-    <div className="space-y-6 animate-fade-in text-zinc-100">
+    <div className="space-y-6 animate-fade-in text-[var(--text-main)]">
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Dukungan & Laporan Kendala</h2>
-        <p className="text-sm text-zinc-400 mt-1">Dukung proyek open-source Envku dengan memberikan bintang atau laporkan kendala sistem secara instan.</p>
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--text-main)]">Dukungan & Laporan Kendala</h2>
+        <p className="text-sm text-[var(--text-muted)] mt-1">Dukung proyek open-source Envku dengan memberikan bintang atau laporkan kendala sistem secara instan.</p>
       </div>
 
       {/* Control Panel Uninstallation Information */}
-      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-3 shadow-xl">
-        <div className="flex items-center space-x-2.5 text-zinc-300">
-          <Trash2 className="w-5 h-5 text-indigo-400" />
-          <h3 className="text-base font-bold text-zinc-100">Informasi Penghapusan Aplikasi (Uninstall)</h3>
+      <div 
+        className="p-6 border rounded-2xl space-y-3 shadow-xl"
+        style={{ backgroundColor: "var(--bg-panel)", borderColor: "var(--border-color)" }}
+      >
+        <div className="flex items-center space-x-2.5 text-[var(--text-main)]">
+          <Trash2 className="w-5 h-5 text-indigo-500 dark:text-indigo-400 shrink-0" />
+          <h3 className="text-base font-bold text-[var(--text-main)]">Informasi Penghapusan Aplikasi (Uninstall)</h3>
         </div>
-        <p className="text-xs text-zinc-400 leading-relaxed">
-          Sesuai standar sistem operasi Windows, penghapusan aplikasi Envku Orchestrator dilakukan secara default melalui <strong className="text-zinc-200">Control Panel Windows (Add or Remove Programs / Program dan Fitur)</strong>. Uninstaller resmi Windows akan secara otomatis menghentikan service, membersihkan registry, entri DNS hosts, dan biner server.
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+          Sesuai standar sistem operasi Windows, penghapusan aplikasi Envku Orchestrator dilakukan secara default melalui <strong className="text-[var(--text-main)] font-semibold">Control Panel Windows (Add or Remove Programs / Program dan Fitur)</strong>. Uninstaller resmi Windows akan secara otomatis menghentikan service, membersihkan registry, entri DNS hosts, dan biner server.
         </p>
       </div>
 
       {/* GitHub Star Card */}
-      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-5">
-          <Star className="w-48 h-48 text-yellow-400 fill-current" />
+      <div 
+        className="p-6 border rounded-2xl space-y-6 shadow-xl relative overflow-hidden"
+        style={{ backgroundColor: "var(--bg-panel)", borderColor: "var(--border-color)" }}
+      >
+        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-5 pointer-events-none">
+          <Star className="w-48 h-48 text-yellow-500 fill-current" />
         </div>
         <div className="space-y-3 relative z-10">
-          <div className="flex items-center space-x-2 text-yellow-400">
+          <div className="flex items-center space-x-2 text-yellow-500 dark:text-yellow-400">
             <Star className="w-6 h-6 fill-current" />
-            <h3 className="text-lg font-bold text-zinc-100">Beri Star di GitHub</h3>
+            <h3 className="text-lg font-bold text-[var(--text-main)]">Beri Star di GitHub</h3>
           </div>
-          <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
+          <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-2xl">
             Suka dengan kemudahan yang ditawarkan oleh Envku Orchestrator? Bintang (Star) Anda di GitHub sangatlah berarti untuk mendukung kelangsungan pengembangan proyek open-source ini dan membantu developer lain menemukan Envku!
           </p>
         </div>
@@ -219,41 +225,47 @@ ${folderDetails}`;
       </div>
 
       {/* Check for Updates Card */}
-      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-5">
-          <RefreshCw className="w-48 h-48 text-indigo-400" />
+      <div 
+        className="p-6 border rounded-2xl space-y-6 shadow-xl relative overflow-hidden"
+        style={{ backgroundColor: "var(--bg-panel)", borderColor: "var(--border-color)" }}
+      >
+        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-5 pointer-events-none">
+          <RefreshCw className="w-48 h-48 text-indigo-500" />
         </div>
         <div className="space-y-3 relative z-10">
-          <div className="flex items-center space-x-2 text-indigo-400">
+          <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
             <RefreshCw className={`w-6 h-6 ${checking ? "animate-spin" : ""}`} />
-            <h3 className="text-lg font-bold text-zinc-100">Pembaluan Aplikasi</h3>
+            <h3 className="text-lg font-bold text-[var(--text-main)]">Pembaruan Aplikasi</h3>
           </div>
-          <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
-            Periksa versi terbaru Envku Orchestrator secara manual. Versi Anda saat ini: <span className="font-bold text-zinc-200">v{currentVersion}</span>.
+          <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-2xl">
+            Periksa versi terbaru Envku Orchestrator secara manual. Versi Anda saat ini: <span className="font-bold text-[var(--text-main)]">v{currentVersion}</span>.
           </p>
         </div>
 
         {/* Update Status / Info */}
         {updateError && (
-          <div className="p-4 bg-red-950/40 border border-red-905/50 rounded-xl text-xs text-red-300">
+          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-600 dark:text-red-300 font-medium">
             <strong>Gagal memeriksa pembaruan:</strong> {updateError}
           </div>
         )}
 
         {updateInfo && !updateInfo.available && (
-          <div className="p-4 bg-emerald-950/40 border border-emerald-905/50 rounded-xl text-xs text-emerald-300">
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 font-semibold">
             Envku Orchestrator sudah menggunakan versi terbaru (v{currentVersion}).
           </div>
         )}
 
         {updateInfo && updateInfo.available && (
-          <div className="p-4 bg-indigo-950/40 border border-indigo-905/50 rounded-xl space-y-3">
-            <div className="text-sm text-indigo-205 font-bold flex items-center gap-2">
+          <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl space-y-3">
+            <div className="text-sm text-indigo-700 dark:text-indigo-300 font-bold flex items-center gap-2">
               <Info className="w-4 h-4" />
               <span>Versi Baru Tersedia: v{updateInfo.version}</span>
             </div>
             {updateInfo.body && (
-              <p className="text-xs text-zinc-300 line-clamp-3 bg-zinc-950/50 p-2.5 rounded-lg border border-zinc-800/50 font-mono">
+              <p 
+                className="text-xs text-[var(--text-main)] line-clamp-3 p-2.5 rounded-lg border font-mono"
+                style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)" }}
+              >
                 {updateInfo.body}
               </p>
             )}
@@ -262,7 +274,7 @@ ${folderDetails}`;
                 type="button"
                 onClick={handleInstallUpdate}
                 disabled={installing}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-505 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-wait"
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-wait"
               >
                 <Download className="w-4 h-4" />
                 <span>{installing ? `Mengunduh... ${downloadProgress !== null ? `${downloadProgress}%` : ""}` : "Unduh & Pasang Pembaruan"}</span>
@@ -276,7 +288,8 @@ ${folderDetails}`;
             type="button"
             onClick={handleCheckForUpdates}
             disabled={checking || installing}
-            className="px-6 py-3 bg-zinc-850 hover:bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-xl text-sm font-black transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-wait"
+            className="px-6 py-3 border rounded-xl text-sm font-bold transition duration-150 cursor-pointer shadow-sm flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-wait"
+            style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)", color: "var(--text-main)" }}
           >
             <RefreshCw className={`w-4.5 h-4.5 ${checking ? "animate-spin" : ""}`} />
             <span>{checking ? "Memeriksa..." : "Cek Pembaruan Sekarang"}</span>
@@ -285,65 +298,73 @@ ${folderDetails}`;
       </div>
 
       {/* Bug Report Form */}
-      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl">
-        <div className="flex items-center space-x-2 text-indigo-400">
+      <div 
+        className="p-6 border rounded-2xl space-y-6 shadow-xl"
+        style={{ backgroundColor: "var(--bg-panel)", borderColor: "var(--border-color)" }}
+      >
+        <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
           <Bug className="w-6 h-6" />
-          <h3 className="text-lg font-bold text-zinc-100">Laporkan Bug / Masalah</h3>
+          <h3 className="text-lg font-bold text-[var(--text-main)]">Laporkan Bug / Masalah</h3>
         </div>
 
         <form onSubmit={handleSubmitBug} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Judul Masalah</label>
+            <label className="text-xs font-extrabold text-[var(--text-muted)] uppercase tracking-wider block">Judul Masalah</label>
             <input
               type="text"
               placeholder="Contoh: Apache gagal start setelah ubah PHP version"
               value={bugTitle}
               onChange={(e) => setBugTitle(e.target.value)}
-              className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 focus:bg-zinc-950 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none transition-all duration-200"
+              className="w-full border focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none transition-all duration-200"
+              style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)" }}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Deskripsi & Langkah Reproduksi</label>
+            <label className="text-xs font-extrabold text-[var(--text-muted)] uppercase tracking-wider block">Deskripsi & Langkah Reproduksi</label>
             <textarea
               placeholder="Jelaskan apa yang Anda lakukan sebelum error muncul, rincian pesan error, atau perilaku sistem yang tidak sesuai."
               value={bugDesc}
               onChange={(e) => setBugDesc(e.target.value)}
               rows={4}
-              className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 focus:bg-zinc-950 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none transition-all duration-200 resize-none"
+              className="w-full border focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none transition-all duration-200 resize-none"
+              style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)" }}
             />
           </div>
 
           {/* Diagnostics Preview Info box */}
           <div className="space-y-2">
-            <div className="flex items-center space-x-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+            <div className="flex items-center space-x-2 text-xs font-extrabold text-[var(--text-muted)] uppercase tracking-wider">
               <Info className="w-3.5 h-3.5" />
               <span>Info Diagnostik yang akan Dikirim secara Otomatis</span>
             </div>
-            <div className="p-4 bg-zinc-950/60 border border-zinc-850 rounded-xl space-y-3 font-mono text-[11px] text-zinc-400 max-h-48 overflow-y-auto">
+            <div 
+              className="p-4 border rounded-xl space-y-3 font-mono text-[11px] text-[var(--text-main)] max-h-48 overflow-y-auto"
+              style={{ backgroundColor: "var(--bg-app)", borderColor: "var(--border-color)" }}
+            >
               <div>
-                <span className="text-indigo-400 font-bold"># Rincian Diagnostik Sistem</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-bold"># Rincian Diagnostik Sistem</span>
                 <br />OS: {isLinux ? "Linux" : "Windows"}
                 <br />Server Base Dir: {baseDir}
                 <br />Versi PHP Aktif: {activePhpVersion.toUpperCase()}
               </div>
 
               <div>
-                <span className="text-indigo-400 font-bold"># Status Layanan (Services)</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-bold"># Status Layanan (Services)</span>
                 {Object.entries(services).map(([name, status]) => (
                   <div key={name} className="flex flex-col gap-0.5 mt-1">
                     <span>
                       - {name}: {status.installed ? "Terinstal" : "Belum Terinstal"} | {status.running ? "Aktif" : "Nonaktif"}
-                      {status.conflict && <span className="text-amber-400 ml-1">⚠️ Konflik</span>}
+                      {status.conflict && <span className="text-amber-600 dark:text-amber-400 ml-1 font-bold">⚠️ Konflik</span>}
                     </span>
-                    {status.conflict && <span className="text-zinc-500 text-[10px] pl-4">{status.conflictMessage}</span>}
+                    {status.conflict && <span className="text-amber-700 dark:text-amber-300 text-[10px] pl-4">{status.conflictMessage}</span>}
                   </div>
                 ))}
               </div>
 
               <div>
-                <span className="text-indigo-400 font-bold"># Cek Direktori Server</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-bold"># Cek Direktori Server</span>
                 {Object.entries(dirsStatus).map(([path, exists]) => (
                   <div key={path}>
                     - {path.replace(baseDir, "") || "\\"}: {exists ? "Ada" : "Tidak Ada"}

@@ -177,32 +177,32 @@ export default function PhpSwitcherTab({
                   key={ver.id}
                   onClick={() => handleSwitchPhp(ver.id)}
                   disabled={switchingPhp !== null}
-                  className={`p-5 border rounded-2xl text-left transition-all duration-200 cursor-pointer flex flex-col justify-between h-36 shadow-lg ${
+                  className={`p-5 border rounded-2xl text-left transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[135px] shadow-lg ${
                     isSwitchingThis
-                      ? "bg-indigo-950/30 border-indigo-500/50 cursor-wait animate-pulse"
+                      ? "bg-indigo-950/40 border-indigo-500/70 cursor-wait animate-pulse"
                       : isActive
-                        ? "bg-gradient-to-b from-indigo-950/40 to-zinc-900/60 border-indigo-500/70 text-indigo-300 shadow-indigo-950/30 ring-1 ring-indigo-500/40"
-                        : "bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-900/40"
+                        ? "bg-indigo-900/40 border-indigo-500 text-indigo-300 shadow-indigo-950/30 ring-2 ring-indigo-500/50"
+                        : "bg-zinc-950/40 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:text-white"
                   }`}
                 >
-                  <div className="flex justify-between items-start w-full">
-                    <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded border ${
-                      isActive ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40" : "bg-zinc-900 text-zinc-500 border-zinc-800"
+                  <div className="flex justify-between items-start w-full gap-2 mb-3">
+                    <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded border ${
+                      isActive ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/50" : "bg-zinc-900 text-zinc-400 border-zinc-800"
                     }`}>
                       {ver.badge}
                     </span>
                     {isSwitchingThis ? (
-                      <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                      <Loader2 className="w-5 h-5 text-indigo-400 animate-spin shrink-0" />
                     ) : (
                       isActive && <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
                     )}
                   </div>
                   <div>
-                    <h4 className="text-xl font-black text-zinc-100 font-mono tracking-tight">
+                    <h4 className="text-xl font-black font-mono tracking-tight">
                       {isSwitchingThis ? "Mengganti..." : ver.name}
                     </h4>
-                    <p className="text-[11px] text-zinc-500 font-mono mt-1 truncate" title={versionPath}>
-                      {ver.id}
+                    <p className="text-[11px] text-zinc-400 font-mono mt-1 truncate" title={versionPath}>
+                      Path: {ver.id}
                     </p>
                   </div>
                 </button>
@@ -217,8 +217,8 @@ export default function PhpSwitcherTab({
         <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800/80 pb-4 gap-4">
             <div>
-              <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-lg font-black flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-400 shrink-0" />
                 <span>Ekstensi PHP (php.ini - {activePhpVersion.toUpperCase()})</span>
               </h3>
               <p className="text-xs text-zinc-400 mt-1">
@@ -231,7 +231,7 @@ export default function PhpSwitcherTab({
                 placeholder="Cari ekstensi..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 focus:bg-zinc-950 rounded-xl px-4 py-2 text-xs text-zinc-100 outline-none transition-all duration-200 w-48 font-mono"
+                className="bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2 text-xs text-zinc-100 outline-none transition-all duration-200 w-full sm:w-48 font-mono"
               />
             </div>
           </div>

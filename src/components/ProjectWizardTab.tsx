@@ -204,29 +204,29 @@ export default function ProjectWizardTab({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Project Wizard (DNS & VHost)</h2>
-          <p className="text-sm text-zinc-400 mt-1">
+          <h2 className="text-2xl font-black tracking-tight">Project Wizard (DNS & VHost)</h2>
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1">
             Buat proyek Laravel baru versi terbaru via Composer atau daftarkan folder proyek lokal Anda secara instan.
           </p>
         </div>
 
         {/* Wizard Mode Tabs */}
-        <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl shrink-0">
+        <div className="flex flex-wrap gap-2 p-1.5 bg-zinc-900 border border-zinc-800 rounded-xl shrink-0">
           <button
             type="button"
             onClick={() => {
               setWizardMode("register");
               handleCancelEdit();
             }}
-            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3.5 py-2 text-xs font-black rounded-lg transition flex items-center justify-center space-x-2 cursor-pointer ${
               wizardMode === "register"
-                ? "bg-indigo-600 text-white shadow"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-indigo-600 text-white shadow-md"
+                : "bg-zinc-850 text-zinc-300 hover:text-white"
             }`}
           >
-            <FolderPlus className="w-3.5 h-3.5" />
+            <FolderPlus className="w-4 h-4 shrink-0" />
             <span>Daftarkan Folder Ada</span>
           </button>
           <button
@@ -235,25 +235,25 @@ export default function ProjectWizardTab({
               setWizardMode("create_laravel");
               handleCancelEdit();
             }}
-            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3.5 py-2 text-xs font-black rounded-lg transition flex items-center justify-center space-x-2 cursor-pointer ${
               wizardMode === "create_laravel"
-                ? "bg-red-600 text-white shadow"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-red-600 text-white shadow-md"
+                : "bg-zinc-850 text-zinc-300 hover:text-white"
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-4 h-4 shrink-0 text-yellow-300" />
             <span>Buat Laravel Baru (Composer)</span>
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmitProject} className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-5 shadow-xl">
+      <form onSubmit={handleSubmitProject} className="p-5 sm:p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-5 shadow-xl">
         {wizardMode === "register" ? (
           <>
             {/* Preset Selection */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Tipe / Preset Proyek</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -263,9 +263,9 @@ export default function ProjectWizardTab({
                       setProjectPath(projectPath.endsWith("/") || projectPath.endsWith("\\") ? `${projectPath}public` : `${projectPath}/public`);
                     }
                   }}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
+                  className={`py-3 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
                     projectType === "laravel" && !isNodeProject
-                      ? "bg-red-500/15 border-red-500/50 text-red-400"
+                      ? "bg-red-500/20 border-red-500/60 text-red-400 font-extrabold"
                       : "bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                   }`}
                 >
@@ -280,9 +280,9 @@ export default function ProjectWizardTab({
                       setProjectPath(projectPath.slice(0, -7));
                     }
                   }}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
+                  className={`py-3 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
                     projectType === "php" && !isNodeProject
-                      ? "bg-indigo-500/15 border-indigo-500/50 text-indigo-400"
+                      ? "bg-indigo-500/20 border-indigo-500/60 text-indigo-400 font-extrabold"
                       : "bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                   }`}
                 >
@@ -294,9 +294,9 @@ export default function ProjectWizardTab({
                     setProjectType("node");
                     setIsNodeProject(true);
                   }}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
+                  className={`py-3 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border cursor-pointer ${
                     isNodeProject
-                      ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-400"
+                      ? "bg-emerald-500/20 border-emerald-500/60 text-emerald-400 font-extrabold"
                       : "bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                   }`}
                 >
@@ -304,13 +304,13 @@ export default function ProjectWizardTab({
                 </button>
               </div>
               {projectType === "laravel" && !isNodeProject && (
-                <p className="text-[11px] text-red-400/90 pt-1">
-                  ✨ Preset Laravel: Menautkan DocumentRoot ke folder <code className="font-mono bg-red-950/30 px-1 py-0.5 rounded text-red-300">/public</code> dan mengaktifkan mod_rewrite secara otomatis.
+                <p className="text-[11px] text-red-400/90 pt-1 font-semibold">
+                  ✨ Preset Laravel: Menautkan DocumentRoot ke folder <code className="font-mono bg-red-950/40 px-1 py-0.5 rounded text-red-300">/public</code> dan mengaktifkan mod_rewrite secara otomatis.
                 </p>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Nama Proyek</label>
                 <input 
@@ -318,7 +318,7 @@ export default function ProjectWizardTab({
                   placeholder="Contoh: Toko Online"
                   value={projectName}
                   onChange={(e) => handleProjectNameChange(e.target.value)}
-                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 focus:bg-zinc-950 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none transition-all duration-200"
+                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200"
                 />
               </div>
 
@@ -329,25 +329,25 @@ export default function ProjectWizardTab({
                   placeholder="Contoh: toko.test"
                   value={projectDomain}
                   onChange={(e) => setProjectDomain(e.target.value)}
-                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 focus:bg-zinc-950 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono text-indigo-400"
+                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono text-indigo-400 font-extrabold"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Folder Proyek (Rekomendasi Drive D:)</label>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text"
                   placeholder={projectType === "laravel" ? "Contoh: D:\\projects\\toko\\public" : "Contoh: D:\\projects\\toko"}
                   value={projectPath}
                   onChange={(e) => setProjectPath(e.target.value)}
-                  className="flex-1 bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 focus:bg-zinc-950 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono"
+                  className="flex-1 bg-zinc-950/70 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => handleSelectFolder(false)}
-                  className="py-3.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30 text-zinc-300 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer shrink-0"
+                  className="py-2.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-white rounded-xl text-xs font-extrabold uppercase tracking-wider transition cursor-pointer shrink-0"
                 >
                   Pilih Folder...
                 </button>
@@ -358,7 +358,7 @@ export default function ProjectWizardTab({
             {isNodeProject && (
               <div className="p-4 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4 animate-fade-in">
                 <div className="flex items-center space-x-3.5">
-                  <span className="text-sm text-zinc-400 shrink-0">Port Server Node:</span>
+                  <span className="text-sm text-zinc-400 shrink-0 font-bold">Port Server Node:</span>
                   <input 
                     type="number"
                     min="1"
@@ -374,19 +374,19 @@ export default function ProjectWizardTab({
         ) : (
           /* Mode: Create New Laravel Project via Composer */
           <div className="space-y-5 animate-fade-in">
-            <div className="p-4 bg-red-950/20 border border-red-800/30 rounded-xl">
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
               <div className="flex items-start space-x-3">
-                <Sparkles className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <Sparkles className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-red-300">Generator Proyek Laravel Resmi Terbaru</h4>
-                  <p className="text-xs text-red-200/80 leading-relaxed">
-                    Envku akan menjalankan <code className="font-mono bg-red-900/40 px-1 py-0.5 rounded text-red-200">composer create-project laravel/laravel</code> secara otomatis menggunakan versi PHP aktif & Composer lokal, mengatur DocumentRoot ke <code className="font-mono bg-red-900/40 px-1 py-0.5 rounded text-red-200">/public</code>, daftarkan VirtualHost Apache, serta menambahkan DNS <code className="font-mono bg-red-900/40 px-1 py-0.5 rounded text-red-200">.test</code> ke hosts file.
+                  <h4 className="text-sm font-black text-amber-300">Generator Proyek Laravel Resmi Terbaru</h4>
+                  <p className="text-xs text-zinc-300 leading-relaxed font-medium">
+                    Envku akan menjalankan <code className="font-mono bg-zinc-950 px-1 py-0.5 rounded text-amber-300 border border-zinc-800">composer create-project laravel/laravel</code> secara otomatis menggunakan versi PHP aktif & Composer lokal, mengatur DocumentRoot ke <code className="font-mono bg-zinc-950 px-1 py-0.5 rounded text-amber-300 border border-zinc-800">/public</code>, mendaftarkan VirtualHost Apache, serta menambahkan DNS <code className="font-mono bg-zinc-950 px-1 py-0.5 rounded text-amber-300 border border-zinc-800">.test</code> ke hosts file.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Nama Proyek Laravel</label>
                 <input 
@@ -394,7 +394,7 @@ export default function ProjectWizardTab({
                   placeholder="Contoh: toko-online"
                   value={projectName}
                   onChange={(e) => handleProjectNameChange(e.target.value)}
-                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-red-500 focus:bg-zinc-950 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none transition-all duration-200"
+                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200"
                 />
               </div>
 
@@ -405,25 +405,25 @@ export default function ProjectWizardTab({
                   placeholder="Contoh: toko-online.test"
                   value={projectDomain}
                   onChange={(e) => setProjectDomain(e.target.value)}
-                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-red-500 focus:bg-zinc-950 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono text-red-400"
+                  className="w-full bg-zinc-950/70 border border-zinc-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono text-red-400 font-extrabold"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Folder Induk (Tempat Proyek Dibuat)</label>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text"
                   placeholder="Contoh: D:\projects (akan dibuat folder D:\projects\toko-online)"
                   value={parentPath}
                   onChange={(e) => setParentPath(e.target.value)}
-                  className="flex-1 bg-zinc-950/70 border border-zinc-800 focus:border-red-500 focus:bg-zinc-950 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono"
+                  className="flex-1 bg-zinc-950/70 border border-zinc-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none transition-all duration-200 font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => handleSelectFolder(true)}
-                  className="py-3.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30 text-zinc-300 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer shrink-0"
+                  className="py-2.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-white rounded-xl text-xs font-extrabold uppercase tracking-wider transition cursor-pointer shrink-0"
                 >
                   Pilih Folder Induk...
                 </button>
@@ -434,25 +434,25 @@ export default function ProjectWizardTab({
 
         {/* SSL / HTTPS option */}
         <div className="p-4 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-sm font-bold text-zinc-200 block">Aktifkan SSL (HTTPS)</span>
-              <span className="text-xs text-zinc-500 block">Buat sertifikat SSL self-signed lokal dan daftarkan ke trust store {isLinux ? "Linux" : "Windows"}.</span>
+              <span className="text-sm font-bold block">Aktifkan SSL (HTTPS)</span>
+              <span className="text-xs text-zinc-400 block">Buat sertifikat SSL self-signed lokal dan daftarkan ke trust store {isLinux ? "Linux" : "Windows"}.</span>
             </div>
             <input 
               type="checkbox"
               checked={enableSsl}
               onChange={(e) => setEnableSsl(e.target.checked)}
-              className="h-5 w-5 bg-zinc-950 border border-zinc-800 rounded-lg text-indigo-600 outline-none cursor-pointer"
+              className="h-5 w-5 bg-zinc-950 border border-zinc-800 rounded-lg text-indigo-600 outline-none cursor-pointer shrink-0"
             />
           </div>
         </div>
 
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             type="submit"
             disabled={loading}
-            className={`flex-1 py-3.5 text-white rounded-xl text-sm font-bold transition flex items-center justify-center space-x-2 cursor-pointer shadow-lg ${
+            className={`w-full py-3.5 px-4 text-white rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center space-x-2 cursor-pointer shadow-lg leading-normal ${
               wizardMode === "create_laravel"
                 ? "bg-red-600 hover:bg-red-550 disabled:bg-zinc-800 shadow-red-950/30"
                 : "bg-indigo-600 hover:bg-indigo-550 disabled:bg-zinc-800 shadow-indigo-950/30"
@@ -460,22 +460,22 @@ export default function ProjectWizardTab({
           >
             {loading ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
                 <span>{wizardMode === "create_laravel" ? "Membuat Proyek Laravel via Composer... Mohon Tunggu" : "Memproses..."}</span>
               </>
             ) : editingDomain ? (
               <>
-                <Check className="w-4 h-4" />
+                <Check className="w-4 h-4 shrink-0" />
                 <span>Simpan Perubahan</span>
               </>
             ) : wizardMode === "create_laravel" ? (
               <>
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4 h-4 shrink-0 text-yellow-300" />
                 <span>Buat Proyek Laravel Terbaru (Auto Composer)</span>
               </>
             ) : (
               <>
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 shrink-0" />
                 <span>Daftarkan Proyek Lokal</span>
               </>
             )}
@@ -485,7 +485,7 @@ export default function ProjectWizardTab({
             <button
               type="button"
               onClick={handleCancelEdit}
-              className="py-3.5 px-6 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-sm font-bold transition cursor-pointer"
+              className="py-3.5 px-6 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer shrink-0"
             >
               Batal
             </button>
@@ -495,13 +495,13 @@ export default function ProjectWizardTab({
 
       {/* Active Hosts List */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Daftar Host Lokal Aktif</h3>
+        <h3 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest">Daftar Host Lokal Aktif</h3>
         {virtualHosts.length === 0 ? (
           <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl text-center text-zinc-400 font-mono text-xs">
             Belum ada domain lokal yang terdaftar di Apache virtual hosts.
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {virtualHosts.map(vh => {
               const isLaravelHost = !vh.is_node && (vh.document_root.toLowerCase().endsWith("/public") || vh.document_root.toLowerCase().endsWith("\\public"));
               return (
@@ -510,8 +510,8 @@ export default function ProjectWizardTab({
                   className="p-5 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl flex flex-col justify-between space-y-4 shadow-xl hover:border-zinc-700 transition"
                 >
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border font-mono ${
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded border font-mono ${
                         vh.is_node 
                           ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
                           : isLaravelHost 
@@ -521,12 +521,12 @@ export default function ProjectWizardTab({
                         {vh.is_node ? `NODE (PORT ${vh.node_port})` : isLaravelHost ? "LARAVEL" : "PHP / STATIC"}
                       </span>
                       {vh.has_ssl && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-mono flex items-center gap-1">
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-mono flex items-center gap-1">
                           🔒 SSL
                         </span>
                       )}
                     </div>
-                    <h4 className="text-sm font-black text-zinc-100 font-mono select-text">{vh.domain}</h4>
+                    <h4 className="text-sm font-black font-mono select-text break-all">{vh.domain}</h4>
                     <p className="text-[11px] text-zinc-400 font-mono truncate" title={vh.document_root}>
                       Root: {vh.document_root || "Proxy Server"}
                     </p>

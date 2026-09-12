@@ -186,48 +186,48 @@ export default function DownloaderTab({
                       }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="space-y-1.5 flex-1">
-                          <div className="flex items-center gap-2.5 flex-wrap">
-                            <h4 className="text-base font-extrabold text-zinc-100">{comp.name}</h4>
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-base font-black">{comp.name}</h4>
                             {comp.tag && (
-                              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-750">
+                              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
                                 {comp.tag}
                               </span>
                             )}
                             {alreadyInstalled ? (
-                              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center gap-1 shrink-0">
+                              <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center gap-1 shrink-0">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 TERPASANG
                               </span>
                             ) : (
-                              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-zinc-800/70 border border-zinc-750 text-zinc-400 flex items-center gap-1 shrink-0">
+                              <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 flex items-center gap-1 shrink-0">
                                 <AlertTriangle className="w-3.5 h-3.5 text-zinc-400" />
                                 BELUM TERPASANG
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-zinc-400 leading-relaxed">{comp.description}</p>
-                          <p className="text-[11px] text-zinc-500 font-mono truncate" title={comp.installedPath}>
+                          <p className="text-xs text-zinc-400 leading-relaxed font-medium">{comp.description}</p>
+                          <p className="text-[11px] text-zinc-400 font-mono truncate" title={comp.installedPath}>
                             Folder: {comp.installedPath}
                           </p>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center space-x-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
                           {!alreadyInstalled ? (
                             <button
                               disabled={isDownloading || isDeleting}
                               onClick={() => startDownload(comp.id)}
-                              className="py-2.5 px-4.5 bg-indigo-600 hover:bg-indigo-550 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center space-x-2"
+                              className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-550 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-xl text-xs font-black transition duration-150 cursor-pointer shadow-md flex items-center space-x-2"
                             >
                               {isDownloading ? (
                                 <>
-                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                                   <span>Mengunduh...</span>
                                 </>
                               ) : (
                                 <>
-                                  <Download className="w-4 h-4" />
+                                  <Download className="w-4 h-4 shrink-0" />
                                   <span>Unduh & Pasang</span>
                                 </>
                               )}
@@ -238,13 +238,13 @@ export default function DownloaderTab({
                               <button
                                 disabled={isDownloading || isDeleting}
                                 onClick={() => handleReinstall(comp)}
-                                className="py-2.5 px-3.5 bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 text-indigo-300 rounded-xl text-xs font-bold transition duration-150 cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                                className="py-2.5 px-3.5 bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/40 text-indigo-300 rounded-xl text-xs font-black transition duration-150 cursor-pointer flex items-center space-x-1.5 shadow-sm"
                                 title="Pasang Ulang Komponen"
                               >
                                 {isDownloading ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                                 ) : (
-                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
                                 )}
                                 <span>Pasang Ulang</span>
                               </button>
@@ -253,13 +253,13 @@ export default function DownloaderTab({
                               <button
                                 disabled={isDownloading || isDeleting}
                                 onClick={() => handleDelete(comp)}
-                                className="py-2.5 px-3.5 bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 hover:border-red-400 text-red-400 rounded-xl text-xs font-bold transition duration-150 cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                                className="py-2.5 px-3.5 bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 hover:border-red-400 text-red-400 rounded-xl text-xs font-black transition duration-150 cursor-pointer flex items-center space-x-1.5 shadow-sm"
                                 title="Hapus Komponen"
                               >
                                 {isDeleting ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                                 ) : (
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
                                 )}
                                 <span>Hapus</span>
                               </button>
