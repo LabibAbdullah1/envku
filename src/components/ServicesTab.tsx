@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Loader2, Square, Play, Trash2 } from "lucide-react";
+import { Loader2, Square, Play, Trash2, RefreshCw } from "lucide-react";
 
 interface ServiceState {
   installed: boolean;
@@ -86,7 +86,7 @@ export default function ServicesTab({
               </div>
             ) : !services.Apache.installed ? (
               <button
-                onClick={() => handleInstallService("Apache2.4", "Apache")}
+                onClick={() => handleInstallService("Apache24", "Apache")}
                 disabled={services.Apache.checking}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition duration-150 cursor-pointer shadow-md shadow-indigo-950/20 flex items-center justify-center gap-2"
               >
@@ -94,22 +94,33 @@ export default function ServicesTab({
                 Register Apache {isLinux ? "systemd" : "Windows"} Service
               </button>
             ) : (
-              <button
-                disabled={services.Apache.checking}
-                onClick={() => toggleService("Apache")}
-                className={`w-full flex items-center justify-center space-x-2 py-3 border rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
-                  services.Apache.checking
-                    ? "bg-zinc-900/50 border-zinc-700 text-zinc-500 cursor-wait"
-                    : services.Apache.running 
-                      ? "bg-red-950/25 border-red-500/30 hover:bg-red-900/40 text-red-400 hover:border-red-400" 
-                      : "bg-emerald-950/25 border-emerald-500/30 hover:bg-emerald-900/40 text-emerald-400 hover:border-emerald-400"
-                }`}
-              >
-                {services.Apache.checking
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : services.Apache.running ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                <span>{services.Apache.checking ? "Memproses..." : services.Apache.running ? "Matikan Service" : "Nyalakan Service"}</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  disabled={services.Apache.checking}
+                  onClick={() => toggleService("Apache")}
+                  className={`flex-1 flex items-center justify-center space-x-2 py-3 border rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                    services.Apache.checking
+                      ? "bg-zinc-900/50 border-zinc-700 text-zinc-500 cursor-wait"
+                      : services.Apache.running 
+                        ? "bg-red-950/25 border-red-500/30 hover:bg-red-900/40 text-red-400 hover:border-red-400" 
+                        : "bg-emerald-950/25 border-emerald-500/30 hover:bg-emerald-900/40 text-emerald-400 hover:border-emerald-400"
+                  }`}
+                >
+                  {services.Apache.checking
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : services.Apache.running ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                  <span>{services.Apache.checking ? "Memproses..." : services.Apache.running ? "Matikan" : "Nyalakan"}</span>
+                </button>
+                <button
+                  disabled={services.Apache.checking}
+                  onClick={() => handleInstallService("Apache24", "Apache")}
+                  className="py-3 px-3.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shrink-0 border border-zinc-700"
+                  title="Reinstall / Register Ulang Service"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reinstall</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -159,22 +170,33 @@ export default function ServicesTab({
                 Register MySQL {isLinux ? "systemd" : "Windows"} Service
               </button>
             ) : (
-              <button
-                disabled={services.MySQL.checking}
-                onClick={() => toggleService("MySQL")}
-                className={`w-full flex items-center justify-center space-x-2 py-3 border rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
-                  services.MySQL.checking
-                    ? "bg-zinc-900/50 border-zinc-700 text-zinc-500 cursor-wait"
-                    : services.MySQL.running 
-                      ? "bg-red-950/25 border-red-500/30 hover:bg-red-900/40 text-red-400 hover:border-red-400" 
-                      : "bg-emerald-950/25 border-emerald-500/30 hover:bg-emerald-900/40 text-emerald-400 hover:border-emerald-400"
-                }`}
-              >
-                {services.MySQL.checking
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : services.MySQL.running ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                <span>{services.MySQL.checking ? "Memproses..." : services.MySQL.running ? "Matikan Service" : "Nyalakan Service"}</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  disabled={services.MySQL.checking}
+                  onClick={() => toggleService("MySQL")}
+                  className={`flex-1 flex items-center justify-center space-x-2 py-3 border rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                    services.MySQL.checking
+                      ? "bg-zinc-900/50 border-zinc-700 text-zinc-500 cursor-wait"
+                      : services.MySQL.running 
+                        ? "bg-red-950/25 border-red-500/30 hover:bg-red-900/40 text-red-400 hover:border-red-400" 
+                        : "bg-emerald-950/25 border-emerald-500/30 hover:bg-emerald-900/40 text-emerald-400 hover:border-emerald-400"
+                  }`}
+                >
+                  {services.MySQL.checking
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : services.MySQL.running ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                  <span>{services.MySQL.checking ? "Memproses..." : services.MySQL.running ? "Matikan" : "Nyalakan"}</span>
+                </button>
+                <button
+                  disabled={services.MySQL.checking}
+                  onClick={() => handleInstallService("mysql-server", "MySQL")}
+                  className="py-3 px-3.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shrink-0 border border-zinc-700"
+                  title="Reinstall / Register Ulang Service"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reinstall</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -235,22 +257,33 @@ export default function ServicesTab({
                 Register Redis {isLinux ? "systemd" : "Windows"} Service
               </button>
             ) : (
-              <button
-                disabled={services.Redis.checking}
-                onClick={() => toggleService("Redis")}
-                className={`w-full flex items-center justify-center space-x-2 py-3 border rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
-                  services.Redis.checking
-                    ? "bg-zinc-900/50 border-zinc-700 text-zinc-500 cursor-wait"
-                    : services.Redis.running 
-                      ? "bg-red-950/25 border-red-500/30 hover:bg-red-900/40 text-red-400 hover:border-red-400" 
-                      : "bg-emerald-950/25 border-emerald-500/30 hover:bg-emerald-900/40 text-emerald-400 hover:border-emerald-400"
-                }`}
-              >
-                {services.Redis.checking
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : services.Redis.running ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                <span>{services.Redis.checking ? "Memproses..." : services.Redis.running ? "Matikan Service" : "Nyalakan Service"}</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  disabled={services.Redis.checking}
+                  onClick={() => toggleService("Redis")}
+                  className={`flex-1 flex items-center justify-center space-x-2 py-3 border rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                    services.Redis.checking
+                      ? "bg-zinc-900/50 border-zinc-700 text-zinc-500 cursor-wait"
+                      : services.Redis.running 
+                        ? "bg-red-950/25 border-red-500/30 hover:bg-red-900/40 text-red-400 hover:border-red-400" 
+                        : "bg-emerald-950/25 border-emerald-500/30 hover:bg-emerald-900/40 text-emerald-400 hover:border-emerald-400"
+                  }`}
+                >
+                  {services.Redis.checking
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : services.Redis.running ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                  <span>{services.Redis.checking ? "Memproses..." : services.Redis.running ? "Matikan" : "Nyalakan"}</span>
+                </button>
+                <button
+                  disabled={services.Redis.checking}
+                  onClick={() => handleInstallService("redis-server", "Redis")}
+                  className="py-3 px-3.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shrink-0 border border-zinc-700"
+                  title="Reinstall / Register Ulang Service"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reinstall</span>
+                </button>
+              </div>
             )}
           </div>
         </div>

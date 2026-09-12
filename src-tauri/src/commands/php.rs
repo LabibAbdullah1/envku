@@ -129,14 +129,15 @@ PHPIniDir "{}/{}"
         crate::platform::env_path::set_php_symlink(&version_id)?;
         
         // Disable other mod_php and enable target mod_php
-        let target_mod = if version_id == "php83" { "php8.3" } else { "php8.2" };
-        let other_mod = if version_id == "php83" { "php8.2" } else { "php8.3" };
-        
-        // Group a2dismod, a2enmod, and apache restart into a single elevated command
-        let cmd_str = format!(
-            "a2dismod {} || true; a2enmod {}; systemctl restart envku-apache",
-            other_mod, target_mod
-        );
+        let target_mod = match version_id.as_str() {
+            "php85" => "php8.5",
+            "php84" => "php8.4",
+            "php83" => "php8.3",
+            _ => "php8.2",
+        };
+        let all_mods = vec!["php8.2", "php8.3", "php8.4", "php8.5"];
+        let dismod_cmds: Vec<String> = all_mods.into_iter().filter(|m| *m != target_mod).map(|m| format!("a2dismod {} || true", m)).collect();
+        let cmd_str = format!("{}; a2enmod {}; systemctl restart envku-apache", dismod_cmds.join("; "), target_mod);
         let _ = crate::execute_elevated_command(&["sh", "-c", &cmd_str]);
     }
 
@@ -159,7 +160,11 @@ pub fn get_active_php_version() -> Result<String, String> {
 
         for line in content.lines() {
             if line.contains("LoadModule php_module") && !line.trim().starts_with('#') {
-                if line.contains("php83") {
+                if line.contains("php85") {
+                    return Ok("php85".to_string());
+                } else if line.contains("php84") {
+                    return Ok("php84".to_string());
+                } else if line.contains("php83") {
                     return Ok("php83".to_string());
                 } else if line.contains("php82") {
                     return Ok("php82".to_string());
@@ -174,7 +179,11 @@ pub fn get_active_php_version() -> Result<String, String> {
         if php_symlink.exists() || php_symlink.is_symlink() {
             if let Ok(target) = fs::read_link(&php_symlink) {
                 let target_str = target.to_string_lossy();
-                if target_str.contains("php83") {
+                if target_str.contains("php85") {
+                    return Ok("php85".to_string());
+                } else if target_str.contains("php84") {
+                    return Ok("php84".to_string());
+                } else if target_str.contains("php83") {
                     return Ok("php83".to_string());
                 } else if target_str.contains("php82") {
                     return Ok("php82".to_string());
@@ -194,7 +203,12 @@ pub struct PhpExtensionInfo {
 
 #[cfg(target_os = "linux")]
 fn get_linux_enabled_extensions(version_id: &str) -> Vec<String> {
-    let php_version_dot = if version_id == "php83" { "8.3" } else { "8.2" };
+    let php_version_dot = match version_id {
+        "php85" => "8.5",
+        "php84" => "8.4",
+        "php83" => "8.3",
+        _ => "8.2",
+    };
     let php_cmd = format!("php{}", php_version_dot);
     
     let output = std::process::Command::new(php_cmd)
@@ -212,6 +226,56 @@ fn get_linux_enabled_extensions(version_id: &str) -> Vec<String> {
         }
     }
     enabled_exts
+}
+
+fn is_real_extension_line(line: &str, ext_name: &str, is_zend: bool) -> bool {
+    let raw_trimmed = line.trim_end();
+    let (_is_commented, rest) = if raw_trimmed.starts_with(';') {
+        let after_semi = &raw_trimmed[1..];
+        if after_semi.starts_with("  ") {
+            return false;
+        }
+        (true, after_semi.trim_start())
+    } else {
+        let trimmed_start = raw_trimmed.trim_start();
+        if raw_trimmed.len() - trimmed_start.len() > 1 {
+            return false;
+        }
+        (false, trimmed_start)
+    };
+
+    let expected_prefix = if is_zend { "zend_extension" } else { "extension" };
+
+    if !rest.to_lowercase().starts_with(expected_prefix) {
+        return false;
+    }
+
+    let parts: Vec<&str> = rest.splitn(2, '=').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+
+    let key = parts[0].trim().to_lowercase();
+    if key != expected_prefix {
+        return false;
+    }
+
+    let value_part = parts[1];
+    let val_without_comment = if let Some(idx) = value_part.find(';') {
+        &value_part[..idx]
+    } else {
+        value_part
+    };
+
+    let val = val_without_comment.trim().trim_matches('"').trim_matches('\'').to_lowercase();
+    let ext_lower = ext_name.to_lowercase();
+
+    let php_dll = format!("php_{}.dll", ext_lower);
+    let dll = format!("{}.dll", ext_lower);
+    let so = format!("{}.so", ext_lower);
+    let php_ext = format!("php_{}", ext_lower);
+
+    val == ext_lower || val == php_dll || val == dll || val == so || val == php_ext
 }
 
 #[tauri::command]
@@ -259,25 +323,13 @@ pub fn get_php_extensions(version_id: String) -> Result<Vec<PhpExtensionInfo>, S
         let mut result = Vec::new();
         for ext in target_extensions {
             let is_zend = ext == "opcache";
-            let prefix = if is_zend { "zend_extension" } else { "extension" };
-            
             let mut found = false;
             let mut enabled = false;
 
             for line in content.lines() {
-                let trimmed = line.trim();
-                let is_commented = trimmed.starts_with(';');
-                let clean_line = if is_commented {
-                    trimmed[1..].trim()
-                } else {
-                    trimmed
-                };
-                
-                let clean_line_no_spaces = clean_line.replace(" ", "").replace("\"", "").replace("'", "");
-                let expected_match = format!("{}={}", prefix, ext);
-                
-                if clean_line_no_spaces == expected_match {
-                    enabled = !is_commented;
+                if is_real_extension_line(line, ext, is_zend) {
+                    let trimmed = line.trim();
+                    enabled = !trimmed.starts_with(';');
                     found = true;
                     break;
                 }
@@ -335,22 +387,13 @@ pub fn toggle_php_extension(version_id: String, extension_name: String, enable: 
         let mut modified = false;
 
         for line in content.lines() {
-            let trimmed = line.trim();
-            let is_commented = trimmed.starts_with(';');
-            let clean_line = if is_commented {
-                trimmed[1..].trim()
-            } else {
-                trimmed
-            };
-            
-            let clean_line_no_spaces = clean_line.replace(" ", "").replace("\"", "").replace("'", "");
-            let expected_match = format!("{}={}", prefix, extension_name);
-
-            if clean_line_no_spaces == expected_match {
+            if !modified && is_real_extension_line(line, &extension_name, is_zend) {
+                let parts: Vec<&str> = line.splitn(2, '=').collect();
+                let right_side = if parts.len() == 2 { parts[1] } else { &extension_name };
                 if enable {
-                    new_lines.push(format!("{}={}", prefix, extension_name));
+                    new_lines.push(format!("{}={}", prefix, right_side.trim()));
                 } else {
-                    new_lines.push(format!(";{}={}", prefix, extension_name));
+                    new_lines.push(format!(";{}={}", prefix, right_side.trim()));
                 }
                 modified = true;
             } else {

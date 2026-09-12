@@ -1,0 +1,9 @@
+perbaikan pada extention php.ini yang error, yaitu buat pengecekan bahwa extention yang di hidupkan merupakan barisan extention yang benar bukan berupa barisan contoh. saya menemukan bug nya di saat extention mysqli di hidupkan yang terbuka adalah sebuah contoh text bukan barisan extention asli nya, tolong perbaiki ya,
+hapus contoh dummy dari create project 
+
+sekarang sudah ada php versi 8.4 dan 8.5 rilis terbaru tolong di update di envku dan support untuk project laravel di versi tersebut, tolong juga perbaiki pada halaman php switcher; jangan buat dropdown php switcher jika belum ada php yang terinstall, jika php di uninstall maka hapus juga dropdown php switcher, dan jika sudah install php baru maka baru tambahkan dropdown php switcher, dan perbaiki juga tampilan halaman php switcher nya
+perbaiki pesan error yang muncul jangan lempar pesan error yang berupaya string atau rumit yang keluar, buat supaya lebih simpel dan mudah di pahami
+
+perbaiki metode panghapusan jangan buat penghapusan dari aplikasi, buat secara default saja dari control panel windows
+
+berikan hak kepada pengguna untuk bisa menghapus downloader yang sudah tidak di gunakan atau yang sudah di perbarui, contoh ketika sudah ada php 8.4 dan 8.5 yang terinstall maka php 8.3 sudah tidak di gunakan lagi maka hapus juga php 8.3 nya, dan juga di bagian service juga begitu, dan bisa melakukan reinstall pada service atau downloader, dan perbaiki juga tampilan halaman downloader nya agar lebih simpel dan mudah di pahami

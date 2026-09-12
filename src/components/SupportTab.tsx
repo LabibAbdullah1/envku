@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Star, Bug, Info, ExternalLink, RefreshCw, Download } from "lucide-react";
+import { Star, Bug, Info, ExternalLink, RefreshCw, Download, Trash2 } from "lucide-react";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { getVersion } from "@tauri-apps/api/app";
@@ -174,27 +174,22 @@ ${folderDetails}`;
     }
   };
 
-
-  const handleUninstallEnvku = async (deleteData: boolean) => {
-    const msg = deleteData
-      ? `Apakah Anda yakin ingin menghapus bersih aplikasi? Tindakan ini akan menghentikan & menghapus seluruh service Envku, membersihkan entri DNS di hosts, membersihkan PATH, serta MENGHAPUS SELURUH FOLDER ${baseDir} (beserta database, file web, dan NVM/Node.js) secara permanen!`
-      : `Apakah Anda yakin ingin melakukan uninstall ringan? Tindakan ini akan menghentikan & menghapus seluruh service Envku, membersihkan entri DNS di hosts, membersihkan PATH, tetapi TETAP MEMPERTAHANKAN folder ${baseDir}.`;
-
-    if (confirm(msg)) {
-      try {
-        const res = await invoke<string>("uninstall_envku", { deleteData });
-        alert(res);
-      } catch (err: any) {
-        alert(`Gagal melakukan uninstall: ${err}`);
-      }
-    }
-  };
-
   return (
     <div className="space-y-6 animate-fade-in text-zinc-100">
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">Dukungan & Laporan Kendala</h2>
         <p className="text-sm text-zinc-400 mt-1">Dukung proyek open-source Envku dengan memberikan bintang atau laporkan kendala sistem secara instan.</p>
+      </div>
+
+      {/* Control Panel Uninstallation Information */}
+      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-3 shadow-xl">
+        <div className="flex items-center space-x-2.5 text-zinc-300">
+          <Trash2 className="w-5 h-5 text-indigo-400" />
+          <h3 className="text-base font-bold text-zinc-100">Informasi Penghapusan Aplikasi (Uninstall)</h3>
+        </div>
+        <p className="text-xs text-zinc-400 leading-relaxed">
+          Sesuai standar sistem operasi Windows, penghapusan aplikasi Envku Orchestrator dilakukan secara default melalui <strong className="text-zinc-200">Control Panel Windows (Add or Remove Programs / Program dan Fitur)</strong>. Uninstaller resmi Windows akan secara otomatis menghentikan service, membersihkan registry, entri DNS hosts, dan biner server.
+        </p>
       </div>
 
       {/* GitHub Star Card */}
@@ -370,45 +365,6 @@ ${folderDetails}`;
             </button>
           </div>
         </form>
-      </div>
-
-      {/* Clean Uninstall Options */}
-      <div className="p-6 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-6 shadow-xl relative overflow-hidden">
-        <div className="flex items-center space-x-2 text-rose-400">
-          <Info className="w-6 h-6" />
-          <h3 className="text-lg font-bold text-zinc-100">Hapus Bersih Aplikasi (Uninstall)</h3>
-        </div>
-        <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
-          Lakukan penghapusan (uninstall) secara menyeluruh beserta seluruh data komponen Envku dari sistem Anda.
-        </p>
-
-        <div className="pt-2">
-          {/* Clean Uninstall Card */}
-          <div className="p-5 bg-zinc-950/40 border border-zinc-850 rounded-xl space-y-4">
-            <div className="space-y-2">
-              <h4 className="text-sm font-bold text-zinc-200">Opsi Uninstall Envku</h4>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Menghentikan & menghapus seluruh layanan/service Envku, membersihkan entri DNS di hosts, membersihkan variabel PATH, serta opsional menghapus folder <code className="text-zinc-300">{baseDir}</code> (beserta seluruh database, website, dan NVM/Node.js).
-              </p>
-            </div>
-            <div className="flex gap-4 max-w-md pt-2">
-              <button
-                type="button"
-                onClick={() => handleUninstallEnvku(false)}
-                className="w-1/2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
-              >
-                <span>Uninstall Ringan</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUninstallEnvku(true)}
-                className="w-1/2 px-4 py-3 bg-red-700 hover:bg-red-650 text-white rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center justify-center gap-1.5"
-              >
-                <span>Hapus Bersih</span>
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

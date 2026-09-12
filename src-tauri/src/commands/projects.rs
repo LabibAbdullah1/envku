@@ -11,6 +11,94 @@ pub struct VirtualHostInfo {
 }
 
 #[tauri::command]
+pub async fn create_laravel_project(
+    project_name: String,
+    domain: String,
+    parent_dir: String,
+    enable_ssl: bool,
+) -> Result<String, String> {
+    let server_dir = get_server_dir_path();
+    let composer_phar = server_dir.join("composer").join("composer.phar");
+    
+    let active_php = crate::commands::php::get_active_php_version().unwrap_or_default();
+    let candidate_versions = if active_php != "unknown" && !active_php.is_empty() {
+        vec![active_php.clone(), "php85".to_string(), "php84".to_string(), "php83".to_string(), "php82".to_string()]
+    } else {
+        vec!["php85".to_string(), "php84".to_string(), "php83".to_string(), "php82".to_string()]
+    };
+
+    let mut selected_php_exe = None;
+    for ver in candidate_versions {
+        let exe = if cfg!(target_os = "windows") {
+            server_dir.join(&ver).join("php.exe")
+        } else {
+            server_dir.join(&ver).join("bin").join("php")
+        };
+        if exe.exists() {
+            selected_php_exe = Some(exe);
+            break;
+        }
+    }
+
+    let php_exe = match selected_php_exe {
+        Some(exe) => exe,
+        None => {
+            return Err("Biner PHP tidak ditemukan. Silakan unduh PHP 8.5 / 8.4 / 8.3 di Katalog Komponen terlebih dahulu.".to_string());
+        }
+    };
+
+    if !composer_phar.exists() {
+        return Err("PHP Composer tidak ditemukan. Silakan unduh PHP Composer di Katalog Komponen terlebih dahulu.".to_string());
+    }
+
+    let parent_path = std::path::PathBuf::from(&parent_dir);
+    if !parent_path.exists() {
+        return Err(format!("Folder induk {} tidak ditemukan.", parent_dir));
+    }
+
+    let clean_name = project_name.trim().to_string();
+    let project_dir = parent_path.join(&clean_name);
+    if project_dir.exists() {
+        return Err(format!("Folder {} sudah ada di {}.", clean_name, parent_dir));
+    }
+
+    let output = if cfg!(target_os = "windows") {
+        crate::create_hidden_command(&php_exe.to_string_lossy())
+            .args(&[
+                composer_phar.to_string_lossy().as_ref(),
+                "create-project",
+                "laravel/laravel",
+                &clean_name,
+                "--prefer-dist",
+            ])
+            .current_dir(&parent_path)
+            .output()
+    } else {
+        std::process::Command::new(&php_exe)
+            .args(&[
+                composer_phar.to_string_lossy().as_ref(),
+                "create-project",
+                "laravel/laravel",
+                &clean_name,
+                "--prefer-dist",
+            ])
+            .current_dir(&parent_path)
+            .output()
+    }.map_err(|e| format!("Gagal mengeksekusi Composer: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        return Err(format!("Gagal membuat proyek Laravel: {}\n{}", stderr.trim(), stdout.trim()));
+    }
+
+    let doc_root = project_dir.join("public").to_string_lossy().to_string();
+    add_project(domain.clone(), doc_root, false, None, enable_ssl)?;
+
+    Ok(format!("Proyek Laravel {} versi terbaru berhasil dibuat dan terdaftar di http://{}", clean_name, domain))
+}
+
+#[tauri::command]
 pub fn add_project(domain: String, document_root: String, is_node: bool, node_port: Option<u16>, enable_ssl: bool) -> Result<String, String> {
     let server_dir = get_server_dir_path();
     
@@ -33,6 +121,24 @@ pub fn add_project(domain: String, document_root: String, is_node: bool, node_po
 
     if !is_apache_downloaded {
         return Err("Apache belum terinstal. Silakan pasang Apache terlebih dahulu sebelum menambahkan proyek.".to_string());
+    }
+
+    // Ensure rewrite_module is enabled in httpd.conf
+    let httpd_conf_path = server_dir.join("Apache24").join("conf").join("httpd.conf");
+    if httpd_conf_path.exists() {
+        if let Ok(mut conf_content) = fs::read_to_string(&httpd_conf_path) {
+            if conf_content.contains("#LoadModule rewrite_module") || conf_content.contains("# LoadModule rewrite_module") {
+                conf_content = conf_content.replace(
+                    "#LoadModule rewrite_module modules/mod_rewrite.so",
+                    "LoadModule rewrite_module modules/mod_rewrite.so",
+                );
+                conf_content = conf_content.replace(
+                    "# LoadModule rewrite_module modules/mod_rewrite.so",
+                    "LoadModule rewrite_module modules/mod_rewrite.so",
+                );
+                let _ = fs::write(&httpd_conf_path, conf_content);
+            }
+        }
     }
 
     let vhosts_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-vhosts.conf");
@@ -412,6 +518,67 @@ pub fn edit_project(
     Ok(format!("Proyek {} berhasil diperbarui.", new_domain))
 }
 
+pub fn is_dummy_domain(domain: &str) -> bool {
+    let d = domain.to_lowercase();
+    d.contains("dummy-host") || d == "example.com" || d.ends_with(".example.com")
+}
+
+pub fn clean_dummy_vhosts_file(vhosts_path: &std::path::Path) {
+    if !vhosts_path.exists() {
+        return;
+    }
+    if let Ok(content) = fs::read_to_string(vhosts_path) {
+        if !content.contains("dummy-host") && !content.contains("example.com") {
+            return;
+        }
+
+        let mut new_content = String::new();
+        let mut current_block = Vec::new();
+        let mut in_vhost = false;
+        let mut is_dummy_block = false;
+
+        for line in content.lines() {
+            let trimmed = line.trim();
+            let lower = trimmed.to_lowercase();
+
+            if lower.starts_with("<virtualhost") {
+                in_vhost = true;
+                is_dummy_block = false;
+                current_block.clear();
+                current_block.push(line.to_string());
+            } else if lower.starts_with("</virtualhost>") {
+                if in_vhost {
+                    current_block.push(line.to_string());
+                    if !is_dummy_block {
+                        new_content.push_str(&current_block.join("\n"));
+                        new_content.push('\n');
+                    }
+                    current_block.clear();
+                    in_vhost = false;
+                } else {
+                    new_content.push_str(line);
+                    new_content.push('\n');
+                }
+            } else if in_vhost {
+                current_block.push(line.to_string());
+                if lower.contains("dummy-host") || lower.contains("example.com") {
+                    is_dummy_block = true;
+                }
+            } else {
+                new_content.push_str(line);
+                new_content.push('\n');
+            }
+        }
+
+        if !current_block.is_empty() && !is_dummy_block {
+            new_content.push_str(&current_block.join("\n"));
+            new_content.push('\n');
+        }
+
+        let _ = fs::write(vhosts_path, new_content.trim_end());
+    }
+}
+
 #[tauri::command]
 pub fn get_virtual_hosts() -> Result<Vec<VirtualHostInfo>, String> {
     let server_dir = get_server_dir_path();
@@ -420,7 +587,9 @@ pub fn get_virtual_hosts() -> Result<Vec<VirtualHostInfo>, String> {
         return Ok(Vec::new());
     }
 
-    let content = fs::read_to_string(vhosts_path)
+    clean_dummy_vhosts_file(&vhosts_path);
+
+    let content = fs::read_to_string(&vhosts_path)
         .map_err(|e| format!("Gagal membaca httpd-vhosts.conf: {}", e))?;
 
     let mut hosts = Vec::new();
@@ -443,7 +612,7 @@ pub fn get_virtual_hosts() -> Result<Vec<VirtualHostInfo>, String> {
             current_node_port = None;
             current_vhost_is_ssl = lower.contains(":443");
         } else if lower.starts_with("</virtualhost>") {
-            if in_vhost && !current_domain.is_empty() {
+            if in_vhost && !current_domain.is_empty() && !is_dummy_domain(&current_domain) {
                 let exists_idx = hosts.iter().position(|h: &VirtualHostInfo| h.domain == current_domain);
                 if let Some(idx) = exists_idx {
                     if current_vhost_is_ssl {

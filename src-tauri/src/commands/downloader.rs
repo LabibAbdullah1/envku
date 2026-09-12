@@ -26,6 +26,14 @@ fn get_component_urls(component_id: &str) -> Result<ComponentUrls<'static>, Stri
             primary: "https://envku.subly.my.id/packages/win/apache2.4.zip",
             fallback: "https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.68-260617-Win64-VS18.zip",
         }),
+        "php85" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/win/php8.5.zip",
+            fallback: "https://windows.php.net/downloads/releases/php-8.5.10-Win32-vs17-x64.zip",
+        }),
+        "php84" => Ok(ComponentUrls {
+            primary: "https://envku.subly.my.id/packages/win/php8.4.zip",
+            fallback: "https://windows.php.net/downloads/releases/php-8.4.25-Win32-vs17-x64.zip",
+        }),
         "php83" => Ok(ComponentUrls {
             primary: "https://envku.subly.my.id/packages/win/php8.3.zip",
             fallback: "https://windows.php.net/downloads/releases/php-8.3.33-Win32-vs16-x64.zip",
@@ -240,6 +248,16 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
                         &format!("Define SRVROOT \"{}/Apache24\"", server_dir_slash),
                     );
 
+                    // Enable rewrite module
+                    content = content.replace(
+                        "#LoadModule rewrite_module modules/mod_rewrite.so",
+                        "LoadModule rewrite_module modules/mod_rewrite.so",
+                    );
+                    content = content.replace(
+                        "# LoadModule rewrite_module modules/mod_rewrite.so",
+                        "LoadModule rewrite_module modules/mod_rewrite.so",
+                    );
+
                     // Enable proxy modules
                     content = content.replace(
                         "#LoadModule proxy_module modules/mod_proxy.so",
@@ -296,6 +314,9 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
                     fs::write(&httpd_conf_path, content).map_err(|e| {
                         format!("Gagal memperbarui httpd.conf setelah ekstraksi: {}", e)
                     })?;
+
+                    let vhosts_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-vhosts.conf");
+                    crate::commands::projects::clean_dummy_vhosts_file(&vhosts_path);
                 }
             }
             "mysql" => {
@@ -703,8 +724,13 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
             emit_progress(&app, &component_id, 100);
             Ok("Apache2 berhasil diinstal dan dikonfigurasi di Linux.".to_string())
         }
-        "php83" | "php82" => {
-            let php_version_dot = if component_id == "php83" { "8.3" } else { "8.2" };
+        "php85" | "php84" | "php83" | "php82" => {
+            let php_version_dot = match component_id.as_str() {
+                "php85" => "8.5",
+                "php84" => "8.4",
+                "php83" => "8.3",
+                _ => "8.2",
+            };
             emit_progress(&app, &component_id, 10);
             setup_php_repository().await?;
             emit_progress(&app, &component_id, 40);
@@ -993,5 +1019,89 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
             Ok("Composer berhasil diinstal di Linux.".to_string())
         }
         _ => Err(format!("ID komponen tidak dikenal: {}", component_id)),
+    }
+}
+
+#[tauri::command]
+pub fn delete_component(component_id: String) -> Result<String, String> {
+    let server_dir = get_server_dir_path();
+
+    match component_id.as_str() {
+        "apache" => {
+            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
+            #[cfg(target_os = "windows")]
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "httpd.exe"]).output();
+            
+            let path = server_dir.join("Apache24");
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|e| format!("Gagal menghapus folder Apache24: {}", e))?;
+            }
+            Ok("Apache Web Server berhasil dihapus.".to_string())
+        }
+        "php85" | "php84" | "php83" | "php82" => {
+            let active_php = crate::commands::php::get_active_php_version().unwrap_or_default();
+            if active_php == component_id {
+                let all = vec!["php85", "php84", "php83", "php82"];
+                let other_installed = all.into_iter().find(|id| *id != component_id && server_dir.join(id).exists());
+                if let Some(other_id) = other_installed {
+                    let _ = crate::commands::php::switch_php_version(other_id.to_string());
+                }
+            }
+
+            let path = server_dir.join(&component_id);
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|e| format!("Gagal menghapus folder {}: {}", component_id, e))?;
+            }
+            Ok(format!("Modul {} berhasil dihapus.", component_id.to_uppercase()))
+        }
+        "mysql" => {
+            let _ = crate::commands::services::control_service("mysql-server".to_string(), "stop".to_string());
+            #[cfg(target_os = "windows")]
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "mysqld.exe"]).output();
+
+            let path = server_dir.join("mysql");
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|e| format!("Gagal menghapus folder MySQL: {}", e))?;
+            }
+            Ok("MySQL Server berhasil dihapus.".to_string())
+        }
+        "redis" => {
+            let _ = crate::commands::services::control_service("redis-server".to_string(), "stop".to_string());
+            #[cfg(target_os = "windows")]
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "redis-server.exe"]).output();
+
+            let path = server_dir.join("redis");
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|e| format!("Gagal menghapus folder Redis: {}", e))?;
+            }
+            Ok("Redis Server berhasil dihapus.".to_string())
+        }
+        "mailpit" => {
+            let _ = crate::commands::services::control_service("mailpit".to_string(), "stop".to_string());
+            #[cfg(target_os = "windows")]
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "mailpit.exe"]).output();
+
+            let path = server_dir.join("mailpit");
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|e| format!("Gagal menghapus folder Mailpit: {}", e))?;
+            }
+            Ok("Mailpit berhasil dihapus.".to_string())
+        }
+        "phpmyadmin" => {
+            let _ = crate::commands::projects::delete_project("phpmyadmin.test".to_string());
+            let path = server_dir.join("www").join("phpmyadmin");
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|e| format!("Gagal menghapus folder phpMyAdmin: {}", e))?;
+            }
+            Ok("phpMyAdmin berhasil dihapus.".to_string())
+        }
+        "composer" => {
+            let path = server_dir.join("composer");
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|e| format!("Gagal menghapus folder Composer: {}", e))?;
+            }
+            Ok("Composer berhasil dihapus.".to_string())
+        }
+        _ => Err(format!("ID komponen {} tidak dikenal.", component_id)),
     }
 }

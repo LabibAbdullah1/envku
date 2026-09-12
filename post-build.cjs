@@ -223,7 +223,7 @@ console.log(`      ✦ website/update.json`);
 console.log(`\n   📂 Folder /downloads/:`);
 console.log(`      ✦ website/downloads/${EXE_NAME}`);
 console.log(`\n   📂 Folder /packages/ (Installer Pendukung):`);
-console.log(`      ✦ website/packages/win/ (apache2.4, php8.2, php8.3, mysql8.0, redis, mailpit)`);
+console.log(`      ✦ website/packages/win/ (apache2.4, php8.2, php8.3, php8.4, php8.5, mysql8.0, redis, mailpit)`);
 console.log(`      ✦ website/packages/linux/ (mailpit.tar.gz)`);
 console.log(`      ✦ website/packages/common/ (phpmyadmin, composer.phar)`);
 console.log(`      (Jalankan 'npm run sync-packages' untuk menyinkronkan installer pendukung)`);

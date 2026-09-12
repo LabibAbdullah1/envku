@@ -5,7 +5,7 @@
  * `website/packages/` agar dapat diunggah ke cPanel (envku.subly.my.id/packages/).
  *
  * Komponen yang disinkronkan:
- *   - Windows: Apache 2.4, PHP 8.2, PHP 8.3, MySQL 8.0, Redis, Mailpit (Zip)
+ *   - Windows: Apache 2.4, PHP 8.2, PHP 8.3, PHP 8.4, PHP 8.5, MySQL 8.0, Redis, Mailpit (Zip)
  *   - Linux  : Mailpit (tar.gz)
  *   - Common : phpMyAdmin (Zip), PHP Composer (phar)
  * ─────────────────────────────────────────────────────────────
@@ -38,6 +38,18 @@ const PACKAGES = [
     destDir: path.join(PACKAGES_DIR, "win"),
     fileName: "php8.3.zip",
     url: "https://windows.php.net/downloads/releases/php-8.3.33-Win32-vs16-x64.zip"
+  },
+  {
+    name: "PHP 8.4 (Windows)",
+    destDir: path.join(PACKAGES_DIR, "win"),
+    fileName: "php8.4.zip",
+    url: "https://windows.php.net/downloads/releases/php-8.4.25-Win32-vs17-x64.zip"
+  },
+  {
+    name: "PHP 8.5 (Windows)",
+    destDir: path.join(PACKAGES_DIR, "win"),
+    fileName: "php8.5.zip",
+    url: "https://windows.php.net/downloads/releases/php-8.5.10-Win32-vs17-x64.zip"
   },
   {
     name: "MySQL 8.0 (Windows)",
@@ -79,6 +91,7 @@ const PACKAGES = [
 
 function downloadFileSingle(url, destPath) {
   return new Promise((resolve, reject) => {
+    const tmpPath = destPath + ".downloading";
     const protocol = url.startsWith("https") ? https : http;
     const request = protocol.get(url, {
       timeout: 30000,
@@ -100,7 +113,7 @@ function downloadFileSingle(url, destPath) {
         return reject(new Error(`HTTP status code ${response.statusCode}`));
       }
 
-      const fileStream = fs.createWriteStream(destPath);
+      const fileStream = fs.createWriteStream(tmpPath);
       let downloadedBytes = 0;
       const totalBytes = parseInt(response.headers['content-length'] || "0", 10);
 
@@ -116,25 +129,33 @@ function downloadFileSingle(url, destPath) {
 
       fileStream.on("finish", () => {
         fileStream.close(() => {
-          process.stdout.write("\n");
-          resolve();
+          try {
+            if (fs.existsSync(destPath)) {
+              fs.unlinkSync(destPath);
+            }
+            fs.renameSync(tmpPath, destPath);
+            process.stdout.write("\n");
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
         });
       });
 
       fileStream.on("error", (err) => {
-        fs.unlink(destPath, () => { });
+        if (fs.existsSync(tmpPath)) fs.unlink(tmpPath, () => { });
         reject(err);
       });
     });
 
     request.on("timeout", () => {
       request.destroy();
-      fs.unlink(destPath, () => { });
+      if (fs.existsSync(tmpPath)) fs.unlink(tmpPath, () => { });
       reject(new Error("Koneksi timeout"));
     });
 
     request.on("error", (err) => {
-      fs.unlink(destPath, () => { });
+      if (fs.existsSync(tmpPath)) fs.unlink(tmpPath, () => { });
       reject(err);
     });
   });

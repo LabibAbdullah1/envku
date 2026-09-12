@@ -19,6 +19,7 @@ import ProjectWizardTab from "./components/ProjectWizardTab";
 import PhpSwitcherTab from "./components/PhpSwitcherTab";
 import NodeManagerTab from "./components/NodeManagerTab";
 import SupportTab from "./components/SupportTab";
+import { formatFriendlyError } from "./utils/formatError";
 
 // Interface definitions
 interface ProgressPayload {
@@ -73,23 +74,26 @@ export default function App() {
   const [baseDir, setBaseDir] = useState<string>("C:\\server");
   const isLinux = baseDir.startsWith("/") || !baseDir.includes("\\");
 
+  // Helper to determine sub-paths for checking directories
   const getSubPaths = (dir: string) => {
-    const isL = dir.startsWith("/") || !dir.includes("\\");
-    const sep = isL ? "/" : "\\";
-    const mailpitFile = isL ? "mailpit" : "mailpit.exe";
-    return [
-      dir,
-      `${dir}${sep}www`,
-      `${dir}${sep}Apache24`,
-      `${dir}${sep}php83`,
-      `${dir}${sep}php82`,
-      `${dir}${sep}mysql`,
-      `${dir}${sep}www${sep}phpmyadmin`,
-      `${dir}${sep}composer${sep}composer.phar`,
-      `${dir}${sep}redis`,
-      `${dir}${sep}mailpit${sep}${mailpitFile}`
-    ];
-  };
+  const isL = dir.startsWith("/") || !dir.includes("\\");
+  const sep = isL ? "/" : "\\";
+  const mailpitFile = isL ? "mailpit" : "mailpit.exe";
+  return [
+    dir,
+    `${dir}${sep}www`,
+    `${dir}${sep}Apache24`,
+    `${dir}${sep}php85`,
+    `${dir}${sep}php84`,
+    `${dir}${sep}php83`,
+    `${dir}${sep}php82`,
+    `${dir}${sep}mysql`,
+    `${dir}${sep}www${sep}phpmyadmin`,
+    `${dir}${sep}composer${sep}composer.phar`,
+    `${dir}${sep}redis`,
+    `${dir}${sep}mailpit${sep}${mailpitFile}`
+  ];
+};
 
   // Per-action loading states
   const [dirsLoading, setDirsLoading] = useState<boolean>(true);
@@ -153,7 +157,8 @@ export default function App() {
   }, [isSplash]);
 
   const showToastMsg = (message: string, type: "success" | "error" = "success") => {
-    setToast({ show: true, type, message });
+    const finalMsg = type === "error" ? formatFriendlyError(message) : message;
+    setToast({ show: true, type, message: finalMsg });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 6000);
   };
 
@@ -284,6 +289,22 @@ export default function App() {
       showToastMsg(String(err), "error");
     } finally {
       setActiveDownloads(prev => prev.filter(id => id !== componentId));
+    }
+  };
+
+  // Delete server component
+  const handleDeleteComponent = async (componentId: string) => {
+    setLoading(true);
+    try {
+      const res = await invoke<string>("delete_component", { componentId });
+      showToastMsg(res, "success");
+      await checkDirectories();
+      await updateServiceStates();
+      await fetchActivePhpVersion();
+    } catch (err) {
+      showToastMsg(String(err), "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -561,6 +582,7 @@ export default function App() {
               activeDownloads={activeDownloads}
               downloadProgress={downloadProgress}
               startDownload={startDownload}
+              deleteComponent={handleDeleteComponent}
             />
           )}
 
@@ -597,6 +619,7 @@ export default function App() {
               switchingPhp={switchingPhp}
               handleSwitchPhp={handleSwitchPhp}
               baseDir={baseDir}
+              showToastMsg={showToastMsg}
             />
           )}
 
