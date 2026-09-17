@@ -194,7 +194,7 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
     drop(file);
 
     // Stop services to release file locks before extraction
-    if component_id == "apache" || component_id == "php83" || component_id == "php82" {
+    if component_id == "apache" || component_id == "php85" || component_id == "php84" || component_id == "php83" || component_id == "php82" {
         let _ =
             crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
         std::thread::sleep(std::time::Duration::from_millis(800));
@@ -217,6 +217,8 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
     if is_zip {
         // Extraction target directories
         let extract_dest = match component_id.as_str() {
+            "php85" => server_dir.join("php85"),
+            "php84" => server_dir.join("php84"),
             "php83" => server_dir.join("php83"),
             "php82" => server_dir.join("php82"),
             "phpmyadmin" => server_dir.join("www"), // Extracts directly into www
@@ -426,7 +428,7 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
                     let _ = fs::write(config_path, pma_config);
                 }
             }
-            "php83" | "php82" => {
+            "php85" | "php84" | "php83" | "php82" => {
                 let php_dir = server_dir.join(&component_id);
                 let php_ini_path = php_dir.join("php.ini");
                 if !php_ini_path.exists() {

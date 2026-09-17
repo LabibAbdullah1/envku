@@ -43,4 +43,5 @@ website/packages/linux/*.tar.gz
 website/packages/common/*.zip
 website/packages/common/*.phar
 
-
+# Ignore additional text file
+tambahan.txt

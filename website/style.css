@@ -327,11 +327,35 @@ body {
 .terminal-line {
     color: #f4f4f5;
     word-break: break-all;
-    font-weight: 600;
+    font-weight: 500;
+    line-height: 1.5;
 }
 
 .cmd-prompt {
     color: var(--accent-yellow);
+    font-weight: 800;
+}
+
+.cmd-input {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.tag-ok {
+    color: #4ade80; /* High contrast neon green */
+    font-weight: 800;
+    margin-right: 6px;
+}
+
+.tag-info {
+    color: #38bdf8; /* High contrast sky cyan */
+    font-weight: 800;
+    margin-right: 6px;
+}
+
+.term-msg {
+    color: #e4e4e7;
+    font-weight: 500;
 }
 
 /* Sections */
@@ -729,6 +753,223 @@ body {
 
 .btn-icon {
     font-size: 1.1rem;
+}
+
+/* Ecosystem Software Grid Section */
+.eco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+    margin-top: 40px;
+}
+
+.eco-card {
+    background-color: var(--card-bg) !important;
+    border: var(--border-width) solid var(--border-black);
+    box-shadow: var(--shadow-offset);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border-radius: var(--radius-default) !important;
+}
+
+.eco-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow-offset-lg);
+}
+
+.eco-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.eco-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.eco-badge {
+    font-size: 0.65rem;
+    font-weight: 900;
+    padding: 3px 8px;
+    border: 1.5px solid var(--border-black);
+    box-shadow: 1.5px 1.5px 0px 0px var(--border-black);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: var(--radius-default) !important;
+}
+
+.eco-badge.badge-green { background-color: #bbf7d0; color: #14532d; }
+.eco-badge.badge-yellow { background-color: #fde047; color: #713f12; }
+.eco-badge.badge-blue { background-color: #7dd3fc; color: #0369a1; }
+.eco-badge.badge-pink { background-color: #f472b6; color: #831843; }
+.eco-badge.badge-violet { background-color: #c084fc; color: #581c87; }
+.eco-badge.badge-orange { background-color: #fb923c; color: #7c2d12; }
+
+.eco-card h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-headings);
+    margin-top: 4px;
+}
+
+.eco-card p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+/* Video Showcase & Interactive Demo Section */
+.showcase-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+}
+
+.showcase-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+}
+
+.tab-btn {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    border: var(--border-width) solid var(--border-black);
+    padding: 10px 20px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: var(--shadow-offset-sm);
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.1s;
+    border-radius: var(--radius-default) !important;
+}
+
+.tab-btn:hover {
+    background-color: var(--accent-blue);
+    transform: translate(-1px, -1px);
+    box-shadow: var(--shadow-offset);
+}
+
+.tab-btn.active {
+    background-color: var(--accent-yellow);
+    color: var(--border-black);
+    box-shadow: var(--shadow-offset);
+    transform: translate(-2px, -2px);
+}
+
+.showcase-display {
+    width: 100%;
+    max-width: 900px;
+    background-color: #18181b !important;
+    border: var(--border-width) solid var(--border-black);
+    box-shadow: var(--shadow-offset-lg);
+    border-radius: var(--radius-default) !important;
+    overflow: hidden;
+}
+
+.tab-content {
+    display: none;
+    flex-direction: column;
+}
+
+.tab-content.active {
+    display: flex;
+}
+
+.media-frame {
+    position: relative;
+    width: 100%;
+    min-height: 340px;
+    max-height: 520px;
+    background-color: #09090b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.showcase-video, .showcase-gif {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.media-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 60px 20px;
+    color: #e4e4e7;
+    text-align: center;
+}
+
+.media-placeholder-icon {
+    font-size: 3rem;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+}
+
+.media-placeholder p {
+    font-size: 0.9rem;
+    color: #a1a1aa;
+    max-width: 480px;
+    font-family: 'Consolas', monospace;
+}
+
+.media-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background-color: rgba(9, 9, 11, 0.85);
+    color: var(--accent-yellow);
+    border: 1.5px solid var(--border-black);
+    padding: 4px 10px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    backdrop-filter: blur(4px);
+    border-radius: var(--radius-default) !important;
+}
+
+.tab-description {
+    background-color: #27272a;
+    border-top: var(--border-width) solid var(--border-black);
+    padding: 16px 24px;
+    color: #f4f4f5;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.tab-description-text h4 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--accent-yellow);
+    margin-bottom: 2px;
+}
+
+.tab-description-text p {
+    font-size: 0.85rem;
+    color: #d4d4d8;
+    line-height: 1.4;
 }
 
 /* Footer */

@@ -351,7 +351,12 @@ pub fn toggle_php_extension(version_id: String, extension_name: String, enable: 
     #[cfg(target_os = "linux")]
     {
         let cmd = if enable { "phpenmod" } else { "phpdismod" };
-        let php_version_dot = if version_id == "php83" { "8.3" } else { "8.2" };
+        let php_version_dot = match version_id.as_str() {
+            "php85" => "8.5",
+            "php84" => "8.4",
+            "php83" => "8.3",
+            _ => "8.2",
+        };
         
         let output = crate::execute_elevated_command(&[cmd, "-v", php_version_dot, &extension_name])
             .map_err(|e| format!("Gagal menjalankan perintah elevated {} -v {} {}: {}", cmd, php_version_dot, extension_name, e))?;
