@@ -430,6 +430,22 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
             }
             "php85" | "php84" | "php83" | "php82" => {
                 let php_dir = server_dir.join(&component_id);
+
+                // Flatten single inner directory if present in zip
+                if let Ok(entries) = fs::read_dir(&php_dir) {
+                    let valid_entries: Vec<_> = entries.flatten().collect();
+                    if valid_entries.len() == 1 && valid_entries[0].path().is_dir() {
+                        let subfolder = valid_entries[0].path();
+                        if let Ok(sub_entries) = fs::read_dir(&subfolder) {
+                            for sub_entry in sub_entries.flatten() {
+                                let target_file = php_dir.join(sub_entry.file_name());
+                                let _ = fs::rename(sub_entry.path(), target_file);
+                            }
+                        }
+                        let _ = fs::remove_dir_all(&subfolder);
+                    }
+                }
+
                 let php_ini_path = php_dir.join("php.ini");
                 if !php_ini_path.exists() {
                     let dev_ini = php_dir.join("php.ini-development");

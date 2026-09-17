@@ -915,6 +915,26 @@ body {
     text-align: center;
 }
 
+.coming-soon-badge {
+    background-color: var(--accent-yellow);
+    color: var(--border-black);
+    font-weight: 900;
+    font-size: 0.8rem;
+    padding: 6px 16px;
+    border: 2px solid var(--border-black);
+    box-shadow: 3px 3px 0px 0px var(--border-black);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: var(--radius-default) !important;
+}
+
+.media-placeholder h3 {
+    color: #ffffff !important;
+    font-size: 1.3rem;
+    font-weight: 900;
+    margin-top: 4px;
+}
+
 .media-placeholder-icon {
     font-size: 3rem;
     animation: pulse 2s infinite ease-in-out;
@@ -926,7 +946,7 @@ body {
 }
 
 .media-placeholder p {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #a1a1aa;
     max-width: 480px;
     font-family: 'Consolas', monospace;

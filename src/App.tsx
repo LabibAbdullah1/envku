@@ -487,8 +487,8 @@ export default function App() {
         fetchVirtualHosts(),
       ]);
 
-      // Minimum splash display time of 5.0s for better UX
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Synchronize splash screen closing with 100% progress completion
+      await new Promise(resolve => setTimeout(resolve, 1800));
 
       // Trigger main UI mounting
       setAppReady(true);
