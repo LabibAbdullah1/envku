@@ -11,8 +11,8 @@
   50%       { box-shadow: 0 0 60px rgba(253,224,71,0.35), inset 0 1px 0 rgba(0,0,0,0.12); }
 }
 @keyframes splashShimmer {
-  0%   { background-position: 200% center; }
-  100% { background-position: -200% center; }
+  0%   { background-position: 0 0; }
+  100% { background-position: 44px 0; }
 }
 
 /* ─── Base White Cream Neo-Brutalism Design Tokens ─── */

@@ -457,6 +457,8 @@ export default function App() {
     if (isSplash) return;
 
     const initApp = async () => {
+      const splashStartTime = performance.now();
+
       // 1. Fetch backend dynamically resolved base directory
       let resolvedBaseDir = "C:\\server";
       try {
@@ -487,8 +489,10 @@ export default function App() {
         fetchVirtualHosts(),
       ]);
 
-      // Synchronize splash screen closing with 100% progress completion
-      await new Promise(resolve => setTimeout(resolve, 1800));
+      // Synchronize splash screen closing with 4.0s progress completion + 0.2s hold at 100%
+      const elapsed = performance.now() - splashStartTime;
+      const remainingSplashDelay = Math.max(0, 4200 - elapsed);
+      await new Promise(resolve => setTimeout(resolve, remainingSplashDelay));
 
       // Trigger main UI mounting
       setAppReady(true);
