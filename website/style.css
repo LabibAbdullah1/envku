@@ -1305,11 +1305,11 @@ body {
 }
 
 /* Media Queries (Responsive) */
-@media (max-width: 850px) {
+@media (max-width: 1050px) {
     .hero {
         grid-template-columns: 1fr;
     }
-    
+
     .navbar {
         position: sticky;
         top: 0;
