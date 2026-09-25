@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeri & Tampilan Aplikasi - Envku Orchestrator</title>
+    <meta name="description"
+        content="Tangkapan layar asli dan alur kerja aplikasi Envku Orchestrator untuk Windows & Linux.">
+    <link rel="stylesheet" href="style.css?v=1.4.5">
+</head>
+
+<body class="bg-grid">
+    <!-- Navbar -->
+    <header class="navbar">
+        <a href="index.html" class="logo" style="text-decoration: none;">
+            <img src="envku-logo.svg" alt="Envku Logo" class="logo-icon" width="44" height="44">
+            <span class="logo-text">ENVKU <span class="accent-text">ORCHESTRATOR</span></span>
+        </a>
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+        <nav class="nav-links" id="nav-links">
+            <a href="index.html">Beranda</a>
+            <a href="index.html#features">Fitur &amp; Software</a>
+            <a href="index.html#why">Kelebihan</a>
+            <a href="index.html#install">Panduan</a>
+            <a href="galeri.html">Galeri Foto</a>
+            <a href="https://github.com/LabibAbdullah1/envku" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="download.html" class="btn-primary btn-nav">UNDUH SEKARANG</a>
+        </nav>
+    </header>
+
+    <!-- Galeri / Showcase Section -->
+    <main id="showcase" class="section bg-dark-card" style="border-bottom: none;">
+        <div class="section-header-centered">
+            <span class="badge">TAMPILAN ANTARMUKA APLIKASI</span>
+            <h1 class="section-title text-white" style="margin-bottom: 12px;">GALERI RESMI ENVKU ORCHESTRATOR</h1>
+            <p class="section-desc">Dirancang dengan antarmuka Neo-Brutalist yang bersih, responsif, dan terorganisir.
+                Berikut tangkapan layar asli setiap menu aplikasi sesuai alur kerja pengembang.</p>
+        </div>
+
+        <!-- Quick Jump Navigation Pills (7 Fitur Sesuai Urutan) -->
+        <div class="showcase-nav-pills">
+            <a href="#shot-dashboard" class="pill-btn"><span class="pill-icon">📁</span> Dashboard</a>
+            <a href="#shot-downloader" class="pill-btn"><span class="pill-icon">📦</span> Downloader</a>
+            <a href="#shot-services" class="pill-btn"><span class="pill-icon">⚡</span> Service Panel</a>
+            <a href="#shot-vhost" class="pill-btn"><span class="pill-icon">🌐</span> Project Wizard</a>
+            <a href="#shot-php" class="pill-btn"><span class="pill-icon">🐘</span> PHP Switcher</a>
+            <a href="#shot-node" class="pill-btn"><span class="pill-icon">🟩</span> Node.js &amp; NVM</a>
+            <a href="#shot-support" class="pill-btn"><span class="pill-icon">🐛</span> Laporan Bug</a>
+        </div>
+
+        <div class="discord-showcase-container">
+            <!-- 1. Dashboard -->
+            <div class="showcase-block" id="shot-dashboard">
+                <div class="showcase-block-header">
+                    <div class="showcase-block-info">
+                        <span class="showcase-badge badge-yellow">📁 1. DASHBOARD STATUS LINGKUNGAN</span>
+                        <h2 class="showcase-heading">Pemeriksaan Integritas Sistem &amp; Terminal CLI Terintegrasi</h2>
+                        <p class="showcase-desc">Pantau kondisi folder server secara real-time di direktori <code
+                                class="code-inline">C:\server</code>, verifikasi ketersediaan modul, dan buka Terminal
+                            Envku dengan sekali klik.</p>
+                        <div class="showcase-chips">
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Verifikasi Folder
+                                C:\server</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Terminal CLI Siap Pakai</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Pemantauan Real-Time</span>
+                        </div>
+                    </div>
+                    <div class="showcase-block-actions">
+                        <button type="button" class="btn-primary btn-zoom-trigger" data-screenshot="0">
+                            🔍 PERBESAR TAMPILAN
+                        </button>
+                    </div>
+                </div>
+                <div class="showcase-photo-frame" data-screenshot="0" title="Klik untuk memperbesar tangkapan layar">
+                    <div class="frame-titlebar">
+                        <div class="frame-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="frame-title">dashboard.png</span>
+                        <span class="frame-zoom-tag">🔍 KLIK UNTUK MEMPERBESAR</span>
+                    </div>
+                    <div class="frame-media-wrapper">
+                        <img src="assets/dashboard.png" alt="Tangkapan Layar Dashboard Status Lingkungan Envku"
+                            class="showcase-img" loading="lazy">
+                        <div class="frame-hover-overlay">
+                            <span class="overlay-badge">🔍 KLIK UNTUK MEMPERBESAR</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Downloader -->
+            <div class="showcase-block" id="shot-downloader">
+                <div class="showcase-block-header">
+                    <div class="showcase-block-info">
+                        <span class="showcase-badge badge-emerald">📦 2. KATALOG DOWNLOADER PORTABEL</span>
+                        <h2 class="showcase-heading">Unduh &amp; Ekstrak Komponen Server Resmi Tanpa Installer</h2>
+                        <p class="showcase-desc">Unduh paket resmi Apache, MySQL, PHP, phpMyAdmin, Redis, Composer, dan
+                            Mailpit langsung dari cermin distribusi teruji. Semua komponen diekstrak mandiri tanpa
+                            meninggalkan residu di Windows Registry.</p>
+                        <div class="showcase-chips">
+                            <span class="showcase-chip"><span class="chip-check">✔</span> 100% Portabel di
+                                C:\server</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Ekstraksi ZIP Otomatis</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Indikator Progres Unduh
+                                Real-Time</span>
+                        </div>
+                    </div>
+                    <div class="showcase-block-actions">
+                        <button type="button" class="btn-primary btn-zoom-trigger" data-screenshot="1">
+                            🔍 PERBESAR TAMPILAN
+                        </button>
+                    </div>
+                </div>
+                <div class="showcase-photo-frame" data-screenshot="1" title="Klik untuk memperbesar tangkapan layar">
+                    <div class="frame-titlebar">
+                        <div class="frame-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="frame-title">downloader.png</span>
+                        <span class="frame-zoom-tag">🔍 KLIK UNTUK MEMPERBESAR</span>
+                    </div>
+                    <div class="frame-media-wrapper">
+                        <img src="assets/downloader.png" alt="Tangkapan Layar Downloader Portabel Envku"
+                            class="showcase-img" loading="lazy">
+                        <div class="frame-hover-overlay">
+                            <span class="overlay-badge">🔍 KLIK UNTUK MEMPERBESAR</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Service Panel -->
+            <div class="showcase-block" id="shot-services">
+                <div class="showcase-block-header">
+                    <div class="showcase-block-info">
+                        <span class="showcase-badge badge-yellow">⚡ 3. SERVICE CONTROL PANEL</span>
+                        <h2 class="showcase-heading">Kendalikan Server Apache, MySQL, Redis &amp; Mailpit Dalam 1-Klik
+                        </h2>
+                        <p class="showcase-desc">Pantau status server secara real-time langsung dari panel kontrol
+                            terpadu. Daftarkan Apache 2.4, MySQL 8.0, Redis, dan Mailpit sebagai background service
+                            native yang aman tanpa konflik port.</p>
+                        <div class="showcase-chips">
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Start / Stop / Restart
+                                Cepat</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Kontrol Port 80, 3306, 6379,
+                                1025</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Deteksi Konflik Port
+                                Otomatis</span>
+                        </div>
+                    </div>
+                    <div class="showcase-block-actions">
+                        <button type="button" class="btn-primary btn-zoom-trigger" data-screenshot="2">
+                            🔍 PERBESAR TAMPILAN
+                        </button>
+                    </div>
+                </div>
+                <div class="showcase-photo-frame" data-screenshot="2" title="Klik untuk memperbesar tangkapan layar">
+                    <div class="frame-titlebar">
+                        <div class="frame-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="frame-title">servicePanel.png</span>
+                        <span class="frame-zoom-tag">🔍 KLIK UNTUK MEMPERBESAR</span>
+                    </div>
+                    <div class="frame-media-wrapper">
+                        <img src="assets/servicePanel.png" alt="Tangkapan Layar Service Control Panel Envku"
+                            class="showcase-img" loading="lazy">
+                        <div class="frame-hover-overlay">
+                            <span class="overlay-badge">🔍 KLIK UNTUK MEMPERBESAR</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Project Wizard -->
+            <div class="showcase-block" id="shot-vhost">
+                <div class="showcase-block-header">
+                    <div class="showcase-block-info">
+                        <span class="showcase-badge badge-orange">🌐 4. PROJECT &amp; VIRTUAL HOST WIZARD</span>
+                        <h2 class="showcase-heading">Domain Lokal .test &amp; Reverse Proxy ke Dev Server Otomatis</h2>
+                        <p class="showcase-desc">Lupakan mengedit file Windows <code class="code-inline">hosts</code>
+                            dan <code class="code-inline">httpd-vhosts.conf</code> secara manual. Envku membuat domain
+                            lokal rapi seperti <code class="code-inline">proyek-anda.test</code> dan menyambungkan
+                            reverse proxy port Node.js/Vite secara otomatis.</p>
+                        <div class="showcase-chips">
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Domain Lokal Instan
+                                (.test)</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Jembatan Proxy ke Vite &amp;
+                                Next.js</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Izin Administrator
+                                Native</span>
+                        </div>
+                    </div>
+                    <div class="showcase-block-actions">
+                        <button type="button" class="btn-primary btn-zoom-trigger" data-screenshot="3">
+                            🔍 PERBESAR TAMPILAN
+                        </button>
+                    </div>
+                </div>
+                <div class="showcase-photo-frame" data-screenshot="3" title="Klik untuk memperbesar tangkapan layar">
+                    <div class="frame-titlebar">
+                        <div class="frame-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="frame-title">projectWizard.png</span>
+                        <span class="frame-zoom-tag">🔍 KLIK UNTUK MEMPERBESAR</span>
+                    </div>
+                    <div class="frame-media-wrapper">
+                        <img src="assets/projectWizard.png" alt="Tangkapan Layar Virtual Host Wizard Envku"
+                            class="showcase-img" loading="lazy">
+                        <div class="frame-hover-overlay">
+                            <span class="overlay-badge">🔍 KLIK UNTUK MEMPERBESAR</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. PHP Switcher -->
+            <div class="showcase-block" id="shot-php">
+                <div class="showcase-block-header">
+                    <div class="showcase-block-info">
+                        <span class="showcase-badge badge-blue">🐘 5. PHP VERSION SWITCHER &amp; EXTENSIONS</span>
+                        <h2 class="showcase-heading">Beralih Antara PHP 8.2 Hingga 8.5 &amp; Sakelar Ekstensi Visual
+                        </h2>
+                        <p class="showcase-desc">Kembangkan aplikasi Laravel lama, WordPress, atau proyek mutakhir
+                            berbasis PHP 8.5 berdampingan. Envku secara otomatis mengonfigurasi Apache <code
+                                class="code-inline">httpd.conf</code> dan Windows PATH CLI tanpa merusak setelan lama.
+                        </p>
+                        <div class="showcase-chips">
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Dukungan Penuh PHP 8.2, 8.3,
+                                8.4, 8.5</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Sakelar Visual Ekstensi
+                                (php.ini)</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Zero-Downtime Reload</span>
+                        </div>
+                    </div>
+                    <div class="showcase-block-actions">
+                        <button type="button" class="btn-primary btn-zoom-trigger" data-screenshot="4">
+                            🔍 PERBESAR TAMPILAN
+                        </button>
+                    </div>
+                </div>
+                <div class="showcase-photo-frame" data-screenshot="4" title="Klik untuk memperbesar tangkapan layar">
+                    <div class="frame-titlebar">
+                        <div class="frame-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="frame-title">phpSwitcher.png</span>
+                        <span class="frame-zoom-tag">🔍 KLIK UNTUK MEMPERBESAR</span>
+                    </div>
+                    <div class="frame-media-wrapper">
+                        <img src="assets/phpSwitcher.png" alt="Tangkapan Layar PHP Version Switcher Envku"
+                            class="showcase-img" loading="lazy">
+                        <div class="frame-hover-overlay">
+                            <span class="overlay-badge">🔍 KLIK UNTUK MEMPERBESAR</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Node -->
+            <div class="showcase-block" id="shot-node">
+                <div class="showcase-block-header">
+                    <div class="showcase-block-info">
+                        <span class="showcase-badge badge-purple">🟩 6. NODE.JS &amp; NVM INTEGRATION</span>
+                        <h2 class="showcase-heading">Kelola Berbagai Versi Node.js Global Tanpa Bentrok</h2>
+                        <p class="showcase-desc">Beralih antar versi Node.js (v18, v20, v22) secara mudah dengan
+                            integrasi NVM bawaan. Symlink global otomatis terkonfigurasi untuk eksekusi perintah NPM,
+                            NPX, dan Vite langsung dari terminal sistem Anda.</p>
+                        <div class="showcase-chips">
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Deteksi NVM Otomatis</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Symlink Global Windows
+                                PATH</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Siap Vite, Next.js, Nuxt &amp;
+                                NestJS</span>
+                        </div>
+                    </div>
+                    <div class="showcase-block-actions">
+                        <button type="button" class="btn-primary btn-zoom-trigger" data-screenshot="5">
+                            🔍 PERBESAR TAMPILAN
+                        </button>
+                    </div>
+                </div>
+                <div class="showcase-photo-frame" data-screenshot="5" title="Klik untuk memperbesar tangkapan layar">
+                    <div class="frame-titlebar">
+                        <div class="frame-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="frame-title">Node.png</span>
+                        <span class="frame-zoom-tag">🔍 KLIK UNTUK MEMPERBESAR</span>
+                    </div>
+                    <div class="frame-media-wrapper">
+                        <img src="assets/Node.png" alt="Tangkapan Layar Node.js &amp; NVM Manager Envku"
+                            class="showcase-img" loading="lazy">
+                        <div class="frame-hover-overlay">
+                            <span class="overlay-badge">🔍 KLIK UNTUK MEMPERBESAR</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Laporan Bug -->
+            <div class="showcase-block" id="shot-support">
+                <div class="showcase-block-header">
+                    <div class="showcase-block-info">
+                        <span class="showcase-badge badge-rose">🐛 7. DUKUNGAN &amp; PELAPORAN MASALAH</span>
+                        <h2 class="showcase-heading">Pusat Bantuan, Pembaruan Otomatis &amp; Kanal GitHub</h2>
+                        <p class="showcase-desc">Akses panduan praktis, periksa versi rilis terbaru dengan modul
+                            auto-updater terintegrasi, serta laporkan kendala atau saran fitur baru langsung ke
+                            repositori GitHub Envku.</p>
+                        <div class="showcase-chips">
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Pemeriksaan Update
+                                Otomatis</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Pelaporan Isu &amp; Bug
+                                Cepat</span>
+                            <span class="showcase-chip"><span class="chip-check">✔</span> Informasi Lisensi &amp;
+                                Arsitektur</span>
+                        </div>
+                    </div>
+                    <div class="showcase-block-actions">
+                        <button type="button" class="btn-primary btn-zoom-trigger" data-screenshot="6">
+                            🔍 PERBESAR TAMPILAN
+                        </button>
+                    </div>
+                </div>
+                <div class="showcase-photo-frame" data-screenshot="6" title="Klik untuk memperbesar tangkapan layar">
+                    <div class="frame-titlebar">
+                        <div class="frame-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="frame-title">laporanBug.png</span>
+                        <span class="frame-zoom-tag">🔍 KLIK UNTUK MEMPERBESAR</span>
+                    </div>
+                    <div class="frame-media-wrapper">
+                        <img src="assets/laporanBug.png" alt="Tangkapan Layar Tab Dukungan dan Laporan Bug Envku"
+                            class="showcase-img" loading="lazy">
+                        <div class="frame-hover-overlay">
+                            <span class="overlay-badge">🔍 KLIK UNTUK MEMPERBESAR</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action Banner -->
+        <div
+            style="margin: 60px auto 0 auto; max-width: 900px; text-align: center; background-color: #18181b; border: 3.5px solid var(--border-black); padding: 40px; border-radius: var(--radius-default); box-shadow: var(--shadow-offset-lg);">
+            <h3 style="color: #ffffff; font-size: 1.8rem; font-weight: 900; margin-bottom: 12px;">SIAP MENCOBA ENVKU
+                ORCHESTRATOR?</h3>
+            <p style="color: #a1a1aa; font-size: 0.95rem; margin-bottom: 24px;">Unduh sekarang dan nikmati alur kerja
+                server lokal tanpa konfigurasi manual yang membingungkan.</p>
+            <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+                <a href="download.html" class="btn-primary" style="padding: 12px 28px; font-size: 0.9rem;">UNDUH
+                    SEKARANG</a>
+                <a href="index.html" class="btn-secondary" style="padding: 12px 28px; font-size: 0.9rem;">KEMBALI KE
+                    BERANDA</a>
+            </div>
+        </div>
+
+        <!-- Lightbox Modal for Fullscreen Screenshot Preview -->
+        <div id="screenshot-lightbox" class="lightbox-modal" role="dialog" aria-modal="true"
+            aria-label="Pratinjau Tangkapan Layar">
+            <div class="lightbox-backdrop" id="lightbox-backdrop"></div>
+            <div class="lightbox-dialog">
+                <div class="lightbox-header">
+                    <div class="lightbox-title-wrap">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span id="lightbox-filename" class="lightbox-filename">dashboard.png</span>
+                    </div>
+                    <button type="button" class="lightbox-close" id="lightbox-close"
+                        aria-label="Tutup Pratinjau">✕</button>
+                </div>
+                <div class="lightbox-body">
+                    <button type="button" class="lightbox-nav-btn prev-btn" id="lightbox-prev"
+                        aria-label="Sebelumnya">❮</button>
+                    <img id="lightbox-img" src="assets/dashboard.png" alt="Pratinjau Tangkapan Layar Envku"
+                        class="lightbox-image">
+                    <button type="button" class="lightbox-nav-btn next-btn" id="lightbox-next"
+                        aria-label="Berikutnya">❯</button>
+                </div>
+                <div class="lightbox-footer">
+                    <div class="lightbox-caption">
+                        <h4 id="lightbox-caption-title">Dashboard Status Lingkungan</h4>
+                        <p id="lightbox-caption-desc">Verifikasi integritas direktori sistem server di C:\server secara
+                            real-time dan akses cepat terminal Envku.</p>
+                    </div>
+                    <div class="lightbox-counter" id="lightbox-counter">1 / 7</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2026 Envku Orchestrator. Semua Hak Cipta Dilindungi.</p>
+        <p class="footer-sub">Pengembangan Lingkungan Lokal Lebih Cepat dan Modern.</p>
+    </footer>
+
+    <script>
+        // Hamburger Menu Toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+
+        if (menuToggle && navLinks) {
+            menuToggle.addEventListener('click', () => {
+                menuToggle.classList.toggle('active');
+                navLinks.classList.toggle('active');
+            });
+
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    menuToggle.classList.remove('active');
+                    navLinks.classList.remove('active');
+                });
+            });
+        }
+
+        // Screenshot Lightbox Gallery Logic (Urutan: dashboard, downloader, service panel, project wizard, php switcher, node, laporan bug)
+        const screenshotsData = [
+            {
+                src: 'assets/dashboard.png',
+                filename: 'dashboard.png',
+                title: '1. Dashboard Status Lingkungan Sistem',
+                desc: 'Verifikasi integritas direktori sistem server di C:\\server secara real-time dan akses cepat terminal Envku.'
+            },
+            {
+                src: 'assets/downloader.png',
+                filename: 'downloader.png',
+                title: '2. Katalog Downloader Komponen Portabel',
+                desc: 'Unduh dan pasang paket Apache, MySQL, PHP, Redis, Mailpit, phpMyAdmin, dan Composer langsung ke C:\\server tanpa installer.'
+            },
+            {
+                src: 'assets/servicePanel.png',
+                filename: 'servicePanel.png',
+                title: '3. Service Control Panel Instant',
+                desc: 'Status server dipantau secara real-time. Port 80, 3306, 6379, dan 1025 langsung diaktifkan sebagai Windows Services.'
+            },
+            {
+                src: 'assets/projectWizard.png',
+                filename: 'projectWizard.png',
+                title: '4. Project & Virtual Host Wizard',
+                desc: 'Domain lokal otomatis (.test) untuk PHP/HTML dan konfigurasi Reverse Proxy port Node.js/Vite secara aman.'
+            },
+            {
+                src: 'assets/phpSwitcher.png',
+                filename: 'phpSwitcher.png',
+                title: '5. PHP Version Switcher & Ekstensi',
+                desc: 'Peralihan instan PHP 8.2 hingga 8.5 serta sakelar visual ekstensi PHP (PDO, cURL, OpenSSL, Zip, Redis).'
+            },
+            {
+                src: 'assets/Node.png',
+                filename: 'Node.png',
+                title: '6. Integrasi Node.js & NVM Global',
+                desc: 'Manajemen berbagai versi Node.js lokal menggunakan NVM dan pembuatan symlink PATH otomatis ke terminal.'
+            },
+            {
+                src: 'assets/laporanBug.png',
+                filename: 'laporanBug.png',
+                title: '7. Dukungan & Pelaporan Masalah',
+                desc: 'Panduan bantuan, informasi pembaruan aplikasi otomatis, dan kanal pelaporan bug langsung ke repositori GitHub.'
+            }
+        ];
+
+        let currentLightboxIndex = 0;
+        const lightboxModal = document.getElementById('screenshot-lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxFilename = document.getElementById('lightbox-filename');
+        const lightboxTitle = document.getElementById('lightbox-caption-title');
+        const lightboxDesc = document.getElementById('lightbox-caption-desc');
+        const lightboxCounter = document.getElementById('lightbox-counter');
+        const lightboxClose = document.getElementById('lightbox-close');
+        const lightboxBackdrop = document.getElementById('lightbox-backdrop');
+        const lightboxPrev = document.getElementById('lightbox-prev');
+        const lightboxNext = document.getElementById('lightbox-next');
+
+        function openLightbox(index) {
+            currentLightboxIndex = (index + screenshotsData.length) % screenshotsData.length;
+            const item = screenshotsData[currentLightboxIndex];
+
+            lightboxImg.src = item.src;
+            lightboxFilename.textContent = item.filename;
+            lightboxTitle.textContent = item.title;
+            lightboxDesc.textContent = item.desc;
+            lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${screenshotsData.length}`;
+
+            lightboxModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            lightboxModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function nextScreenshot() {
+            openLightbox(currentLightboxIndex + 1);
+        }
+
+        function prevScreenshot() {
+            openLightbox(currentLightboxIndex - 1);
+        }
+
+        // Event listener klik foto frame & tombol perbesar
+        document.querySelectorAll('.showcase-photo-frame, .btn-zoom-trigger').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(el.getAttribute('data-screenshot') || '0', 10);
+                openLightbox(idx);
+            });
+        });
+
+        if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+        if (lightboxBackdrop) lightboxBackdrop.addEventListener('click', closeLightbox);
+        if (lightboxNext) lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); nextScreenshot(); });
+        if (lightboxPrev) lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); prevScreenshot(); });
+
+        // Navigasi Keyboard (Esc, Arrow Left, Arrow Right)
+        window.addEventListener('keydown', (e) => {
+            if (!lightboxModal.classList.contains('active')) return;
+            if (e.key === 'Escape') closeLightbox();
+            else if (e.key === 'ArrowRight') nextScreenshot();
+            else if (e.key === 'ArrowLeft') prevScreenshot();
+        });
+    </script>
+</body>
+
+</html>

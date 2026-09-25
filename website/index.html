@@ -4,27 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envku - Portable Local Web Server Orchestrator</title>
-    <link rel="stylesheet" href="style.css?v=1.4.0">
+    <meta name="description" content="Envku adalah orchestrator server lokal modern bergaya Neo-Brutalist untuk Windows & Linux. Kelola Apache, PHP Switcher, MySQL, Composer, Redis, Mailpit, phpMyAdmin, dan Node.js/NVM.">
+    <link rel="stylesheet" href="style.css?v=1.4.5">
 </head>
 <body class="bg-grid">
     <!-- Navbar -->
     <header class="navbar">
-        <div class="logo">
+        <a href="index.html" class="logo" style="text-decoration: none;">
             <img src="envku-logo.svg" alt="Envku Logo" class="logo-icon" width="44" height="44">
             <span class="logo-text">ENVKU <span class="accent-text">ORCHESTRATOR</span></span>
-        </div>
+        </a>
         <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
             <span class="bar"></span>
             <span class="bar"></span>
             <span class="bar"></span>
         </button>
         <nav class="nav-links" id="nav-links">
-            <a href="#showcase">Demonstrasi</a>
-            <a href="#features">Fitur & Software</a>
+            <a href="index.html">Beranda</a>
+            <a href="#features">Fitur &amp; Software</a>
             <a href="#why">Kelebihan</a>
             <a href="#install">Panduan</a>
-            <a href="#github">GitHub</a>
-            <a href="#download" class="btn-primary btn-nav">UNDUH SEKARANG</a>
+            <a href="galeri.html">Galeri Foto</a>
+            <a href="https://github.com/LabibAbdullah1/envku" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="download.html" class="btn-primary btn-nav">UNDUH SEKARANG</a>
         </nav>
     </header>
 
@@ -33,10 +35,10 @@
         <div class="hero-content">
             <span class="badge">V1.4.5 STABLE</span>
             <h1>PENGELOLA SERVER LOKAL PORTABLE TANPA COMPROMISE</h1>
-            <p>Envku adalah orchestrator server lokal modern bergaya Neo-Brutalist untuk Windows & Linux. Kelola Apache, PHP Switcher, MySQL, Composer, Redis, Mailpit, phpMyAdmin, dan Node.js/NVM dalam satu aplikasi portable yang super ringan dan bebas repot.</p>
+            <p>Envku adalah orchestrator server lokal modern bergaya Neo-Brutalist untuk Windows &amp; Linux. Kelola Apache, PHP Switcher, MySQL, Composer, Redis, Mailpit, phpMyAdmin, dan Node.js/NVM dalam satu aplikasi portable yang super ringan dan bebas repot.</p>
             <div class="hero-actions">
-                <a href="#download" class="btn-primary btn-hero">UNDUH SEKARANG</a>
-                <a href="#features" class="btn-secondary btn-hero">PELAJARI FITUR</a>
+                <a href="download.html" class="btn-primary btn-hero">UNDUH SEKARANG</a>
+                <a href="galeri.html" class="btn-secondary btn-hero">LIHAT TAMPILAN FOTO</a>
             </div>
         </div>
         <div class="hero-preview">
@@ -61,140 +63,85 @@
         </div>
     </section>
 
-    <!-- Interactive Showcase Section (Video / GIF Player Container) -->
-    <section id="showcase" class="section bg-dark-card">
-        <h2 class="section-title text-white">DEMONSTRASI FITUR APLIKASI</h2>
-        <p class="section-desc">Lihat alur kerja Envku secara langsung dalam animasi peragaan fitur di bawah ini.</p>
-        
-        <div class="showcase-container">
-            <div class="showcase-tabs">
-                <button class="tab-btn active" data-tab="tab-overview">Overview Server</button>
-                <button class="tab-btn" data-tab="tab-php">PHP Switcher</button>
-                <button class="tab-btn" data-tab="tab-vhost">Virtual Host Wizard</button>
-                <button class="tab-btn" data-tab="tab-downloader">Downloader Portabel</button>
+    <!-- Showcase Teaser Section -->
+    <section id="showcase-teaser" class="section bg-dark-card">
+        <div class="section-header-centered">
+            <span class="badge">TAMPILAN ANTARMUKA APLIKASI</span>
+            <h2 class="section-title text-white" style="margin-bottom: 12px;">ANTARMUKA CEPAT, BERSIH &amp; INTUITIF</h2>
+            <p class="section-desc">Dibangun dengan Tauri, Rust, dan React untuk menghasilkan performa instan tanpa membebani RAM komputer Anda.</p>
+        </div>
+
+        <div style="max-width: 1200px; margin: 0 auto; background-color: #18181b; border: 3.5px solid var(--border-black); padding: 32px; border-radius: var(--radius-default); box-shadow: var(--shadow-offset-lg);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <span class="badge" style="background-color: var(--accent-yellow); color: #000; font-size: 0.75rem;">7 MODUL APLIKASI LENGKAP</span>
+                    <h3 style="color: #ffffff; font-size: 1.5rem; font-weight: 900; margin-top: 6px;">Pratinjau Dashboard &amp; Fitur Server</h3>
+                </div>
+                <a href="galeri.html" class="btn-primary" style="padding: 10px 20px; font-size: 0.82rem;">BUKA GALERI 7 FOTO LENGKAP →</a>
             </div>
 
-            <div class="showcase-display">
-                <!-- Tab 1: Overview Server -->
-                <div class="tab-content active" id="tab-overview">
-                    <div class="media-frame">
-                        <span class="media-badge">LIVE DEMO ⚡</span>
-                        <video class="showcase-video" autoplay loop muted playsinline style="display: none;">
-                            <source src="assets/demo-overview.mp4" type="video/mp4">
-                            <source src="assets/demo-overview.webm" type="video/webm">
-                        </video>
-                        <div class="media-placeholder">
-                            <div class="media-placeholder-icon">🚀</div>
-                            <span class="coming-soon-badge">COMING SOON</span>
-                            <h3>DEMO VIDEO SEGERA HADIR</h3>
-                            <p>Video peragaan alur kerja Service Control Panel (Apache 2.4 & MySQL 8.0) sedang dalam tahap perekaman.</p>
+            <!-- Preview Card Window -->
+            <a href="galeri.html" style="display: block; text-decoration: none;" title="Buka galeri lengkap">
+                <div class="showcase-photo-frame">
+                    <div class="frame-titlebar">
+                        <div class="frame-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
                         </div>
+                        <span class="frame-title">dashboard.png — Pratinjau Tampilan</span>
+                        <span class="frame-zoom-tag">🔍 KLIK UNTUK MELIHAT SEMUA FOTO</span>
                     </div>
-                    <div class="tab-description">
-                        <div class="tab-description-text">
-                            <h4>Service Control Panel Instant</h4>
-                            <p>Status server dipantau secara real-time. Port 80 & 3306 langsung diaktifkan sebagai Windows Services.</p>
+                    <div class="frame-media-wrapper">
+                        <img src="assets/dashboard.png" alt="Pratinjau Tampilan Dashboard Envku" class="showcase-img" loading="lazy">
+                        <div class="frame-hover-overlay">
+                            <span class="overlay-badge">🔍 BUKA HALAMAN GALERI LENGKAP (7 FOTO)</span>
                         </div>
                     </div>
                 </div>
+            </a>
 
-                <!-- Tab 2: PHP Switcher -->
-                <div class="tab-content" id="tab-php">
-                    <div class="media-frame">
-                        <span class="media-badge">1-CLICK SWITCH</span>
-                        <video class="showcase-video" autoplay loop muted playsinline style="display: none;">
-                            <source src="assets/demo-php.mp4" type="video/mp4">
-                        </video>
-                        <div class="media-placeholder">
-                            <div class="media-placeholder-icon">🐘</div>
-                            <span class="coming-soon-badge">COMING SOON</span>
-                            <h3>DEMO VIDEO SEGERA HADIR</h3>
-                            <p>Video peragaan fitur PHP Version Switcher (PHP 8.2 ke 8.5) sedang dalam tahap perekaman.</p>
-                        </div>
-                    </div>
-                    <div class="tab-description">
-                        <div class="tab-description-text">
-                            <h4>Peralihan Versi PHP Instan</h4>
-                            <p>Mendukung perpindahan modul PHP 8.2, 8.3, 8.4 & 8.5 secara langsung pada Apache httpd.conf tanpa merusak konfigurasi.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab 3: Virtual Host Wizard -->
-                <div class="tab-content" id="tab-vhost">
-                    <div class="media-frame">
-                        <span class="media-badge">AUTO DOMAIN</span>
-                        <video class="showcase-video" autoplay loop muted playsinline style="display: none;">
-                            <source src="assets/demo-vhost.mp4" type="video/mp4">
-                        </video>
-                        <div class="media-placeholder">
-                            <div class="media-placeholder-icon">🌐</div>
-                            <span class="coming-soon-badge">COMING SOON</span>
-                            <h3>DEMO VIDEO SEGERA HADIR</h3>
-                            <p>Video peragaan pembuat Virtual Host domain lokal (.test) & Node.js reverse proxy sedang dalam tahap perekaman.</p>
-                        </div>
-                    </div>
-                    <div class="tab-description">
-                        <div class="tab-description-text">
-                            <h4>Pembuat Domain Lokal & Proxy</h4>
-                            <p>Otomatis memperbarui file Windows `hosts` dan Apache `httpd-vhosts.conf` secara aman dengan hak akses administrator.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab 4: Downloader Portabel -->
-                <div class="tab-content" id="tab-downloader">
-                    <div class="media-frame">
-                        <span class="media-badge">PORTABLE EXTRACT</span>
-                        <video class="showcase-video" autoplay loop muted playsinline style="display: none;">
-                            <source src="assets/demo-downloader.mp4" type="video/mp4">
-                        </video>
-                        <div class="media-placeholder">
-                            <div class="media-placeholder-icon">📦</div>
-                            <span class="coming-soon-badge">COMING SOON</span>
-                            <h3>DEMO VIDEO SEGERA HADIR</h3>
-                            <p>Video peragaan ekstraksi komponen portabel (Apache, MySQL, PHP, Redis, Mailpit) sedang dalam tahap perekaman.</p>
-                        </div>
-                    </div>
-                    <div class="tab-description">
-                        <div class="tab-description-text">
-                            <h4>Unduh & Pasang Komponen Otomatis</h4>
-                            <p>Komponen langsung siap pakai tanpa perlu instalasi wizard yang rumit di Windows.</p>
-                        </div>
-                    </div>
-                </div>
+            <!-- Feature quick badges -->
+            <div style="display: flex; justify-content: center; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+                <span class="showcase-chip"><span class="chip-check">1.</span> Dashboard</span>
+                <span class="showcase-chip"><span class="chip-check">2.</span> Downloader</span>
+                <span class="showcase-chip"><span class="chip-check">3.</span> Service Panel</span>
+                <span class="showcase-chip"><span class="chip-check">4.</span> Project Wizard</span>
+                <span class="showcase-chip"><span class="chip-check">5.</span> PHP Switcher</span>
+                <span class="showcase-chip"><span class="chip-check">6.</span> Node.js &amp; NVM</span>
+                <span class="showcase-chip"><span class="chip-check">7.</span> Laporan Bug</span>
             </div>
         </div>
     </section>
 
     <!-- Unified Features & Software Ecosystem Section -->
     <section id="features" class="section">
-        <h2 class="section-title">EKOSISTEM & FITUR UTAMA</h2>
+        <h2 class="section-title">EKOSISTEM &amp; FITUR UTAMA</h2>
         <p class="section-desc">Semua komponen server dan alat bantu pengembangan lokal lengkap dalam satu aplikasi portable yang super cepat.</p>
 
         <div class="features-grid">
             <!-- Feature 1: PHP Switcher -->
             <div class="feature-card border-yellow">
-                <div class="icon-container bg-yellow">PHP 8.2 & 8.3</div>
+                <div class="icon-container bg-yellow">PHP 8.2 &amp; 8.3</div>
                 <h3>PHP VERSION SWITCHER</h3>
-                <p>Ganti versi modul PHP di Apache dan PATH CLI Windows secara instan (dukungan PHP 8.2 & 8.3) tanpa mengganggu konfigurasi utama.</p>
+                <p>Ganti versi modul PHP di Apache dan PATH CLI Windows secara instan (dukungan PHP 8.2 hingga 8.5) tanpa mengganggu konfigurasi utama.</p>
             </div>
             <!-- Feature 2: Project Wizard -->
             <div class="feature-card border-orange">
                 <div class="icon-container bg-orange">VHOST</div>
-                <h3>PROJECT & PROXY WIZARD</h3>
+                <h3>PROJECT &amp; PROXY WIZARD</h3>
                 <p>Buat Virtual Host domain lokal (.test) untuk PHP/HTML atau Reverse Proxy otomatis ke port Node.js/Vite secara mudah.</p>
             </div>
             <!-- Feature 3: Service Control -->
             <div class="feature-card border-red">
                 <div class="icon-container bg-red">SVC</div>
                 <h3>SERVICE CONTROL PANEL</h3>
-                <p>Kendalikan dan daftarkan Apache 2.4 & MySQL 8.0 langsung sebagai Windows Services yang terisolasi dalam 1-klik.</p>
+                <p>Kendalikan dan daftarkan Apache 2.4 &amp; MySQL 8.0 langsung sebagai Windows Services yang terisolasi dalam 1-klik.</p>
             </div>
             <!-- Feature 4: Node.js & NVM -->
             <div class="feature-card border-blue">
                 <div class="icon-container bg-blue">NVM</div>
-                <h3>NODE.JS & NVM INTEGRATION</h3>
+                <h3>NODE.JS &amp; NVM INTEGRATION</h3>
                 <p>Kelola beberapa versi Node.js secara global di komputer Anda menggunakan integrasi NVM bawaan yang praktis.</p>
             </div>
             <!-- Feature 5: MySQL Portable -->
@@ -230,6 +177,34 @@
         </div>
     </section>
 
+    <!-- Why Choose Envku Section -->
+    <section id="why" class="section">
+        <div class="section-header-centered">
+            <span class="badge">KEUNGGULAN UTAMA</span>
+            <h2 class="section-title">MENGAPA MEMILIH ENVKU?</h2>
+            <p class="section-desc">Dirancang khusus untuk pengembang web modern yang membutuhkan server lokal instan tanpa bloatware dan konfigurasi rumit.</p>
+        </div>
+
+        <div class="why-grid">
+            <div class="why-card">
+                <h4>🚀 100% Portabel &amp; Bebas Registry</h4>
+                <p>Semua file dan data server terpusat di satu folder. Tidak menyentuh Windows Registry, mudah dipindahkan atau dicadangkan kapan saja.</p>
+            </div>
+            <div class="why-card">
+                <h4>⚡ Sangat Ringan Berbasis Rust</h4>
+                <p>Dibangun dengan Tauri v2 dan Rust. Konsumsi RAM hanya belasan megabyte, jauh lebih hemat baterai dan memori dibanding Electron.</p>
+            </div>
+            <div class="why-card">
+                <h4>🐘 Multi-PHP Switcher 1-Klik</h4>
+                <p>Ganti versi PHP secara instan tanpa restart sistem atau modifikasi manual httpd.conf. Cocok untuk proyek lawas maupun mutakhir.</p>
+            </div>
+            <div class="why-card">
+                <h4>🔒 Terisolasi &amp; Tanpa Konflik</h4>
+                <p>Apache, MySQL, Redis, dan Mailpit berjalan dalam konfigurasi terisolasi sehingga tidak akan merusak layanan lain di komputer Anda.</p>
+            </div>
+        </div>
+    </section>
+
     <!-- Getting Started Section -->
     <section id="install" class="section bg-dark-card">
         <h2 class="section-title text-white">CARA MEMULAI</h2>
@@ -238,7 +213,7 @@
                 <div class="step-num">1</div>
                 <div class="step-detail">
                     <h4>Unduh Aplikasi</h4>
-                    <p>Unduh file installer sesuai dengan OS Anda: `.exe` untuk Windows atau `.deb`/`.AppImage` untuk Linux di bagian unduhan di bawah.</p>
+                    <p>Unduh file installer sesuai dengan OS Anda: `.exe` untuk Windows atau `.deb`/`.AppImage` untuk Linux di <a href="download.html" style="color: var(--accent-yellow); font-weight: 800;">halaman unduhan</a>.</p>
                 </div>
             </div>
             <div class="step-item">
@@ -276,80 +251,14 @@
         </div>
     </section>
 
-    <!-- Download Section -->
-    <section id="download" class="section text-center">
-        <h2 class="section-title">UNDUH VERSI TERBARU</h2>
-        <p class="section-desc">Pilih versi aplikasi stabil di bawah. Rilis yang diunduh dari aplikasi akan mendapatkan pemberitahuan pembaruan otomatis.</p>
-        
-        <div class="download-container">
-            <!-- Windows Card -->
-            <div class="download-card">
-                <div class="download-header bg-yellow">
-                    <h3>ENVKU UNTUK WINDOWS</h3>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span class="version-tag">V1.4.5 (STABLE)</span>
-                        <span class="version-tag downloads-badge" id="downloads-badge-win">0 UNDUHAN</span>
-                    </div>
-                </div>
-                <div class="download-body">
-                    <ul class="download-info">
-                        <li><strong>Platform:</strong> Windows 10 / 11 (x64)</li>
-                        <li id="file-size-win"><strong>Ukuran:</strong> ~2.6 MB</li>
-                        <li id="file-release-win"><strong>Rilis:</strong> 17 September 2026</li>
-                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-win">0</span> kali</li>
-                    </ul>
-                    <a href="downloads/Envku_1.4.5_x64-setup.exe" id="download-btn-win" class="btn-primary btn-download">UNDUH INSTALLER (.EXE)</a>
-                    <div class="hash-box">
-                        SHA-256: <span class="hash-text" id="hash-win">d2f8dcfe9c98ba79d8b12354...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Linux AppImage Card -->
-            <div class="download-card">
-                <div class="download-header bg-blue">
-                    <h3>ENVKU PORTABLE LINUX</h3>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span class="version-tag">V1.4.5 (STABLE)</span>
-                        <span class="version-tag downloads-badge" id="downloads-badge-appimage">0 UNDUHAN</span>
-                    </div>
-                </div>
-                <div class="download-body">
-                    <ul class="download-info">
-                        <li><strong>Platform:</strong> Linux Universal (amd64)</li>
-                        <li id="file-size-appimage"><strong>Ukuran:</strong> ~80.5 MB</li>
-                        <li id="file-release-appimage"><strong>Rilis:</strong> 12 September 2026</li>
-                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-appimage">0</span> kali</li>
-                    </ul>
-                    <a href="downloads/envku_1.4.1_amd64.AppImage" id="download-btn-appimage" class="btn-primary btn-download" style="width: 100%; display: block; text-align: center;">UNDUH PORTABLE (.APPIMAGE)</a>
-                    <div class="hash-box">
-                        SHA-256: <span class="hash-text" id="hash-appimage">78e2b8df1a95e0c60959f678...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Linux DEB Card -->
-            <div class="download-card">
-                <div class="download-header bg-emerald">
-                    <h3>ENVKU DEBIAN LINUX</h3>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span class="version-tag">V1.4.5 (STABLE)</span>
-                        <span class="version-tag downloads-badge" id="downloads-badge-deb">0 UNDUHAN</span>
-                    </div>
-                </div>
-                <div class="download-body">
-                    <ul class="download-info">
-                        <li><strong>Platform:</strong> Debian / Ubuntu (amd64)</li>
-                        <li id="file-size-deb"><strong>Ukuran:</strong> ~3.8 MB</li>
-                        <li id="file-release-deb"><strong>Rilis:</strong> 12 September 2026</li>
-                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-deb">0</span> kali</li>
-                    </ul>
-                    <a href="downloads/envku_1.4.1_amd64.deb" id="download-btn-deb" class="btn-primary btn-download" style="width: 100%; display: block; text-align: center;">UNDUH INSTALLER (.DEB)</a>
-                    <div class="hash-box">
-                        SHA-256: <span class="hash-text" id="hash-deb">78e2b8df1a95e0c60959f678...</span>
-                    </div>
-                </div>
-            </div>
+    <!-- Download CTA Banner Section -->
+    <section class="section text-center" style="background-color: #18181b; border-bottom: none;">
+        <span class="badge" style="margin-bottom: 12px;">SIAP MEMULAI?</span>
+        <h2 class="section-title text-white" style="margin-bottom: 12px;">UNDUH ENVKU ORCHESTRATOR SEKARANG</h2>
+        <p class="section-desc" style="margin-bottom: 30px;">Tersedia gratis untuk Windows 10/11 x64 dan Linux Universal (AppImage / DEB).</p>
+        <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+            <a href="download.html" class="btn-primary btn-hero">MENUJU HALAMAN UNDUHAN</a>
+            <a href="galeri.html" class="btn-secondary btn-hero">LIHAT GALERI FOTO</a>
         </div>
     </section>
 
@@ -360,172 +269,6 @@
     </footer>
 
     <script>
-        const API_URL = 'counter.php';
-
-        const badgeWin = document.getElementById('downloads-badge-win');
-        const textWin = document.getElementById('downloads-text-win');
-        const badgeAppImage = document.getElementById('downloads-badge-appimage');
-        const textAppImage = document.getElementById('downloads-text-appimage');
-        const badgeDeb = document.getElementById('downloads-badge-deb');
-        const textDeb = document.getElementById('downloads-text-deb');
-
-        const btnWin = document.getElementById('download-btn-win');
-        const btnAppImage = document.getElementById('download-btn-appimage');
-        const btnDeb = document.getElementById('download-btn-deb');
-
-        // Format count (e.g., 4230 -> 4.2K+)
-        function formatCount(num) {
-            if (num >= 1000) {
-                return (num / 1000).toFixed(1) + 'K+';
-            }
-            return num;
-        }
-
-        // Fetch current counter
-        async function fetchCount() {
-            // Migrasi untuk localStorage lokal jika ada data lama
-            if (!localStorage.getItem('envku_downloads_win') && localStorage.getItem('envku_downloads')) {
-                localStorage.setItem('envku_downloads_win', localStorage.getItem('envku_downloads'));
-            }
-            if (!localStorage.getItem('envku_downloads_appimage') && localStorage.getItem('envku_downloads_linux')) {
-                localStorage.setItem('envku_downloads_appimage', localStorage.getItem('envku_downloads_linux'));
-            }
-
-            // Jika berjalan lokal via file://, gunakan localStorage agar tidak reset saat refresh
-            if (window.location.protocol === 'file:') {
-                const localWin = parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
-                const localAppImage = parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
-                const localDeb = parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
-                updateUI(localWin, localAppImage, localDeb);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL}?action=get`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const valWin = data.win || 0;
-                    const valAppImage = data.appimage || 0;
-                    const valDeb = data.deb || 0;
-                    updateUI(valWin, valAppImage, valDeb);
-                } else {
-                    fallbackLocal();
-                }
-            } catch (err) {
-                fallbackLocal();
-            }
-        }
-
-        function updateUI(valWin, valAppImage, valDeb) {
-            if (badgeWin) badgeWin.textContent = formatCount(valWin) + ' UNDUHAN';
-            if (textWin) textWin.textContent = valWin.toLocaleString('id-ID');
-            if (badgeAppImage) badgeAppImage.textContent = formatCount(valAppImage) + ' UNDUHAN';
-            if (textAppImage) textAppImage.textContent = valAppImage.toLocaleString('id-ID');
-            if (badgeDeb) badgeDeb.textContent = formatCount(valDeb) + ' UNDUHAN';
-            if (textDeb) textDeb.textContent = valDeb.toLocaleString('id-ID');
-        }
-
-        function fallbackLocal() {
-            const localWin = parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
-            const localAppImage = parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
-            const localDeb = parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
-            updateUI(localWin, localAppImage, localDeb);
-        }
-
-        // Increment count
-        async function incrementCount(platform) {
-            // Jika berjalan lokal via file://, simpan di localStorage
-            if (window.location.protocol === 'file:') {
-                const key = `envku_downloads_${platform}`;
-                const localVal = parseInt(localStorage.getItem(key) || '0', 10) + 1;
-                localStorage.setItem(key, localVal);
-                
-                const winVal = platform === 'win' ? localVal : parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
-                const appimageVal = platform === 'appimage' ? localVal : parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
-                const debVal = platform === 'deb' ? localVal : parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
-                updateUI(winVal, appimageVal, debVal);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL}?action=increment&platform=${platform}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    updateUI(data.win || 0, data.appimage || 0, data.deb || 0);
-                } else {
-                    incrementLocalFallback(platform);
-                }
-            } catch (err) {
-                incrementLocalFallback(platform);
-            }
-        }
-
-        function incrementLocalFallback(platform) {
-            const key = `envku_downloads_${platform}`;
-            const localVal = parseInt(localStorage.getItem(key) || '0', 10) + 1;
-            localStorage.setItem(key, localVal);
-
-            const winVal = platform === 'win' ? localVal : parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
-            const appimageVal = platform === 'appimage' ? localVal : parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
-            const debVal = platform === 'deb' ? localVal : parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
-            updateUI(winVal, appimageVal, debVal);
-        }
-
-        // Listen for download click
-        if (btnWin) {
-            btnWin.addEventListener('click', () => {
-                const currentText = (textWin?.textContent || "0").replace(/\./g, '');
-                const currentNum = parseInt(currentText, 10);
-                
-                const currentAppImageText = (textAppImage?.textContent || "0").replace(/\./g, '');
-                const currentAppImageNum = parseInt(currentAppImageText, 10);
-                
-                const currentDebText = (textDeb?.textContent || "0").replace(/\./g, '');
-                const currentDebNum = parseInt(currentDebText, 10);
-
-                if (!isNaN(currentNum)) {
-                    updateUI(currentNum + 1, currentAppImageNum, currentDebNum);
-                }
-                incrementCount('win');
-            });
-        }
-
-        if (btnAppImage) {
-            btnAppImage.addEventListener('click', (e) => {
-                const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
-                const currentWinNum = parseInt(currentWinText, 10);
-                
-                const currentText = (textAppImage?.textContent || "0").replace(/\./g, '');
-                const currentNum = parseInt(currentText, 10);
-                
-                const currentDebText = (textDeb?.textContent || "0").replace(/\./g, '');
-                const currentDebNum = parseInt(currentDebText, 10);
-
-                if (!isNaN(currentNum)) {
-                    updateUI(currentWinNum, currentNum + 1, currentDebNum);
-                }
-                incrementCount('appimage');
-            });
-        }
-
-        if (btnDeb) {
-            btnDeb.addEventListener('click', (e) => {
-                const currentWinText = (textWin?.textContent || "0").replace(/\./g, '');
-                const currentWinNum = parseInt(currentWinText, 10);
-                
-                const currentAppImageText = (textAppImage?.textContent || "0").replace(/\./g, '');
-                const currentAppImageNum = parseInt(currentAppImageText, 10);
-                
-                const currentText = (textDeb?.textContent || "0").replace(/\./g, '');
-                const currentNum = parseInt(currentText, 10);
-
-                if (!isNaN(currentNum)) {
-                    updateUI(currentWinNum, currentAppImageNum, currentNum + 1);
-                }
-                incrementCount('deb');
-            });
-        }
-
         // Hamburger Menu Toggle
         const menuToggle = document.getElementById('menu-toggle');
         const navLinks = document.getElementById('nav-links');
@@ -536,7 +279,6 @@
                 navLinks.classList.toggle('active');
             });
 
-            // Close menu when clicking link
             navLinks.querySelectorAll('a').forEach(link => {
                 link.addEventListener('click', () => {
                     menuToggle.classList.remove('active');
@@ -544,50 +286,6 @@
                 });
             });
         }
-
-        // Tab Switcher for Interactive Showcase
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        // Video media loader check
-        document.querySelectorAll('.showcase-video').forEach(video => {
-            video.addEventListener('canplay', () => {
-                video.style.display = 'block';
-                const placeholder = video.parentElement.querySelector('.media-placeholder');
-                if (placeholder) placeholder.style.display = 'none';
-            });
-            video.addEventListener('error', () => {
-                video.style.display = 'none';
-                const placeholder = video.parentElement.querySelector('.media-placeholder');
-                if (placeholder) placeholder.style.display = 'flex';
-            });
-        });
-
-        // Tab Switcher for Interactive Showcase
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const targetTab = btn.getAttribute('data-tab');
-
-                tabBtns.forEach(b => b.classList.remove('active'));
-                tabContents.forEach(c => c.classList.remove('active'));
-
-                btn.classList.add('active');
-                const targetElement = document.getElementById(targetTab);
-                if (targetElement) {
-                    targetElement.classList.add('active');
-                    // Play video if present inside tab
-                    const vid = targetElement.querySelector('video');
-                    if (vid && vid.style.display !== 'none') {
-                        vid.currentTime = 0;
-                        vid.play().catch(() => {});
-                    }
-                }
-            });
-        });
-
-        // Jalankan pengambilan data awal
-        fetchCount();
     </script>
 </body>
 </html>

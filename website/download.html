@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unduh Envku Orchestrator - Windows & Linux</title>
+    <meta name="description" content="Unduh Envku Orchestrator versi terbaru untuk Windows (.exe) dan Linux (.AppImage, .deb). Server lokal portable cepat dan ringan.">
+    <link rel="stylesheet" href="style.css?v=1.4.5">
+</head>
+<body class="bg-grid">
+    <!-- Navbar -->
+    <header class="navbar">
+        <a href="index.html" class="logo" style="text-decoration: none;">
+            <img src="envku-logo.svg" alt="Envku Logo" class="logo-icon" width="44" height="44">
+            <span class="logo-text">ENVKU <span class="accent-text">ORCHESTRATOR</span></span>
+        </a>
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+        <nav class="nav-links" id="nav-links">
+            <a href="index.html">Beranda</a>
+            <a href="index.html#features">Fitur &amp; Software</a>
+            <a href="index.html#why">Kelebihan</a>
+            <a href="index.html#install">Panduan</a>
+            <a href="galeri.html">Galeri Foto</a>
+            <a href="https://github.com/LabibAbdullah1/envku" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="download.html" class="btn-primary btn-nav">UNDUH SEKARANG</a>
+        </nav>
+    </header>
+
+    <!-- Download Hero Section -->
+    <main class="section text-center" style="border-bottom: none; padding-top: 60px;">
+        <span class="badge" style="margin-bottom: 16px;">V1.4.5 STABLE RELEASE</span>
+        <h1 class="section-title" style="margin-bottom: 14px;">UNDUH ENVKU ORCHESTRATOR</h1>
+        <p class="section-desc">Pilih versi paket yang sesuai dengan sistem operasi komputer Anda. Aplikasi ini 100% open-source, portabel, dan bebas biaya lisensi.</p>
+
+        <div class="download-container" style="margin-top: 40px;">
+            <!-- Windows Card -->
+            <div class="download-card">
+                <div class="download-header bg-yellow">
+                    <h3>ENVKU UNTUK WINDOWS</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="version-tag">V1.4.5 (STABLE)</span>
+                        <span class="version-tag downloads-badge" id="downloads-badge-win">0 UNDUHAN</span>
+                    </div>
+                </div>
+                <div class="download-body">
+                    <ul class="download-info">
+                        <li><strong>Platform:</strong> Windows 10 / 11 (x64)</li>
+                        <li id="file-size-win"><strong>Ukuran:</strong> ~2.6 MB</li>
+                        <li id="file-release-win"><strong>Rilis:</strong> 17 September 2026</li>
+                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-win">0</span> kali</li>
+                    </ul>
+                    <a href="downloads/Envku_1.4.5_x64-setup.exe" id="download-btn-win" class="btn-primary btn-download">UNDUH INSTALLER (.EXE)</a>
+                    <div class="hash-box">
+                        SHA-256: <span class="hash-text" id="hash-win">d2f8dcfe9c98ba79d8b12354...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linux AppImage Card -->
+            <div class="download-card">
+                <div class="download-header bg-blue">
+                    <h3>ENVKU PORTABLE LINUX</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="version-tag">V1.4.5 (STABLE)</span>
+                        <span class="version-tag downloads-badge" id="downloads-badge-appimage">0 UNDUHAN</span>
+                    </div>
+                </div>
+                <div class="download-body">
+                    <ul class="download-info">
+                        <li><strong>Platform:</strong> Linux Universal (amd64)</li>
+                        <li id="file-size-appimage"><strong>Ukuran:</strong> ~80.5 MB</li>
+                        <li id="file-release-appimage"><strong>Rilis:</strong> 12 September 2026</li>
+                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-appimage">0</span> kali</li>
+                    </ul>
+                    <a href="downloads/envku_1.4.1_amd64.AppImage" id="download-btn-appimage" class="btn-primary btn-download" style="width: 100%; display: block; text-align: center;">UNDUH PORTABLE (.APPIMAGE)</a>
+                    <div class="hash-box">
+                        SHA-256: <span class="hash-text" id="hash-appimage">78e2b8df1a95e0c60959f678...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linux DEB Card -->
+            <div class="download-card">
+                <div class="download-header bg-emerald">
+                    <h3>ENVKU DEBIAN LINUX</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="version-tag">V1.4.5 (STABLE)</span>
+                        <span class="version-tag downloads-badge" id="downloads-badge-deb">0 UNDUHAN</span>
+                    </div>
+                </div>
+                <div class="download-body">
+                    <ul class="download-info">
+                        <li><strong>Platform:</strong> Debian / Ubuntu (amd64)</li>
+                        <li id="file-size-deb"><strong>Ukuran:</strong> ~3.8 MB</li>
+                        <li id="file-release-deb"><strong>Rilis:</strong> 12 September 2026</li>
+                        <li><strong>Total Unduhan:</strong> <span id="downloads-text-deb">0</span> kali</li>
+                    </ul>
+                    <a href="downloads/envku_1.4.1_amd64.deb" id="download-btn-deb" class="btn-primary btn-download" style="width: 100%; display: block; text-align: center;">UNDUH INSTALLER (.DEB)</a>
+                    <div class="hash-box">
+                        SHA-256: <span class="hash-text" id="hash-deb">78e2b8df1a95e0c60959f678...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panduan Singkat Setelah Unduh -->
+        <div style="max-width: 1100px; margin: 60px auto 0 auto; text-align: left; background-color: #18181b; border: 3.5px solid var(--border-black); padding: 36px; border-radius: var(--radius-default); box-shadow: var(--shadow-offset-lg);">
+            <h3 style="color: var(--accent-yellow); font-size: 1.4rem; font-weight: 900; margin-bottom: 16px;">💡 PETUNJUK MENJALANKAN SETELAH MENGUNDUH</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; color: #e4e4e7; font-size: 0.9rem;">
+                <div style="background-color: #27272a; padding: 20px; border: 2px solid var(--border-black); border-radius: 6px;">
+                    <h4 style="color: #ffffff; font-weight: 800; margin-bottom: 8px;">🪟 Pengguna Windows</h4>
+                    <p style="color: #a1a1aa; line-height: 1.5;">Jalankan file <code class="code-inline">Envku_1.4.5_x64-setup.exe</code>. Setelah terpasang, klik kanan ikon aplikasi lalu pilih <strong>Run as Administrator</strong> agar dapat mengelola Windows Services (Apache & MySQL) dan file hosts secara lancar.</p>
+                </div>
+                <div style="background-color: #27272a; padding: 20px; border: 2px solid var(--border-black); border-radius: 6px;">
+                    <h4 style="color: #ffffff; font-weight: 800; margin-bottom: 8px;">🐧 Pengguna Linux</h4>
+                    <p style="color: #a1a1aa; line-height: 1.5;">Untuk AppImage, berikan izin eksekusi: <br><code class="code-inline">chmod +x envku_*.AppImage</code> lalu klik ganda. Untuk paket Debian/Ubuntu: <br><code class="code-inline">sudo dpkg -i envku_*.deb</code>. Akses root diminta via dialog sandi native (PolicyKit).</p>
+                </div>
+                <div style="background-color: #27272a; padding: 20px; border: 2px solid var(--border-black); border-radius: 6px;">
+                    <h4 style="color: #ffffff; font-weight: 800; margin-bottom: 8px;">🚀 Langkah Pertama di Aplikasi</h4>
+                    <p style="color: #a1a1aa; line-height: 1.5;">Buka tab <strong>Downloader</strong> pada menu kiri untuk mengunduh dan mengekstrak komponen Apache 2.4, MySQL 8.0, PHP, phpMyAdmin, atau Redis secara portabel ke <code class="code-inline">C:\server</code> dalam 1-klik.</p>
+                </div>
+            </div>
+            <div style="margin-top: 24px; text-align: center;">
+                <a href="galeri.html" class="btn-secondary" style="font-size: 0.85rem;">LIHAT PANDUAN GAMBAR &amp; TAMPILAN APLIKASI →</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- GitHub Section (Beri Bintang & Issues) -->
+    <section id="github" class="section github-section" style="border-top: 3.5px solid var(--border-black);">
+        <div class="github-card">
+            <div class="github-header">
+                <h2>BANTU ENVKU TUMBUH DI GITHUB!</h2>
+                <p>Envku adalah proyek open-source gratis untuk seluruh developer. Dukung kami dengan memberikan bintang di GitHub atau laporkan masalah jika Anda menemukan kendala.</p>
+            </div>
+            <div class="github-actions">
+                <a href="https://github.com/LabibAbdullah1/envku" target="_blank" class="github-btn btn-star">
+                    <span class="btn-icon">⭐</span> BERI BINTANG DI GITHUB
+                </a>
+                <a href="https://github.com/LabibAbdullah1/envku/issues" target="_blank" class="github-btn btn-issues">
+                    <span class="btn-icon">🐛</span> LAPORKAN BUG / MASALAH
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2026 Envku Orchestrator. Semua Hak Cipta Dilindungi.</p>
+        <p class="footer-sub">Pengembangan Lingkungan Lokal Lebih Cepat dan Modern.</p>
+    </footer>
+
+    <script>
+        const API_URL = 'counter.php';
+
+        const badgeWin = document.getElementById('downloads-badge-win');
+        const textWin = document.getElementById('downloads-text-win');
+        const badgeAppImage = document.getElementById('downloads-badge-appimage');
+        const textAppImage = document.getElementById('downloads-text-appimage');
+        const badgeDeb = document.getElementById('downloads-badge-deb');
+        const textDeb = document.getElementById('downloads-text-deb');
+
+        const btnWin = document.getElementById('download-btn-win');
+        const btnAppImage = document.getElementById('download-btn-appimage');
+        const btnDeb = document.getElementById('download-btn-deb');
+
+        // Format count (e.g., 4230 -> 4.2K+)
+        function formatCount(num) {
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K+';
+            }
+            return num;
+        }
+
+        // Fetch current counter
+        async function fetchCount() {
+            if (!localStorage.getItem('envku_downloads_win') && localStorage.getItem('envku_downloads')) {
+                localStorage.setItem('envku_downloads_win', localStorage.getItem('envku_downloads'));
+            }
+            if (!localStorage.getItem('envku_downloads_appimage') && localStorage.getItem('envku_downloads_linux')) {
+                localStorage.setItem('envku_downloads_appimage', localStorage.getItem('envku_downloads_linux'));
+            }
+
+            if (window.location.protocol === 'file:') {
+                const localWin = parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
+                const localAppImage = parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
+                const localDeb = parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
+                updateUI(localWin, localAppImage, localDeb);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?action=get`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const valWin = data.win || 0;
+                    const valAppImage = data.appimage || 0;
+                    const valDeb = data.deb || 0;
+                    updateUI(valWin, valAppImage, valDeb);
+                } else {
+                    fallbackLocal();
+                }
+            } catch (err) {
+                fallbackLocal();
+            }
+        }
+
+        function updateUI(valWin, valAppImage, valDeb) {
+            if (badgeWin) badgeWin.textContent = formatCount(valWin) + ' UNDUHAN';
+            if (textWin) textWin.textContent = valWin.toLocaleString('id-ID');
+            if (badgeAppImage) badgeAppImage.textContent = formatCount(valAppImage) + ' UNDUHAN';
+            if (textAppImage) textAppImage.textContent = valAppImage.toLocaleString('id-ID');
+            if (badgeDeb) badgeDeb.textContent = formatCount(valDeb) + ' UNDUHAN';
+            if (textDeb) textDeb.textContent = valDeb.toLocaleString('id-ID');
+        }
+
+        function fallbackLocal() {
+            const localWin = parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
+            const localAppImage = parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
+            const localDeb = parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
+            updateUI(localWin, localAppImage, localDeb);
+        }
+
+        // Increment count
+        async function incrementCount(platform) {
+            if (window.location.protocol === 'file:') {
+                const key = `envku_downloads_${platform}`;
+                const localVal = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+                localStorage.setItem(key, localVal);
+
+                const winVal = platform === 'win' ? localVal : parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
+                const appimageVal = platform === 'appimage' ? localVal : parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
+                const debVal = platform === 'deb' ? localVal : parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
+                updateUI(winVal, appimageVal, debVal);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?action=increment&platform=${platform}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateUI(data.win || 0, data.appimage || 0, data.deb || 0);
+                } else {
+                    incrementLocalFallback(platform);
+                }
+            } catch (err) {
+                incrementLocalFallback(platform);
+            }
+        }
+
+        function incrementLocalFallback(platform) {
+            const key = `envku_downloads_${platform}`;
+            const localVal = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+            localStorage.setItem(key, localVal);
+
+            const winVal = platform === 'win' ? localVal : parseInt(localStorage.getItem('envku_downloads_win') || '0', 10);
+            const appimageVal = platform === 'appimage' ? localVal : parseInt(localStorage.getItem('envku_downloads_appimage') || '0', 10);
+            const debVal = platform === 'deb' ? localVal : parseInt(localStorage.getItem('envku_downloads_deb') || '0', 10);
+            updateUI(winVal, appimageVal, debVal);
+        }
+
+        // Listen for download click
+        if (btnWin) {
+            btnWin.addEventListener('click', () => {
+                const currentText = (textWin?.textContent || "0").replace(/\./g, '');
+                const currentNum = parseInt(currentText, 10);
+                const currentAppImageNum = parseInt((textAppImage?.textContent || "0").replace(/\./g, ''), 10);
+                const currentDebNum = parseInt((textDeb?.textContent || "0").replace(/\./g, ''), 10);
+
+                if (!isNaN(currentNum)) {
+                    updateUI(currentNum + 1, currentAppImageNum, currentDebNum);
+                }
+                incrementCount('win');
+            });
+        }
+
+        if (btnAppImage) {
+            btnAppImage.addEventListener('click', () => {
+                const currentWinNum = parseInt((textWin?.textContent || "0").replace(/\./g, ''), 10);
+                const currentAppImageNum = parseInt((textAppImage?.textContent || "0").replace(/\./g, ''), 10);
+                const currentDebNum = parseInt((textDeb?.textContent || "0").replace(/\./g, ''), 10);
+
+                if (!isNaN(currentAppImageNum)) {
+                    updateUI(currentWinNum, currentAppImageNum + 1, currentDebNum);
+                }
+                incrementCount('appimage');
+            });
+        }
+
+        if (btnDeb) {
+            btnDeb.addEventListener('click', () => {
+                const currentWinNum = parseInt((textWin?.textContent || "0").replace(/\./g, ''), 10);
+                const currentAppImageNum = parseInt((textAppImage?.textContent || "0").replace(/\./g, ''), 10);
+                const currentDebNum = parseInt((textDeb?.textContent || "0").replace(/\./g, ''), 10);
+
+                if (!isNaN(currentDebNum)) {
+                    updateUI(currentWinNum, currentAppImageNum, currentDebNum + 1);
+                }
+                incrementCount('deb');
+            });
+        }
+
+        // Hamburger Menu Toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+
+        if (menuToggle && navLinks) {
+            menuToggle.addEventListener('click', () => {
+                menuToggle.classList.toggle('active');
+                navLinks.classList.toggle('active');
+            });
+
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    menuToggle.classList.remove('active');
+                    navLinks.classList.remove('active');
+                });
+            });
+        }
+
+        fetchCount();
+    </script>
+</body>
+</html>
