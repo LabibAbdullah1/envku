@@ -1131,6 +1131,7 @@ body {
     position: absolute;
     inset: 0;
     background-color: rgba(9, 9, 11, 0.9);
+    -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
 }
 
