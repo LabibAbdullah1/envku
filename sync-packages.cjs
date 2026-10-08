@@ -3,11 +3,6 @@
  * ─────────────────────────────────────────────────────────────
  * Script untuk mendownload installer komponen pendukung ke folder
  * `website/packages/` agar dapat diunggah ke cPanel (envku.subly.my.id/packages/).
- *
- * Komponen yang disinkronkan:
- *   - Windows: Apache 2.4, PHP 8.2, PHP 8.3, PHP 8.4, PHP 8.5, MySQL 8.0, Redis, Mailpit (Zip)
- *   - Linux  : Mailpit (tar.gz)
- *   - Common : phpMyAdmin (Zip), PHP Composer (phar)
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -31,25 +26,25 @@ const PACKAGES = [
     name: "PHP 8.2 (Windows)",
     destDir: path.join(PACKAGES_DIR, "win"),
     fileName: "php8.2.zip",
-    url: "https://windows.php.net/downloads/releases/php-8.2.33-Win32-vs16-x64.zip"
+    phpVersionPrefix: "php-8.2"
   },
   {
     name: "PHP 8.3 (Windows)",
     destDir: path.join(PACKAGES_DIR, "win"),
     fileName: "php8.3.zip",
-    url: "https://windows.php.net/downloads/releases/php-8.3.33-Win32-vs16-x64.zip"
+    phpVersionPrefix: "php-8.3"
   },
   {
     name: "PHP 8.4 (Windows)",
     destDir: path.join(PACKAGES_DIR, "win"),
     fileName: "php8.4.zip",
-    url: "https://windows.php.net/downloads/releases/php-8.4.25-Win32-vs17-x64.zip"
+    phpVersionPrefix: "php-8.4"
   },
   {
     name: "PHP 8.5 (Windows)",
     destDir: path.join(PACKAGES_DIR, "win"),
     fileName: "php8.5.zip",
-    url: "https://windows.php.net/downloads/releases/php-8.5.10-Win32-vs17-x64.zip"
+    phpVersionPrefix: "php-8.5"
   },
   {
     name: "MySQL 8.0 (Windows)",
@@ -79,7 +74,7 @@ const PACKAGES = [
     name: "phpMyAdmin (Common)",
     destDir: path.join(PACKAGES_DIR, "common"),
     fileName: "phpmyadmin.zip",
-    url: "https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip"
+    url: "https://files.phpmyadmin.net/phpMyAdmin/5.2.2/phpMyAdmin-5.2.2-all-languages.zip"
   },
   {
     name: "PHP Composer (Common)",
@@ -88,6 +83,41 @@ const PACKAGES = [
     url: "https://getcomposer.org/composer.phar"
   }
 ];
+
+/**
+ * Mencari URL download file PHP x64 Thread-Safe terbaru dari indeks downloads.php.net
+ */
+function resolvePhpUrl(versionPrefix) {
+  return new Promise((resolve, reject) => {
+    const targetUrl = "https://downloads.php.net/~windows/releases/";
+    
+    https.get(targetUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) EnvkuPackageSync/1.0" }
+    }, (res) => {
+      let html = "";
+      res.on("data", chunk => html += chunk);
+      res.on("end", () => {
+        // Match format misal: php-8.2.33-Win32-vs16-x64.zip (bukan NTS)
+        const regex = new RegExp(`href="(${versionPrefix}\\.[0-9]+-(?!nts)Win32-[^"]+-x64\\.zip)"`, "gi");
+        let match;
+        const foundFiles = [];
+        
+        while ((match = regex.exec(html)) !== null) {
+          foundFiles.push(match[1]);
+        }
+
+        if (foundFiles.length > 0) {
+          // Ambil rilis paling baru
+          foundFiles.sort();
+          const latestFile = foundFiles[foundFiles.length - 1];
+          resolve(`${targetUrl}${latestFile}`);
+        } else {
+          reject(new Error(`Tidak dapat menemukan file rilis untuk ${versionPrefix} di ${targetUrl}`));
+        }
+      });
+    }).on("error", reject);
+  });
+}
 
 function downloadFileSingle(url, destPath) {
   return new Promise((resolve, reject) => {
@@ -99,7 +129,6 @@ function downloadFileSingle(url, destPath) {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) EnvkuPackageSync/1.0"
       }
     }, (response) => {
-      // Penanganan redirect HTTP 301 / 302
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         let redirectUrl = response.headers.location;
         if (!redirectUrl.startsWith("http")) {
@@ -121,7 +150,7 @@ function downloadFileSingle(url, destPath) {
         downloadedBytes += chunk.length;
         if (totalBytes > 0) {
           const percent = ((downloadedBytes / totalBytes) * 100).toFixed(1);
-          process.stdout.write(`\r   ⏳ Mendownload... ${percent}% (${(downloadedBytes / 1024 / 1024).toFixed(1)} MB)`);
+          process.stdout.write(`\r    ⏳ Mendownload... ${percent}% (${(downloadedBytes / 1024 / 1024).toFixed(1)} MB)`);
         }
       });
 
@@ -168,7 +197,7 @@ async function downloadFile(url, destPath, retries = 3) {
       return;
     } catch (err) {
       if (i === retries) throw err;
-      console.log(`\n   ⚠️ Percobaan ${i} gagal (${err.message}). Mencoba ulang dalam 2 detik...`);
+      console.log(`\n    ⚠️ Percobaan ${i} gagal (${err.message}). Mencoba ulang dalam 2 detik...`);
       await new Promise(r => setTimeout(r, 2000));
     }
   }
@@ -197,9 +226,22 @@ async function main() {
       continue;
     }
 
-    console.log(`  Source: ${pkg.url}`);
+    let downloadUrl = pkg.url;
+
+    // Jika paket adalah PHP, cari URL resminya secara dinamis
+    if (pkg.phpVersionPrefix) {
+      try {
+        console.log(`  Mencari versi PHP terbaru di server...`);
+        downloadUrl = await resolvePhpUrl(pkg.phpVersionPrefix);
+      } catch (e) {
+        console.error(`  Status: ❌ Gagal mencari link PHP: ${e.message}\n`);
+        continue;
+      }
+    }
+
+    console.log(`  Source: ${downloadUrl}`);
     try {
-      await downloadFile(pkg.url, filePath);
+      await downloadFile(downloadUrl, filePath);
       const stats = fs.statSync(filePath);
       const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
       console.log(`  Status: ✅ Berhasil diunduh (${sizeMB} MB)!\n`);
