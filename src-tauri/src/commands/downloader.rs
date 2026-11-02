@@ -1,8 +1,8 @@
 use crate::config::get_server_dir_path;
 use futures_util::StreamExt;
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter};
 use zip::ZipArchive;
 
@@ -85,21 +85,252 @@ fn get_linux_component_urls(component_id: &str) -> Result<ComponentUrls<'static>
     }
 }
 
-async fn fetch_response_with_fallback<'a>(client: &reqwest::Client, urls: &ComponentUrls<'a>) -> Result<reqwest::Response, String> {
-    match client.get(urls.primary).send().await {
-        Ok(resp) if resp.status().is_success() => Ok(resp),
-        _ => {
-            let resp = client.get(urls.fallback).send().await
-                .map_err(|e| format!("Gagal mendownload komponen dari subdomain cPanel maupun upstream: {}", e))?;
-            if !resp.status().is_success() {
-                return Err(format!(
-                    "Gagal mendownload komponen baik dari subdomain cPanel maupun upstream (HTTP {}).",
-                    resp.status()
-                ));
+fn is_archive_complete_and_valid(path: &Path, is_zip: bool) -> bool {
+    if !path.exists() {
+        return false;
+    }
+    if let Ok(meta) = fs::metadata(path) {
+        if meta.len() < 1000 {
+            return false;
+        }
+        if is_zip {
+            if let Ok(file) = File::open(path) {
+                return ZipArchive::new(file).is_ok();
             }
-            Ok(resp)
+            return false;
+        } else {
+            return meta.len() > 100_000;
         }
     }
+    false
+}
+
+pub async fn download_file_with_resume(
+    app: &AppHandle,
+    component_id: &str,
+    primary_url: &str,
+    fallback_url: &str,
+    final_file_path: &Path,
+    progress_scale: Option<(u32, u32)>,
+) -> Result<(), String> {
+    let is_zip = final_file_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.eq_ignore_ascii_case("zip"))
+        .unwrap_or(false);
+
+    // 1. Jika file final sudah ada dan valid 100%, lewati pengunduhan langsung!
+    if is_archive_complete_and_valid(final_file_path, is_zip) {
+        let total_size = fs::metadata(final_file_path).map(|m| m.len()).unwrap_or(1);
+        let final_pct = match progress_scale {
+            Some((start, span)) => start + span,
+            None => 100,
+        };
+        let _ = app.emit(
+            "download_progress",
+            DownloadProgressPayload {
+                component_id: component_id.to_string(),
+                percentage: final_pct.min(100),
+                bytes_downloaded: total_size,
+                bytes_total: total_size,
+            },
+        );
+        return Ok(());
+    }
+
+    if let Some(parent) = final_file_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Gagal membuat folder sementara: {}", e))?;
+    }
+
+    let part_file_path = PathBuf::from(format!("{}.part", final_file_path.to_string_lossy()));
+
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .timeout(std::time::Duration::from_secs(180))
+        .tcp_keepalive(Some(std::time::Duration::from_secs(15)))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+
+    const MAX_RETRIES: u32 = 6;
+    let mut current_attempt: u32 = 0;
+    let mut last_error: String = String::new();
+
+    while current_attempt < MAX_RETRIES {
+        current_attempt += 1;
+
+        // Rotasi mirror: percobaan 1-3 pakai primary, berikutnya pakai fallback
+        let url = if current_attempt <= 3 {
+            primary_url
+        } else {
+            fallback_url
+        };
+
+        let existing_bytes = if part_file_path.exists() {
+            fs::metadata(&part_file_path).map(|m| m.len()).unwrap_or(0)
+        } else {
+            0
+        };
+
+        let mut req = client.get(url);
+        if existing_bytes > 0 {
+            req = req.header("Range", format!("bytes={}-", existing_bytes));
+        }
+
+        let response = match req.send().await {
+            Ok(res) => res,
+            Err(e) => {
+                last_error = format!("Gagal menghubungi server unduhan: {} (percobaan {}/{})", e, current_attempt, MAX_RETRIES);
+                let backoff_ms = 1000 * current_attempt as u64;
+                tokio::time::sleep(std::time::Duration::from_millis(backoff_ms)).await;
+                continue;
+            }
+        };
+
+        let status = response.status();
+
+        // 416 Range Not Satisfiable: file di disk mungkin sudah lengkap
+        if status == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+            if is_archive_complete_and_valid(&part_file_path, is_zip) {
+                if final_file_path.exists() {
+                    let _ = fs::remove_file(final_file_path);
+                }
+                let _ = fs::rename(&part_file_path, final_file_path);
+                return Ok(());
+            } else {
+                let _ = fs::remove_file(&part_file_path);
+                continue;
+            }
+        }
+
+        let (mut file, total_size, mut downloaded) = if status == reqwest::StatusCode::PARTIAL_CONTENT {
+            let content_len = response.content_length().unwrap_or(0);
+            let total = existing_bytes + content_len;
+            let file = match OpenOptions::new().create(true).append(true).open(&part_file_path) {
+                Ok(f) => f,
+                Err(e) => {
+                    last_error = format!("Gagal membuka file sementara untuk melanjutkan unduhan: {}", e);
+                    tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+                    continue;
+                }
+            };
+            (file, total, existing_bytes)
+        } else if status.is_success() {
+            let total = response.content_length().unwrap_or(0);
+            let file = match File::create(&part_file_path) {
+                Ok(f) => f,
+                Err(e) => {
+                    last_error = format!("Gagal membuat file sementara: {}", e);
+                    tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+                    continue;
+                }
+            };
+            (file, total, 0)
+        } else {
+            last_error = format!("Server mengembalikan status HTTP {} (percobaan {}/{})", status, current_attempt, MAX_RETRIES);
+            let backoff_ms = 1000 * current_attempt as u64;
+            tokio::time::sleep(std::time::Duration::from_millis(backoff_ms)).await;
+            continue;
+        };
+
+        // Pancarkan persentase awal saat tersambung / melanjutkan
+        if total_size > 0 {
+            let raw_pct = ((downloaded as f64 / total_size as f64) * 100.0) as u32;
+            let final_pct = match progress_scale {
+                Some((start, span)) => start + ((raw_pct * span) / 100),
+                None => raw_pct,
+            };
+            let _ = app.emit(
+                "download_progress",
+                DownloadProgressPayload {
+                    component_id: component_id.to_string(),
+                    percentage: final_pct.min(100),
+                    bytes_downloaded: downloaded,
+                    bytes_total: total_size,
+                },
+            );
+        }
+
+        let mut stream = response.bytes_stream();
+        let mut stream_error = false;
+        let mut last_emit = std::time::Instant::now();
+
+        while let Some(chunk_res) = stream.next().await {
+            match chunk_res {
+                Ok(chunk) => {
+                    if let Err(e) = file.write_all(&chunk) {
+                        last_error = format!("Gagal menulis data ke disk: {}", e);
+                        stream_error = true;
+                        break;
+                    }
+                    downloaded += chunk.len() as u64;
+
+                    if total_size > 0 && (last_emit.elapsed().as_millis() >= 80 || downloaded >= total_size) {
+                        let raw_pct = ((downloaded as f64 / total_size as f64) * 100.0) as u32;
+                        let final_pct = match progress_scale {
+                            Some((start, span)) => start + ((raw_pct * span) / 100),
+                            None => raw_pct,
+                        };
+                        let _ = app.emit(
+                            "download_progress",
+                            DownloadProgressPayload {
+                                component_id: component_id.to_string(),
+                                percentage: final_pct.min(100),
+                                bytes_downloaded: downloaded,
+                                bytes_total: total_size,
+                            },
+                        );
+                        last_emit = std::time::Instant::now();
+                    }
+                }
+                Err(e) => {
+                    last_error = format!("Koneksi terputus saat streaming unduhan: {}. Melanjutkan otomatis...", e);
+                    stream_error = true;
+                    break;
+                }
+            }
+        }
+
+        let _ = file.flush();
+        drop(file);
+
+        if stream_error {
+            // Byte yang sudah terunduh aman di .part! Lanjutkan di percobaan berikutnya dengan Range
+            let backoff_ms = 1200 * current_attempt as u64;
+            tokio::time::sleep(std::time::Duration::from_millis(backoff_ms)).await;
+            continue;
+        }
+
+        // Pengunduhan selesai sukses!
+        if final_file_path.exists() {
+            let _ = fs::remove_file(final_file_path);
+        }
+        if let Err(e) = fs::rename(&part_file_path, final_file_path) {
+            return Err(format!("Gagal menyelesaikan file unduhan: {}", e));
+        }
+
+        let final_pct = match progress_scale {
+            Some((start, span)) => start + span,
+            None => 100,
+        };
+        let _ = app.emit(
+            "download_progress",
+            DownloadProgressPayload {
+                component_id: component_id.to_string(),
+                percentage: final_pct.min(100),
+                bytes_downloaded: downloaded,
+                bytes_total: total_size.max(downloaded),
+            },
+        );
+
+        return Ok(());
+    }
+
+    Err(format!(
+        "Pengunduhan komponen '{}' gagal setelah {} kali percobaan. Alasan terakhir: {}. Silakan periksa koneksi internet Anda.",
+        component_id, MAX_RETRIES, last_error
+    ))
 }
 
 // Safe ZIP file extraction helper
@@ -162,19 +393,6 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
     }
 
     let urls = get_component_urls(&component_id)?;
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-        .timeout(std::time::Duration::from_secs(600))
-        .connect_timeout(std::time::Duration::from_secs(20))
-        .redirect(reqwest::redirect::Policy::limited(10))
-        .build()
-        .unwrap_or_else(|_| reqwest::Client::new());
-    let response = fetch_response_with_fallback(&client, &urls).await?;
-
-    let total_size = response.content_length().unwrap_or(0);
-    let mut downloaded: u64 = 0;
-    let mut stream = response.bytes_stream();
-
     let is_zip = component_id != "composer";
     let download_filename = if is_zip {
         format!("{}.zip", component_id)
@@ -187,34 +405,7 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
     fs::create_dir_all(&temp_dir).map_err(|e| format!("Gagal membuat folder temp: {}", e))?;
 
     let file_path = temp_dir.join(&download_filename);
-    let mut file =
-        File::create(&file_path).map_err(|e| format!("Gagal membuat file sementara: {}", e))?;
-
-    // Streaming the download
-    while let Some(chunk_result) = stream.next().await {
-        let chunk = chunk_result.map_err(|e| format!("Error saat mendownload file: {}", e))?;
-        file.write_all(&chunk)
-            .map_err(|e| format!("Gagal menulis data ke disk: {}", e))?;
-        downloaded += chunk.len() as u64;
-
-        if total_size > 0 {
-            let percentage = ((downloaded as f64 / total_size as f64) * 100.0) as u32;
-            app.emit(
-                "download_progress",
-                DownloadProgressPayload {
-                    component_id: component_id.clone(),
-                    percentage,
-                    bytes_downloaded: downloaded,
-                    bytes_total: total_size,
-                },
-            )
-            .unwrap_or(());
-        }
-    }
-
-    // Explicitly flush and drop file before extraction
-    file.flush().unwrap_or(());
-    drop(file);
+    download_file_with_resume(&app, &component_id, urls.primary, urls.fallback, &file_path, None).await?;
 
     // Stop services & forcefully terminate any lingering processes to release file locks
     #[cfg(target_os = "windows")]
@@ -555,12 +746,10 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
             .map_err(|e| format!("Gagal menulis composer.bat: {}", e))?;
     }
 
-    // Cleanup Zip & Temp dir
-    if is_zip {
-        let _ = fs::remove_file(&file_path);
-    } else {
-        let _ = fs::remove_file(&file_path);
-    }
+    // Cleanup Zip, Part file & Temp dir
+    let _ = fs::remove_file(&file_path);
+    let part_path = PathBuf::from(format!("{}.part", file_path.to_string_lossy()));
+    let _ = fs::remove_file(&part_path);
     let _ = fs::remove_dir(&temp_dir); // Only succeeds if empty
 
     // Re-register phpmyadmin virtual host if needed
@@ -605,44 +794,7 @@ fn emit_progress(app: &AppHandle, component_id: &str, percentage: u32) {
 
 #[cfg(target_os = "linux")]
 async fn download_file_direct(app: &AppHandle, component_id: &str, primary_url: &str, fallback_url: &str, dest_path: &Path) -> Result<(), String> {
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-        .timeout(std::time::Duration::from_secs(600))
-        .connect_timeout(std::time::Duration::from_secs(20))
-        .redirect(reqwest::redirect::Policy::limited(10))
-        .build()
-        .unwrap_or_else(|_| reqwest::Client::new());
-    let urls = ComponentUrls { primary: primary_url, fallback: fallback_url };
-    let response = fetch_response_with_fallback(&client, &urls).await?;
-
-    let total_size = response.content_length().unwrap_or(0);
-    let mut downloaded: u64 = 0;
-    let mut stream = response.bytes_stream();
-    let mut file = File::create(dest_path).map_err(|e| format!("Gagal membuat file: {}", e))?;
-
-    while let Some(chunk_result) = stream.next().await {
-        let chunk = chunk_result.map_err(|e| format!("Error saat streaming download: {}", e))?;
-        file.write_all(&chunk).map_err(|e| format!("Gagal menulis data ke disk: {}", e))?;
-        downloaded += chunk.len() as u64;
-
-        if total_size > 0 {
-            let percentage = ((downloaded as f64 / total_size as f64) * 100.0) as u32;
-            let scaled_percentage = 10 + ((percentage * 60) / 100);
-            app.emit(
-                "download_progress",
-                DownloadProgressPayload {
-                    component_id: component_id.to_string(),
-                    percentage: scaled_percentage,
-                    bytes_downloaded: downloaded,
-                    bytes_total: total_size,
-                },
-            )
-            .unwrap_or(());
-        }
-    }
-
-    file.flush().unwrap_or(());
-    Ok(())
+    download_file_with_resume(app, component_id, primary_url, fallback_url, dest_path, Some((10, 60))).await
 }
 
 #[cfg(target_os = "linux")]
@@ -1127,6 +1279,15 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
 #[tauri::command]
 pub fn delete_component(component_id: String) -> Result<String, String> {
     let server_dir = get_server_dir_path();
+
+    // Bersihkan sisa unduhan di folder temp jika ada
+    let temp_dir = server_dir.join("temp");
+    let _ = fs::remove_file(temp_dir.join(format!("{}.zip", component_id)));
+    let _ = fs::remove_file(temp_dir.join(format!("{}.zip.part", component_id)));
+    let _ = fs::remove_file(temp_dir.join(format!("{}.phar", component_id)));
+    let _ = fs::remove_file(temp_dir.join(format!("{}.phar.part", component_id)));
+    let _ = fs::remove_file(temp_dir.join(format!("{}.tar.gz", component_id)));
+    let _ = fs::remove_file(temp_dir.join(format!("{}.tar.gz.part", component_id)));
 
     match component_id.as_str() {
         "apache" => {

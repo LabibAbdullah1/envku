@@ -52,15 +52,93 @@ fn get_windows_nvm_dirs() -> Vec<PathBuf> {
 }
 
 #[tauri::command]
-pub fn get_nvm_versions() -> Result<Vec<String>, String> {
-    #[cfg(target_os = "windows")]
-    {
-        let mut versions = Vec::new();
+pub async fn get_nvm_versions() -> Result<Vec<String>, String> {
+    tokio::task::spawn_blocking(move || {
+        #[cfg(target_os = "windows")]
+        {
+            let mut versions = Vec::new();
 
-        // 1. Direct directory scan: tercepat, tidak bergantung pada PowerShell execution policy
-        for nvm_path in get_windows_nvm_dirs() {
-            if nvm_path.exists() {
-                if let Ok(entries) = fs::read_dir(&nvm_path) {
+            // 1. Direct directory scan: tercepat, tidak bergantung pada PowerShell execution policy
+            for nvm_path in get_windows_nvm_dirs() {
+                if nvm_path.exists() {
+                    if let Ok(entries) = fs::read_dir(&nvm_path) {
+                        for entry in entries.flatten() {
+                            let name = entry.file_name().to_string_lossy().into_owned();
+                            if !name.is_empty() && entry.path().is_dir() {
+                                let mut clean_name = name.clone();
+                                if clean_name.starts_with('v') {
+                                    clean_name = clean_name[1..].to_string();
+                                }
+                                if !clean_name.is_empty() && clean_name.chars().next().unwrap_or(' ').is_numeric() {
+                                    if !versions.contains(&clean_name) {
+                                        versions.push(clean_name);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Jika direktori kosong atau belum ketemu, coba panggil nvm list
+            if versions.is_empty() {
+                let output = if let Some(nvm_exe) = find_windows_nvm_exe() {
+                    let mut cmd = std::process::Command::new(nvm_exe);
+                    use std::os::windows::process::CommandExt;
+                    cmd.creation_flags(0x08000000);
+                    cmd.arg("list").output()
+                } else {
+                    crate::create_hidden_command("powershell.exe")
+                        .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "nvm list"])
+                        .output()
+                };
+
+                if let Ok(out) = output {
+                    let stdout = String::from_utf8_lossy(&out.stdout);
+                    for line in stdout.lines() {
+                        let clean = line.replace('*', "").trim().to_string();
+                        if !clean.is_empty() && clean.chars().next().unwrap_or(' ').is_numeric() {
+                            if let Some(version) = clean.split_whitespace().next() {
+                                let ver_clean = version.replace('v', "");
+                                if !ver_clean.is_empty() && !versions.contains(&ver_clean) {
+                                    versions.push(ver_clean);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Cek apakah NVM terpasang
+            if versions.is_empty() && find_windows_nvm_exe().is_none() {
+                return Err("NVM tidak terinstal pada sistem ini.".to_string());
+            }
+
+            // Sort descending
+            versions.sort_by(|a, b| {
+                let parse = |s: &str| -> Vec<u32> {
+                    s.split('.').map(|x| x.parse::<u32>().unwrap_or(0)).collect()
+                };
+                parse(b).cmp(&parse(a))
+            });
+
+            Ok(versions)
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
+            let nvm_sh = Path::new(&home).join(".nvm").join("nvm.sh");
+            if !nvm_sh.exists() {
+                return Err("NVM tidak terinstal pada sistem ini.".to_string());
+            }
+
+            let mut versions = Vec::new();
+
+            // 1. Try reading versions directory directly (most reliable & fast)
+            let node_versions_dir = Path::new(&home).join(".nvm").join("versions").join("node");
+            if node_versions_dir.exists() {
+                if let Ok(entries) = fs::read_dir(node_versions_dir) {
                     for entry in entries.flatten() {
                         let name = entry.file_name().to_string_lossy().into_owned();
                         if !name.is_empty() && entry.path().is_dir() {
@@ -77,297 +155,327 @@ pub fn get_nvm_versions() -> Result<Vec<String>, String> {
                     }
                 }
             }
+
+            // 2. Fallback to executing 'nvm list' command (with ANSI escapes stripped)
+            if versions.is_empty() {
+                let output = std::process::Command::new("bash")
+                    .args(&["-c", &format!("source {} && nvm list", nvm_sh.to_string_lossy())])
+                    .output()
+                    .map_err(|e| format!("Gagal mengeksekusi nvm list: {}", e))?;
+
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    let line_clean = strip_ansi_escapes(line);
+                    let clean = line_clean.replace("->", "").replace('*', "").trim().to_string();
+                    if !clean.is_empty() && (clean.starts_with('v') || clean.chars().next().unwrap_or(' ').is_numeric()) {
+                        if let Some(version) = clean.split_whitespace().next() {
+                            let version_clean = version.replace('v', "");
+                            if !version_clean.is_empty() && version_clean.chars().next().unwrap_or(' ').is_numeric() {
+                                if !versions.contains(&version_clean) {
+                                    versions.push(version_clean);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sort versions descending
+            versions.sort_by(|a, b| {
+                let parse = |s: &str| -> Vec<u32> {
+                    s.split('.').map(|x| x.parse::<u32>().unwrap_or(0)).collect()
+                };
+                parse(b).cmp(&parse(a))
+            });
+
+            Ok(versions)
         }
 
-        // 2. Jika direktori kosong atau belum ketemu, coba panggil nvm list
-        if versions.is_empty() {
-            let output = if let Some(nvm_exe) = find_windows_nvm_exe() {
-                let mut cmd = std::process::Command::new(nvm_exe);
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        {
+            Ok(Vec::new())
+        }
+    })
+    .await
+    .map_err(|e| format!("Gagal memeriksa versi NVM: {}", e))?
+}
+
+async fn resolve_node_version(input: &str) -> Result<String, String> {
+    let clean = input.trim().trim_start_matches('v').to_lowercase();
+    if clean.is_empty() {
+        return Err("Versi Node.js tidak boleh kosong.".to_string());
+    }
+
+    // 1. Jika sudah merupakan semantic version lengkap (misal: "20.18.3" atau "18.20.7")
+    let parts: Vec<&str> = clean.split('.').collect();
+    if parts.len() == 3 && parts.iter().all(|p| p.chars().all(|c| c.is_ascii_digit())) {
+        return Ok(clean);
+    }
+
+    // 2. Pemetaan fallback offline (untuk rilis LTS stabil resmi nodejs.org)
+    let fallback = match clean.as_str() {
+        "18" => Some("18.20.7"),
+        "20" => Some("20.18.3"),
+        "22" => Some("22.14.0"),
+        "lts" => Some("22.14.0"),
+        "latest" => Some("22.14.0"),
+        _ => None,
+    };
+
+    // 3. Coba resolusi online ke https://nodejs.org/dist/index.json (timeout 4 detik)
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(4))
+        .build();
+
+    if let Ok(client) = client {
+        if let Ok(resp) = client.get("https://nodejs.org/dist/index.json").send().await {
+            if let Ok(releases) = resp.json::<Vec<serde_json::Value>>().await {
+                for rel in &releases {
+                    if let Some(v_str) = rel.get("version").and_then(|v| v.as_str()) {
+                        let ver_num = v_str.trim_start_matches('v');
+                        if clean == "lts" {
+                            if let Some(lts) = rel.get("lts") {
+                                if !lts.is_null() && (!lts.is_boolean() || lts.as_bool() == Some(true)) {
+                                    return Ok(ver_num.to_string());
+                                }
+                            }
+                        } else if clean == "latest" {
+                            return Ok(ver_num.to_string());
+                        } else if ver_num == clean || ver_num.starts_with(&format!("{}.", clean)) {
+                            return Ok(ver_num.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Jika resolusi online gagal atau timeout, gunakan fallback offline
+    if let Some(fb) = fallback {
+        return Ok(fb.to_string());
+    }
+
+    if clean == "24" {
+        return Err("Versi Node.js v24 belum tersedia sebagai rilis stabil di nodejs.org. Versi LTS resmi yang didukung saat ini adalah v22, v20, dan v18.".to_string());
+    }
+
+    Ok(clean)
+}
+
+#[tauri::command]
+pub async fn switch_node_version(version: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
+        #[cfg(target_os = "windows")]
+        {
+            let nvm_exe = find_windows_nvm_exe();
+            
+            let output = if let Some(ref exe) = nvm_exe {
+                let mut cmd = std::process::Command::new(exe);
                 use std::os::windows::process::CommandExt;
                 cmd.creation_flags(0x08000000);
-                cmd.arg("list").output()
+                cmd.args(&["use", &version]).output()
             } else {
                 crate::create_hidden_command("powershell.exe")
-                    .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "nvm list"])
+                    .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &format!("nvm use {}", version)])
                     .output()
             };
 
-            if let Ok(out) = output {
-                let stdout = String::from_utf8_lossy(&out.stdout);
-                for line in stdout.lines() {
-                    let clean = line.replace('*', "").trim().to_string();
-                    if !clean.is_empty() && clean.chars().next().unwrap_or(' ').is_numeric() {
-                        if let Some(version) = clean.split_whitespace().next() {
-                            let ver_clean = version.replace('v', "");
-                            if !ver_clean.is_empty() && !versions.contains(&ver_clean) {
-                                versions.push(ver_clean);
-                            }
-                        }
-                    }
-                }
+            let out = output.map_err(|e| format!("Gagal menjalankan nvm use: {}", e))?;
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let combined = format!("{} {}", stdout, stderr);
+
+            // Jika berhasil secara langsung
+            if out.status.success() && !combined.contains("exit status 1") && !combined.contains("exit status 5") {
+                return Ok(format!("Berhasil beralih ke Node.js versi {}", version));
             }
-        }
 
-        // Cek apakah NVM terpasang
-        if versions.is_empty() && find_windows_nvm_exe().is_none() {
-            return Err("NVM tidak terinstal pada sistem ini.".to_string());
-        }
-
-        // Sort descending
-        versions.sort_by(|a, b| {
-            let parse = |s: &str| -> Vec<u32> {
-                s.split('.').map(|x| x.parse::<u32>().unwrap_or(0)).collect()
-            };
-            parse(b).cmp(&parse(a))
-        });
-
-        Ok(versions)
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
-        let nvm_sh = Path::new(&home).join(".nvm").join("nvm.sh");
-        if !nvm_sh.exists() {
-            return Err("NVM tidak terinstal pada sistem ini.".to_string());
-        }
-
-        let mut versions = Vec::new();
-
-        // 1. Try reading versions directory directly (most reliable & fast)
-        let node_versions_dir = Path::new(&home).join(".nvm").join("versions").join("node");
-        if node_versions_dir.exists() {
-            if let Ok(entries) = fs::read_dir(node_versions_dir) {
-                for entry in entries.flatten() {
-                    let name = entry.file_name().to_string_lossy().into_owned();
-                    if !name.is_empty() && entry.path().is_dir() {
-                        let mut clean_name = name.clone();
-                        if clean_name.starts_with('v') {
-                            clean_name = clean_name[1..].to_string();
-                        }
-                        if !clean_name.is_empty() && clean_name.chars().next().unwrap_or(' ').is_numeric() {
-                            if !versions.contains(&clean_name) {
-                                versions.push(clean_name);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Fallback to executing 'nvm list' command (with ANSI escapes stripped)
-        if versions.is_empty() {
-            let output = std::process::Command::new("bash")
-                .args(&["-c", &format!("source {} && nvm list", nvm_sh.to_string_lossy())])
-                .output()
-                .map_err(|e| format!("Gagal mengeksekusi nvm list: {}", e))?;
-
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                let line_clean = strip_ansi_escapes(line);
-                let clean = line_clean.replace("->", "").replace('*', "").trim().to_string();
-                if !clean.is_empty() && (clean.starts_with('v') || clean.chars().next().unwrap_or(' ').is_numeric()) {
-                    if let Some(version) = clean.split_whitespace().next() {
-                        let version_clean = version.replace('v', "");
-                        if !version_clean.is_empty() && version_clean.chars().next().unwrap_or(' ').is_numeric() {
-                            if !versions.contains(&version_clean) {
-                                versions.push(version_clean);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Sort versions descending
-        versions.sort_by(|a, b| {
-            let parse = |s: &str| -> Vec<u32> {
-                s.split('.').map(|x| x.parse::<u32>().unwrap_or(0)).collect()
-            };
-            parse(b).cmp(&parse(a))
-        });
-
-        Ok(versions)
-    }
-
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    {
-        Ok(Vec::new())
-    }
-}
-
-#[tauri::command]
-pub fn switch_node_version(version: String) -> Result<String, String> {
-    #[cfg(target_os = "windows")]
-    {
-        let nvm_exe = find_windows_nvm_exe();
-        
-        let output = if let Some(ref exe) = nvm_exe {
-            let mut cmd = std::process::Command::new(exe);
-            use std::os::windows::process::CommandExt;
-            cmd.creation_flags(0x08000000);
-            cmd.args(&["use", &version]).output()
-        } else {
-            crate::create_hidden_command("powershell.exe")
-                .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &format!("nvm use {}", version)])
-                .output()
-        };
-
-        let out = output.map_err(|e| format!("Gagal menjalankan nvm use: {}", e))?;
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        let combined = format!("{} {}", stdout, stderr);
-
-        // Jika berhasil secara langsung
-        if out.status.success() && !combined.contains("exit status 1") && !combined.contains("exit status 5") {
-            return Ok(format!("Berhasil beralih ke Node.js versi {}", version));
-        }
-
-        // Jika butuh hak Administrator untuk symlink di C:\Program Files\nodejs, eskalasi via UAC
-        let fallback_exe_str = nvm_exe
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| "nvm.exe".to_string());
-
-        let ps_elevated = format!(
-            "Start-Process -FilePath '{}' -ArgumentList 'use {}' -Verb RunAs -Wait",
-            fallback_exe_str, version
-        );
-
-        let elevated_output = crate::create_hidden_command("powershell.exe")
-            .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_elevated])
-            .output()
-            .map_err(|e| format!("Gagal eskalasi hak akses administrator: {}", e))?;
-
-        if elevated_output.status.success() {
-            Ok(format!("Berhasil beralih ke Node.js versi {} (Elevated)", version))
-        } else {
-            Err(format!(
-                "Gagal beralih versi Node.js. Pastikan versi tersebut valid dan berikan izin Administrator saat diminta. Log: {}",
-                combined.trim()
-            ))
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
-        let nvm_sh = Path::new(&home).join(".nvm").join("nvm.sh");
-        if !nvm_sh.exists() {
-            return Err("NVM tidak terinstal pada sistem ini.".to_string());
-        }
-
-        let output = std::process::Command::new("bash")
-            .args(&["-c", &format!("source {} && nvm use {} && nvm alias default {}", nvm_sh.to_string_lossy(), version, version)])
-            .output()
-            .map_err(|e| format!("Gagal menjalankan nvm use: {}", e))?;
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        if output.status.success() {
-            Ok(format!("Berhasil beralih ke Node.js versi {}", version))
-        } else {
-            Err(format!(
-                "Gagal beralih versi Node.js. Log: {} {}",
-                stdout.trim(),
-                stderr.trim()
-            ))
-        }
-    }
-
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    {
-        let _ = version;
-        Err("Sistem operasi tidak didukung untuk nvm use.".to_string())
-    }
-}
-
-#[tauri::command]
-pub fn install_node_version(version: String) -> Result<String, String> {
-    #[cfg(target_os = "windows")]
-    {
-        let nvm_exe = find_windows_nvm_exe();
-
-        let output = if let Some(ref exe) = nvm_exe {
-            let mut cmd = std::process::Command::new(exe);
-            use std::os::windows::process::CommandExt;
-            cmd.creation_flags(0x08000000);
-            cmd.args(&["install", &version, "64"]).output()
-        } else {
-            crate::create_hidden_command("powershell.exe")
-                .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &format!("nvm install {} 64", version)])
-                .output()
-        };
-
-        let out = output.map_err(|e| format!("Gagal menjalankan nvm install: {}", e))?;
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        let combined = format!("{} {}", stdout, stderr);
-
-        if out.status.success() && !combined.contains("exit status 1") && !combined.contains("exit status 5") {
-            Ok(format!("Node.js versi {} berhasil diinstal.", version))
-        } else {
-            // Coba dengan elevated PowerShell jika ada kendala hak akses
+            // Jika butuh hak Administrator untuk symlink di C:\Program Files\nodejs, eskalasi via UAC
             let fallback_exe_str = nvm_exe
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_else(|| "nvm.exe".to_string());
 
             let ps_elevated = format!(
-                "Start-Process -FilePath '{}' -ArgumentList 'install {} 64' -Verb RunAs -Wait",
+                "Start-Process -FilePath '{}' -ArgumentList 'use {}' -Verb RunAs -Wait",
                 fallback_exe_str, version
             );
 
-            let elevated_out = crate::create_hidden_command("powershell.exe")
+            let elevated_output = crate::create_hidden_command("powershell.exe")
                 .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_elevated])
-                .output();
+                .output()
+                .map_err(|e| format!("Gagal eskalasi hak akses administrator: {}", e))?;
 
-            if let Ok(e_out) = elevated_out {
-                if e_out.status.success() {
-                    return Ok(format!("Node.js versi {} berhasil diinstal.", version));
+            if elevated_output.status.success() {
+                Ok(format!("Berhasil beralih ke Node.js versi {} (Elevated)", version))
+            } else {
+                Err(format!(
+                    "Gagal beralih versi Node.js. Pastikan versi tersebut valid dan berikan izin Administrator saat diminta. Log: {}",
+                    combined.trim()
+                ))
+            }
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
+            let nvm_sh = Path::new(&home).join(".nvm").join("nvm.sh");
+            if !nvm_sh.exists() {
+                return Err("NVM tidak terinstal pada sistem ini.".to_string());
+            }
+
+            let output = std::process::Command::new("bash")
+                .args(&["-c", &format!("source {} && nvm use {} && nvm alias default {}", nvm_sh.to_string_lossy(), version, version)])
+                .output()
+                .map_err(|e| format!("Gagal menjalankan nvm use: {}", e))?;
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            if output.status.success() {
+                Ok(format!("Berhasil beralih ke Node.js versi {}", version))
+            } else {
+                Err(format!(
+                    "Gagal beralih versi Node.js. Log: {} {}",
+                    stdout.trim(),
+                    stderr.trim()
+                ))
+            }
+        }
+
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        {
+            let _ = version;
+            Err("Sistem operasi tidak didukung untuk nvm use.".to_string())
+        }
+    })
+    .await
+    .map_err(|e| format!("Proses switch Node.js gagal: {}", e))?
+}
+
+#[tauri::command]
+pub async fn install_node_version(version: String) -> Result<String, String> {
+    let resolved_version = resolve_node_version(&version).await?;
+    let ver_to_install = resolved_version.clone();
+
+    tokio::task::spawn_blocking(move || {
+        #[cfg(target_os = "windows")]
+        {
+            // Cek apakah versi ini sudah terpasang di salah satu folder NVM
+            for nvm_dir in get_windows_nvm_dirs() {
+                if nvm_dir.exists() {
+                    let v_dir = nvm_dir.join(format!("v{}", ver_to_install));
+                    let plain_dir = nvm_dir.join(&ver_to_install);
+                    if (v_dir.exists() && v_dir.join("node.exe").exists())
+                        || (plain_dir.exists() && plain_dir.join("node.exe").exists())
+                    {
+                        return Ok(format!("Node.js v{} sudah terpasang pada sistem Anda.", ver_to_install));
+                    }
+                }
+            }
+
+            let nvm_exe = find_windows_nvm_exe();
+
+            let output = if let Some(ref exe) = nvm_exe {
+                let mut cmd = std::process::Command::new(exe);
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000);
+                cmd.args(&["install", &ver_to_install, "64"]).output()
+            } else {
+                crate::create_hidden_command("powershell.exe")
+                    .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &format!("nvm install {} 64", ver_to_install)])
+                    .output()
+            };
+
+            let out = output.map_err(|e| format!("Gagal menjalankan nvm install: {}", e))?;
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let combined = format!("{} {}", stdout, stderr);
+
+            // Verifikasi apakah folder versi berhasil terbentuk dan ada node.exe
+            let is_installed_on_disk = || -> bool {
+                for nvm_dir in get_windows_nvm_dirs() {
+                    if nvm_dir.exists() {
+                        let v_dir = nvm_dir.join(format!("v{}", ver_to_install));
+                        let plain_dir = nvm_dir.join(&ver_to_install);
+                        if (v_dir.exists() && v_dir.join("node.exe").exists())
+                            || (plain_dir.exists() && plain_dir.join("node.exe").exists())
+                        {
+                            return true;
+                        }
+                    }
+                }
+                false
+            };
+
+            if is_installed_on_disk() || combined.contains("Installation complete") || combined.contains("already installed") {
+                return Ok(format!("Node.js versi {} berhasil diinstal.", ver_to_install));
+            }
+
+            // Jika butuh izin Administrator (misal nvm di Program Files)
+            if combined.contains("exit status 1") || combined.contains("exit status 5") || combined.to_lowercase().contains("access is denied") {
+                let fallback_exe_str = nvm_exe
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "nvm.exe".to_string());
+
+                let ps_elevated = format!(
+                    "Start-Process -FilePath '{}' -ArgumentList 'install {} 64' -Verb RunAs -Wait",
+                    fallback_exe_str, ver_to_install
+                );
+
+                let elevated_out = crate::create_hidden_command("powershell.exe")
+                    .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_elevated])
+                    .output();
+
+                if let Ok(e_out) = elevated_out {
+                    if is_installed_on_disk() || e_out.status.success() {
+                        return Ok(format!("Node.js versi {} berhasil diinstal.", ver_to_install));
+                    }
                 }
             }
 
             Err(format!(
-                "Gagal menginstal Node.js versi {}. Pastikan NVM terinstal dan koneksi internet stabil. Log: {}",
-                version,
+                "Gagal menginstal Node.js versi {}. Log: {}",
+                ver_to_install,
                 combined.trim()
             ))
         }
-    }
 
-    #[cfg(target_os = "linux")]
-    {
-        let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
-        let nvm_sh = Path::new(&home).join(".nvm").join("nvm.sh");
-        if !nvm_sh.exists() {
-            return Err("NVM tidak terinstal pada sistem ini.".to_string());
+        #[cfg(target_os = "linux")]
+        {
+            let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
+            let nvm_sh = Path::new(&home).join(".nvm").join("nvm.sh");
+            if !nvm_sh.exists() {
+                return Err("NVM tidak terinstal pada sistem ini.".to_string());
+            }
+
+            let output = std::process::Command::new("bash")
+                .args(&["-c", &format!("source {} && nvm install {}", nvm_sh.to_string_lossy(), ver_to_install)])
+                .output()
+                .map_err(|e| format!("Gagal menjalankan nvm install: {}", e))?;
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            if output.status.success() {
+                Ok(format!("Node.js versi {} berhasil diinstal.", ver_to_install))
+            } else {
+                Err(format!(
+                    "Gagal menginstal Node.js versi {}. Log: {} {}",
+                    ver_to_install,
+                    stdout.trim(),
+                    stderr.trim()
+                ))
+            }
         }
 
-        let output = std::process::Command::new("bash")
-            .args(&["-c", &format!("source {} && nvm install {}", nvm_sh.to_string_lossy(), version)])
-            .output()
-            .map_err(|e| format!("Gagal menjalankan nvm install: {}", e))?;
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        if output.status.success() {
-            Ok(format!("Node.js versi {} berhasil diinstal.", version))
-        } else {
-            Err(format!(
-                "Gagal menginstal Node.js versi {}. Log: {} {}",
-                version,
-                stdout.trim(),
-                stderr.trim()
-            ))
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        {
+            let _ = ver_to_install;
+            Err("Sistem operasi tidak didukung untuk nvm install.".to_string())
         }
-    }
-
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    {
-        let _ = version;
-        Err("Sistem operasi tidak didukung untuk nvm install.".to_string())
-    }
+    })
+    .await
+    .map_err(|e| format!("Proses instalasi Node.js gagal: {}", e))?
 }
 
 #[tauri::command]

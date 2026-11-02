@@ -152,7 +152,13 @@ export default function DownloaderTab({
     <div className="space-y-8 animate-fade-in text-[#18181b]">
       <div>
         <h2 className="text-2xl font-black text-[#09090b] tracking-tight">Katalog Komponen Server</h2>
-        <p className="text-sm text-[#52525b] mt-1 font-semibold">
+      <div className="mt-2 mb-3 p-2.5 bg-[#fef9c3] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] flex items-center gap-2 text-xs font-bold text-[#854d0e]">
+        <span className="text-sm">⚡</span>
+        <span>
+          <strong>Fitur Lanjut Unduh (Resumable) &amp; Auto-Retry Aktif:</strong> Pengunduhan komponen otomatis melanjutkan dari titik terakhir jika koneksi terputus.
+        </span>
+      </div>
+      <p className="text-sm text-[#52525b] mt-1 font-semibold">
           Kelola, pasang ulang, atau hapus biner server portabel dengan mudah di folder <code className="font-mono text-[#09090b] bg-[#fffefb] px-1.5 py-0.5 border border-[#09090b] font-bold">{baseDir}</code>.
         </p>
       </div>

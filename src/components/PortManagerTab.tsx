@@ -218,7 +218,12 @@ export default function PortManagerTab({ showToastMsg, onPortResolved }: PortMan
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
                   {item.isInUse && item.ownerPid !== undefined && (
-                    item.ownerPid === 4 ? (
+                    item.isEnvku ? (
+                      <div className="px-3 py-1.5 bg-[#eff6ff] text-[#1e40af] border border-[#09090b] text-[11px] font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#09090b]">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#2563eb] shrink-0" />
+                        <span>Service Normal (Envku)</span>
+                      </div>
+                    ) : item.ownerPid === 4 ? (
                       <div className="px-3 py-1.5 bg-[#fef3c7] text-[#92400e] border border-[#09090b] text-[11px] font-bold flex items-center gap-1.5" title="PID 4 adalah System kernel Windows (IIS/HTTP.sys)">
                         <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
                         <span>System Kernel (IIS)</span>

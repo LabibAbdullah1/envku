@@ -558,11 +558,11 @@ pub async fn get_managed_ports() -> Result<Vec<ManagedPortItem>, String> {
 
                     if proc_lower.contains(&server_dir) || proc_lower.contains("/opt/server") {
                         is_envku = true;
-                    } else if port == 80 && proc_lower.contains("httpd") && is_service_running("Apache2.4") {
+                    } else if (port == 80 || port == 443) && proc_lower.contains("httpd") && (is_service_running("Apache2.4") || is_service_running("apache2") || is_service_running("httpd")) {
                         is_envku = true;
-                    } else if port == 3306 && proc_lower.contains("mysqld") && is_service_running("mysql-server") {
+                    } else if port == 3306 && proc_lower.contains("mysqld") && (is_service_running("mysql-server") || is_service_running("mysql")) {
                         is_envku = true;
-                    } else if port == 6379 && proc_lower.contains("redis") && is_service_running("redis-server") {
+                    } else if port == 6379 && proc_lower.contains("redis") && (is_service_running("redis-server") || is_service_running("redis")) {
                         is_envku = true;
                     } else if (port == 8025 || port == 1025) && proc_lower.contains("mailpit") {
                         is_envku = true;
@@ -605,6 +605,14 @@ pub async fn scan_custom_port(port: u16) -> Result<ManagedPortItem, String> {
                 can_kill = pid != 0 && pid != 4;
 
                 if proc_lower.contains(&server_dir) || proc_lower.contains("/opt/server") {
+                    is_envku = true;
+                } else if (port == 80 || port == 443) && proc_lower.contains("httpd") && (is_service_running("Apache2.4") || is_service_running("apache2") || is_service_running("httpd")) {
+                    is_envku = true;
+                } else if port == 3306 && proc_lower.contains("mysqld") && (is_service_running("mysql-server") || is_service_running("mysql")) {
+                    is_envku = true;
+                } else if port == 6379 && proc_lower.contains("redis") && (is_service_running("redis-server") || is_service_running("redis")) {
+                    is_envku = true;
+                } else if (port == 8025 || port == 1025) && proc_lower.contains("mailpit") {
                     is_envku = true;
                 }
             }
