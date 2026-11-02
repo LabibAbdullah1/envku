@@ -1,12 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Loader2, Square, Play, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, Square, Play, Trash2, RefreshCw, Zap } from "lucide-react";
 
-interface ServiceState {
+export interface ServiceState {
   installed: boolean;
   running: boolean;
   checking: boolean;
   conflict?: boolean;
   conflictMessage?: string;
+  conflictPid?: number;
 }
 
 interface ServicesTabProps {
@@ -22,6 +23,7 @@ interface ServicesTabProps {
   isLinux?: boolean;
   dirsStatus: { [key: string]: boolean };
   baseDir: string;
+  onCutOffPid?: (pid: number) => void;
 }
 
 export default function ServicesTab({
@@ -32,6 +34,7 @@ export default function ServicesTab({
   isLinux = false,
   dirsStatus,
   baseDir,
+  onCutOffPid,
 }: ServicesTabProps) {
   const getPath = (pWin: string, pLinux: string) => {
     return isLinux ? `${baseDir}/${pLinux}` : `${baseDir}\\${pWin}`;
@@ -72,9 +75,20 @@ export default function ServicesTab({
               Port aktif: 80. Bertanggung jawab melayani berkas HTML/PHP dan memproses routing virtual host domain.
             </p>
             {services.Apache.conflict && (
-              <div className="bg-[#fef08a] border-2.5 border-[#09090b] text-[#713f12] text-xs p-3.5 shadow-[2px_2px_0px_0px_#09090b] flex flex-col gap-1">
-                <span className="font-black uppercase tracking-wider text-[10px]">Konflik Terdeteksi</span>
-                <p className="font-semibold leading-relaxed font-mono text-[11px]">{services.Apache.conflictMessage}</p>
+              <div className="bg-[#fef08a] border-2.5 border-[#09090b] text-[#713f12] text-xs p-3.5 shadow-[2px_2px_0px_0px_#09090b] flex flex-col gap-2">
+                <div>
+                  <span className="font-black uppercase tracking-wider text-[10px]">Konflik Terdeteksi</span>
+                  <p className="font-semibold leading-relaxed font-mono text-[11px] mt-0.5">{services.Apache.conflictMessage}</p>
+                </div>
+                {onCutOffPid && services.Apache.conflictPid && services.Apache.conflictPid !== 4 && (
+                  <button
+                    onClick={() => onCutOffPid(services.Apache.conflictPid!)}
+                    className="py-1.5 px-3 bg-[#ef4444] text-[#ffffff] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] hover:bg-[#dc2626] text-[10px] font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer self-start"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    Bebaskan Port (Cut Off PID {services.Apache.conflictPid})
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -86,7 +100,7 @@ export default function ServicesTab({
               </div>
             ) : !services.Apache.installed ? (
               <button
-                onClick={() => handleInstallService("Apache24", "Apache")}
+                onClick={() => handleInstallService("Apache2.4", "Apache")}
                 disabled={services.Apache.checking}
                 className="w-full py-3 bg-[#fde047] text-[#09090b] border-3 border-[#09090b] shadow-[4px_4px_0px_0px_#09090b] hover:bg-[#fef08a] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#09090b] text-xs font-black uppercase transition cursor-pointer flex items-center justify-center gap-2"
               >
@@ -113,7 +127,7 @@ export default function ServicesTab({
                 </button>
                 <button
                   disabled={services.Apache.checking}
-                  onClick={() => handleInstallService("Apache24", "Apache")}
+                  onClick={() => handleInstallService("Apache2.4", "Apache")}
                   className="py-3 px-3.5 bg-[#ffffff] text-[#18181b] border-3 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#7dd3fc] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#09090b] text-xs font-black transition flex items-center justify-center space-x-1.5 cursor-pointer shrink-0 uppercase"
                   title="Reinstall / Register Ulang Service"
                 >
@@ -148,9 +162,20 @@ export default function ServicesTab({
               Port aktif: 3306. Engine database relasional terisolasi untuk menyimpan konfigurasi data proyek Anda.
             </p>
             {services.MySQL.conflict && (
-              <div className="bg-[#fef08a] border-2.5 border-[#09090b] text-[#713f12] text-xs p-3.5 shadow-[2px_2px_0px_0px_#09090b] flex flex-col gap-1">
-                <span className="font-black uppercase tracking-wider text-[10px]">Konflik Terdeteksi</span>
-                <p className="font-semibold leading-relaxed font-mono text-[11px]">{services.MySQL.conflictMessage}</p>
+              <div className="bg-[#fef08a] border-2.5 border-[#09090b] text-[#713f12] text-xs p-3.5 shadow-[2px_2px_0px_0px_#09090b] flex flex-col gap-2">
+                <div>
+                  <span className="font-black uppercase tracking-wider text-[10px]">Konflik Terdeteksi</span>
+                  <p className="font-semibold leading-relaxed font-mono text-[11px] mt-0.5">{services.MySQL.conflictMessage}</p>
+                </div>
+                {onCutOffPid && services.MySQL.conflictPid && services.MySQL.conflictPid !== 4 && (
+                  <button
+                    onClick={() => onCutOffPid(services.MySQL.conflictPid!)}
+                    className="py-1.5 px-3 bg-[#ef4444] text-[#ffffff] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] hover:bg-[#dc2626] text-[10px] font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer self-start"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    Bebaskan Port (Cut Off PID {services.MySQL.conflictPid})
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -235,9 +260,20 @@ export default function ServicesTab({
               Port aktif: 6379. Struktur data memori (in-memory) berkecepatan tinggi untuk caching performa aplikasi Anda.
             </p>
             {services.Redis.conflict && (
-              <div className="bg-[#fef08a] border-2.5 border-[#09090b] text-[#713f12] text-xs p-3.5 shadow-[2px_2px_0px_0px_#09090b] flex flex-col gap-1">
-                <span className="font-black uppercase tracking-wider text-[10px]">Konflik Terdeteksi</span>
-                <p className="font-semibold leading-relaxed font-mono text-[11px]">{services.Redis.conflictMessage}</p>
+              <div className="bg-[#fef08a] border-2.5 border-[#09090b] text-[#713f12] text-xs p-3.5 shadow-[2px_2px_0px_0px_#09090b] flex flex-col gap-2">
+                <div>
+                  <span className="font-black uppercase tracking-wider text-[10px]">Konflik Terdeteksi</span>
+                  <p className="font-semibold leading-relaxed font-mono text-[11px] mt-0.5">{services.Redis.conflictMessage}</p>
+                </div>
+                {onCutOffPid && services.Redis.conflictPid && services.Redis.conflictPid !== 4 && (
+                  <button
+                    onClick={() => onCutOffPid(services.Redis.conflictPid!)}
+                    className="py-1.5 px-3 bg-[#ef4444] text-[#ffffff] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] hover:bg-[#dc2626] text-[10px] font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer self-start"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    Bebaskan Port (Cut Off PID {services.Redis.conflictPid})
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -321,9 +357,20 @@ export default function ServicesTab({
               SMTP Port: 1025, Webmail: 8025. Menangkap semua email keluar dari aplikasi lokal Anda dan menampilkannya di dashboard webmail.
             </p>
             {services.Mailpit.conflict && (
-              <div className="bg-[#fef08a] border-2.5 border-[#09090b] text-[#713f12] text-xs p-3.5 shadow-[2px_2px_0px_0px_#09090b] flex flex-col gap-1">
-                <span className="font-black uppercase tracking-wider text-[10px]">Konflik Terdeteksi</span>
-                <p className="font-semibold leading-relaxed font-mono text-[11px]">{services.Mailpit.conflictMessage}</p>
+              <div className="bg-[#fef08a] border-2.5 border-[#09090b] text-[#713f12] text-xs p-3.5 shadow-[2px_2px_0px_0px_#09090b] flex flex-col gap-2">
+                <div>
+                  <span className="font-black uppercase tracking-wider text-[10px]">Konflik Terdeteksi</span>
+                  <p className="font-semibold leading-relaxed font-mono text-[11px] mt-0.5">{services.Mailpit.conflictMessage}</p>
+                </div>
+                {onCutOffPid && services.Mailpit.conflictPid && services.Mailpit.conflictPid !== 4 && (
+                  <button
+                    onClick={() => onCutOffPid(services.Mailpit.conflictPid!)}
+                    className="py-1.5 px-3 bg-[#ef4444] text-[#ffffff] border-2 border-[#09090b] shadow-[2px_2px_0px_0px_#09090b] hover:bg-[#dc2626] text-[10px] font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer self-start"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    Bebaskan Port (Cut Off PID {services.Mailpit.conflictPid})
+                  </button>
+                )}
               </div>
             )}
           </div>

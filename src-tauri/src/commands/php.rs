@@ -15,20 +15,20 @@ pub fn switch_php_version(version_id: String) -> Result<String, String> {
         use winreg::RegKey;
         let target_php_dir = target_php_path.to_string_lossy().to_string();
 
-        let httpd_conf_path = server_dir.join("Apache24\\conf\\httpd.conf");
+        let apache_dir = server_dir.join("Apache24");
+        let httpd_conf_path = apache_dir.join("conf").join("httpd.conf");
         if !httpd_conf_path.exists() {
             return Err(format!("File httpd.conf Apache tidak ditemukan di {}", httpd_conf_path.to_string_lossy()));
         }
 
-        let mut conf_content = fs::read_to_string(&httpd_conf_path)
-            .map_err(|e| format!("Gagal membaca httpd.conf: {}", e))?;
-
-        let load_module_pattern = "LoadModule php_module";
-        let has_module = conf_content.contains(load_module_pattern);
+        let extra_dir = apache_dir.join("conf").join("extra");
+        let _ = fs::create_dir_all(&extra_dir);
+        let php_conf_path = extra_dir.join("httpd-php.conf");
 
         let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
         let php_module_block = format!(
-            r#"# PHP Config
+            r#"# Envku Modular PHP Configuration
+# Diperbarui secara otomatis saat memilih versi PHP di PHP Switcher
 LoadModule php_module "{}/{}/php8apache2_4.dll"
 AddHandler application/x-httpd-php .php
 PHPIniDir "{}/{}"
@@ -36,51 +36,44 @@ PHPIniDir "{}/{}"
             server_dir_slash, version_id, server_dir_slash, version_id
         );
 
-        if has_module {
-            let mut lines: Vec<String> = conf_content.lines().map(|s| s.to_string()).collect();
-            let mut php_block_start = None;
-            let mut php_block_end = None;
+        // Tulis konfigurasi PHP ke berkas modular httpd-php.conf
+        fs::write(&php_conf_path, &php_module_block)
+            .map_err(|e| format!("Gagal menyimpan httpd-php.conf: {}", e))?;
 
-            for (i, line) in lines.iter().enumerate() {
-                if line.contains("LoadModule php_module") {
-                    php_block_start = Some(i);
+        // Pastikan httpd.conf utama memuat berkas modular ini dan membersihkan modul PHP inline lama
+        if let Ok(mut main_conf) = fs::read_to_string(&httpd_conf_path) {
+            let include_directive = "IncludeOptional conf/extra/httpd-php.conf";
+            let mut modified = false;
+
+            // Bersihkan baris inline lama dari httpd.conf
+            let mut clean_lines: Vec<String> = Vec::new();
+            for line in main_conf.lines() {
+                let trimmed = line.trim();
+                if trimmed.contains("LoadModule php_module") 
+                    || (trimmed.starts_with("PHPIniDir") && trimmed.contains("php8")) 
+                    || (trimmed.contains("php8apache2_4.dll")) {
+                    modified = true;
+                    continue;
                 }
-                if php_block_start.is_some() && line.contains("PHPIniDir") {
-                    php_block_end = Some(i);
-                    break;
+                clean_lines.push(line.to_string());
+            }
+
+            main_conf = clean_lines.join("\n");
+
+            if !main_conf.contains(include_directive) {
+                if !main_conf.ends_with('\n') {
+                    main_conf.push('\n');
                 }
+                main_conf.push_str("\n# Envku Modular PHP Configuration\n");
+                main_conf.push_str(include_directive);
+                main_conf.push('\n');
+                modified = true;
             }
 
-            if let (Some(start), Some(end)) = (php_block_start, php_block_end) {
-                let adjust_start = if start > 0 && lines[start - 1].contains("# PHP Config") {
-                    start - 1
-                } else {
-                    start
-                };
-
-                let replacement = vec![
-                    format!("# PHP Config"),
-                    format!("LoadModule php_module \"{}/{}/php8apache2_4.dll\"", server_dir_slash, version_id),
-                    format!("AddHandler application/x-httpd-php .php"),
-                    format!("PHPIniDir \"{}/{}\"", server_dir_slash, version_id),
-                ];
-
-                lines.splice(adjust_start..=end, replacement);
-                conf_content = lines.join("\n");
-            } else {
-                lines.retain(|l| !l.contains("LoadModule php_module") && !l.contains("PHPIniDir") && !l.contains("php8apache2_4.dll") && !l.contains("AddHandler application/x-httpd-php"));
-                lines.push(php_module_block.clone());
-                conf_content = lines.join("\n");
+            if modified {
+                let _ = fs::write(&httpd_conf_path, main_conf);
             }
-        } else {
-            if !conf_content.ends_with('\n') {
-                conf_content.push('\n');
-            }
-            conf_content.push_str(&php_module_block);
         }
-
-        fs::write(&httpd_conf_path, &conf_content)
-            .map_err(|e| format!("Gagal menyimpan httpd.conf: {}", e))?;
 
         // Edit PATH Environment Variable (System Registry)
         let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
@@ -110,7 +103,7 @@ PHPIniDir "{}/{}"
         env_key.set_value("Path", &new_path_val)
             .map_err(|e| format!("Gagal menulis PATH baru ke registry: {}", e))?;
 
-        // Refresh Windows environment (broadcast setting change so explorer picks it up)
+        // Refresh Windows environment
         let _ = crate::create_hidden_command("powershell.exe")
             .args(&[
                 "-Command",
@@ -118,9 +111,11 @@ PHPIniDir "{}/{}"
             ])
             .output();
 
-        // Restart Apache
-        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
-        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+        // Restart Apache jika service terinstal
+        if crate::commands::services::check_service_installed("Apache2.4".to_string()).unwrap_or(false) {
+            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
+            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+        }
     }
 
     #[cfg(target_os = "linux")]
@@ -150,24 +145,42 @@ pub fn get_active_php_version() -> Result<String, String> {
 
     #[cfg(target_os = "windows")]
     {
-        let httpd_conf_path = server_dir.join("Apache24\\conf\\httpd.conf");
-        if !httpd_conf_path.exists() {
-            return Ok("unknown".to_string());
+        let extra_php_conf = server_dir.join("Apache24\\conf\\extra\\httpd-php.conf");
+        if extra_php_conf.exists() {
+            if let Ok(content) = fs::read_to_string(&extra_php_conf) {
+                for line in content.lines() {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("LoadModule php_module") && !trimmed.starts_with('#') {
+                        if trimmed.contains("php85") {
+                            return Ok("php85".to_string());
+                        } else if trimmed.contains("php84") {
+                            return Ok("php84".to_string());
+                        } else if trimmed.contains("php83") {
+                            return Ok("php83".to_string());
+                        } else if trimmed.contains("php82") {
+                            return Ok("php82".to_string());
+                        }
+                    }
+                }
+            }
         }
 
-        let content = fs::read_to_string(httpd_conf_path)
-            .map_err(|e| format!("Gagal membaca httpd.conf: {}", e))?;
-
-        for line in content.lines() {
-            if line.contains("LoadModule php_module") && !line.trim().starts_with('#') {
-                if line.contains("php85") {
-                    return Ok("php85".to_string());
-                } else if line.contains("php84") {
-                    return Ok("php84".to_string());
-                } else if line.contains("php83") {
-                    return Ok("php83".to_string());
-                } else if line.contains("php82") {
-                    return Ok("php82".to_string());
+        let httpd_conf_path = server_dir.join("Apache24\\conf\\httpd.conf");
+        if httpd_conf_path.exists() {
+            if let Ok(content) = fs::read_to_string(httpd_conf_path) {
+                for line in content.lines() {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("LoadModule php_module") && !trimmed.starts_with('#') {
+                        if trimmed.contains("php85") {
+                            return Ok("php85".to_string());
+                        } else if trimmed.contains("php84") {
+                            return Ok("php84".to_string());
+                        } else if trimmed.contains("php83") {
+                            return Ok("php83".to_string());
+                        } else if trimmed.contains("php82") {
+                            return Ok("php82".to_string());
+                        }
+                    }
                 }
             }
         }
@@ -404,7 +417,6 @@ pub fn toggle_php_extension(version_id: String, extension_name: String, enable: 
                         new_lines.push(format!("{}={}", prefix, clean_right));
                         first_match = false;
                     } else {
-                        // Duplicate match line: comment out to prevent "Module already loaded" warning
                         new_lines.push(format!(";{}={}", prefix, clean_right));
                     }
                 } else {

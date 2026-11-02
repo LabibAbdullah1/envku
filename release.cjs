@@ -127,7 +127,8 @@ console.log("   (Proses ini memakan waktu 5-15 menit)\n");
 
 // Dapatkan argumen tambahan jika ada
 const args = process.argv.slice(2);
-const buildArgs = args.length > 0 ? " " + args.join(" ") : "";
+const defaultBundles = process.platform === "win32" ? "--bundles nsis" : "";
+const buildArgs = args.length > 0 ? " " + args.join(" ") : (defaultBundles ? " " + defaultBundles : "");
 const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
 
 try {

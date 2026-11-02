@@ -2,6 +2,7 @@ import {
   Activity, 
   Download, 
   Layers, 
+  Radio,
   Plus, 
   Code, 
   Globe,
@@ -10,8 +11,8 @@ import {
 import envkuLogo from "../assets/envku-logo.svg";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support";
-  setActiveTab: (tab: "dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support") => void;
+  activeTab: "dashboard" | "downloader" | "services" | "ports" | "wizard" | "php" | "node" | "support";
+  setActiveTab: (tab: "dashboard" | "downloader" | "services" | "ports" | "wizard" | "php" | "node" | "support") => void;
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark") => void;
 }
@@ -66,6 +67,18 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           >
             <Layers className="w-4 h-4 shrink-0" />
             <span>Service Panel</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("ports")}
+            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 text-xs font-black transition-all duration-150 cursor-pointer border-2.5 border-[#09090b] ${
+              activeTab === "ports" 
+                ? "bg-[#fde047] text-[#09090b] shadow-[4px_4px_0px_0px_#09090b]" 
+                : "bg-[#ffffff] text-[#18181b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#7dd3fc] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#09090b]"
+            }`}
+          >
+            <Radio className="w-4 h-4 shrink-0" />
+            <span>Kelola Port</span>
           </button>
 
           <button

@@ -3,7 +3,7 @@ use std::process::Command;
 
 fn normalize_service_name(service: &str) -> &str {
     match service {
-        "Apache2.4" | "Apache" | "apache" => "apache",
+        "Apache2.4" | "Apache24" | "apache24" | "Apache" | "apache" => "apache",
         "mysql-server" | "MySQL" | "mysql" => "mysql",
         "redis-server" | "Redis" | "redis" => "redis",
         "mailpit" | "Mailpit" => "mailpit",
@@ -120,40 +120,6 @@ pub fn is_port_in_use(port: u16) -> bool {
     false
 }
 
-#[cfg(target_os = "windows")]
-fn get_process_executable_path(pid: u32) -> Option<String> {
-    // Try using wmic first as it is fast
-    let output = crate::create_hidden_command("wmic")
-        .args(&["process", "where", &format!("processid={}", pid), "get", "ExecutablePath", "/format:list"])
-        .output()
-        .ok()?;
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.lines() {
-            if line.to_lowercase().starts_with("executablepath=") {
-                if let Some(path) = line.splitn(2, '=').nth(1) {
-                    let trimmed = path.trim().to_string();
-                    if !trimmed.is_empty() {
-                        return Some(trimmed);
-                    }
-                }
-            }
-        }
-    }
-    // Fallback using PowerShell
-    let output_ps = crate::create_hidden_command("powershell.exe")
-        .args(&["-Command", &format!("(Get-Process -Id {} -ErrorAction SilentlyContinue).Path", pid)])
-        .output()
-        .ok()?;
-    if output_ps.status.success() {
-        let path = String::from_utf8_lossy(&output_ps.stdout).trim().to_string();
-        if !path.is_empty() {
-            return Some(path);
-        }
-    }
-    None
-}
-
 pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
     #[cfg(target_os = "windows")]
     {
@@ -162,10 +128,10 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
             .output()
             .ok()?;
         let stdout = String::from_utf8_lossy(&output.stdout);
-        
+
         let target_port_pattern = format!(":{}", port);
         let mut matching_pid = None;
-        
+
         for line in stdout.lines() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 5 && (parts[0] == "TCP" || parts[0] == "UDP") {
@@ -181,7 +147,7 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
                 }
             }
         }
-        
+
         let pid = matching_pid?;
         if pid == 0 {
             return Some((0, "System Idle Process".to_string()));
@@ -189,11 +155,7 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
         if pid == 4 {
             return Some((4, "System".to_string()));
         }
-        
-        if let Some(full_path) = get_process_executable_path(pid) {
-            return Some((pid, full_path));
-        }
-        
+
         let output_task = crate::create_hidden_command("tasklist")
             .args(&["/FI", &format!("PID eq {}", pid), "/FO", "CSV", "/NH"])
             .output()
@@ -205,14 +167,14 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
                 continue;
             }
             let parts: Vec<&str> = trimmed.split(',').collect();
-            if parts.len() > 0 {
+            if !parts.is_empty() {
                 let name = parts[0].replace('"', "");
                 if !name.is_empty() {
                     return Some((pid, name));
                 }
             }
         }
-        
+
         Some((pid, format!("PID {}", pid)))
     }
 
@@ -234,7 +196,7 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
                 }
             }
         }
-        
+
         // 2. Fallback to ss -ltnp
         if let Ok(output) = Command::new("ss").args(&["-ltnp"]).output() {
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -274,125 +236,119 @@ pub fn find_port_owner(port: u16) -> Option<(u32, String)> {
 }
 
 #[tauri::command]
-pub fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String> {
-    let mut statuses = Vec::new();
-    
-    let services_to_check = vec![
-        ("Apache", "Apache2.4", 80),
-        ("MySQL", "mysql-server", 3306),
-        ("Redis", "redis-server", 6379),
-        ("Mailpit", "mailpit", 8025),
-    ];
-    
-    let server_dir = get_server_dir_path();
-    let server_dir_str = server_dir.to_string_lossy().to_lowercase();
-    
-    for (key, service_name, port) in services_to_check {
-        let mut running = false;
-        let mut port_conflict = false;
-        let mut path_conflict = false;
-        let mut conflict_pid = None;
-        let mut conflict_process = None;
-        
-        let installed = if key == "Mailpit" {
-            let exe_name = if cfg!(target_os = "windows") { "mailpit.exe" } else { "mailpit" };
-            let mailpit_exe = server_dir.join("mailpit").join(exe_name);
-            mailpit_exe.exists()
-        } else {
-            check_service_installed(service_name.to_string()).unwrap_or(false)
-        };
-        
-        if key == "Mailpit" {
-            if is_port_in_use(port) {
-                if let Some((pid, proc_path)) = find_port_owner(port) {
-                    let proc_path_lower = proc_path.to_lowercase();
-                    let has_path_separator = proc_path_lower.contains('\\') || proc_path_lower.contains('/');
-                    let is_our_mailpit = is_pid_in_systemd_service(pid, "mailpit") ||
-                        ((proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
-                        (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || !has_path_separator));
+pub async fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String> {
+    tokio::task::spawn_blocking(move || {
+        let mut statuses = Vec::new();
 
-                    if !is_our_mailpit {
-                        port_conflict = true;
-                        conflict_pid = Some(pid);
-                        conflict_process = Some(proc_path);
+        let services_to_check = vec![
+            ("Apache", "Apache2.4", 80),
+            ("MySQL", "mysql-server", 3306),
+            ("Redis", "redis-server", 6379),
+            ("Mailpit", "mailpit", 8025),
+        ];
+
+        let server_dir = get_server_dir_path();
+        let server_dir_norm = server_dir.to_string_lossy().to_lowercase().replace('/', "\\");
+
+        for (key, service_name, port) in services_to_check {
+            let mut running = false;
+            let mut port_conflict = false;
+            let mut path_conflict = false;
+            let mut conflict_pid = None;
+            let mut conflict_process = None;
+
+            let installed = if key == "Mailpit" {
+                let exe_name = if cfg!(target_os = "windows") { "mailpit.exe" } else { "mailpit" };
+                let mailpit_exe = server_dir.join("mailpit").join(exe_name);
+                mailpit_exe.exists()
+            } else {
+                check_service_installed(service_name.to_string()).unwrap_or(false)
+            };
+
+            if key == "Mailpit" {
+                if is_port_in_use(port) {
+                    if let Some((pid, proc_path)) = find_port_owner(port) {
+                        let proc_path_lower = proc_path.to_lowercase();
+                        let has_path_separator = proc_path_lower.contains('\\') || proc_path_lower.contains('/');
+                        let is_our_mailpit = is_pid_in_systemd_service(pid, "mailpit") ||
+                            ((proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
+                            (proc_path_lower.contains(&server_dir_norm) || proc_path_lower.contains("/opt/server") || !has_path_separator));
+
+                        if !is_our_mailpit {
+                            port_conflict = true;
+                            conflict_pid = Some(pid);
+                            conflict_process = Some(proc_path);
+                        } else {
+                            running = true;
+                        }
                     } else {
                         running = true;
                     }
-                } else {
-                    running = true;
                 }
-            }
-        } else {
-            if installed {
-                if let Some(img_path) = get_service_image_path(service_name) {
-                    let img_path_lower = img_path.to_lowercase();
-                    if !img_path_lower.contains(&server_dir_str) {
-                        path_conflict = true;
-                        conflict_process = Some(img_path);
+            } else {
+                if installed {
+                    if let Some(img_path) = get_service_image_path(service_name) {
+                        let img_clean = img_path.trim().trim_matches('"').to_lowercase().replace('/', "\\");
+                        if !img_clean.contains(&server_dir_norm) {
+                            path_conflict = true;
+                            conflict_process = Some(img_path);
+                        }
                     }
+
+                    running = is_service_running(service_name);
                 }
-                
-                running = is_service_running(service_name);
-            }
-            
-            if is_port_in_use(port) {
-                if let Some((pid, proc_path)) = find_port_owner(port) {
-                    let proc_path_lower = proc_path.to_lowercase();
-                    let has_path_separator = proc_path_lower.contains('\\') || proc_path_lower.contains('/');
-                    
-                    let is_our_proc = match key {
-                        "Apache" => {
-                            is_pid_in_systemd_service(pid, "apache") ||
-                            ((proc_path_lower.contains("httpd.exe") || proc_path_lower.contains("apache2") || proc_path_lower.contains("httpd")) &&
-                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
-                        },
-                        "MySQL" => {
-                            is_pid_in_systemd_service(pid, "mysql") ||
-                            ((proc_path_lower.contains("mysqld.exe") || proc_path_lower.contains("mysqld")) &&
-                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
-                        },
-                        "Redis" => {
-                            is_pid_in_systemd_service(pid, "redis") ||
-                            ((proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) &&
-                            (proc_path_lower.contains(&server_dir_str) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
-                        },
-                        _ => false,
-                    };
-                    
-                    if !is_our_proc {
-                        port_conflict = true;
-                        conflict_pid = Some(pid);
-                        conflict_process = Some(proc_path);
+
+                if is_port_in_use(port) {
+                    if running && !path_conflict {
+                        // Port sedang dipakai oleh service kita sendiri yang aktif & normal
                     } else {
-                        running = true;
-                    }
-                } else {
-                    if !running {
-                        port_conflict = true;
+                        if let Some((pid, proc_path)) = find_port_owner(port) {
+                            let proc_path_lower = proc_path.to_lowercase();
+                            let is_our_proc = match key {
+                                "Apache" => proc_path_lower.contains("httpd"),
+                                "MySQL" => proc_path_lower.contains("mysqld"),
+                                "Redis" => proc_path_lower.contains("redis"),
+                                _ => false,
+                            };
+
+                            if !is_our_proc {
+                                port_conflict = true;
+                                conflict_pid = Some(pid);
+                                conflict_process = Some(proc_path);
+                            } else {
+                                running = true;
+                            }
+                        } else {
+                            if !running {
+                                port_conflict = true;
+                            }
+                        }
                     }
                 }
             }
+
+            statuses.push(ServiceStatus {
+                name: key.to_string(),
+                installed,
+                running,
+                port_conflict,
+                path_conflict,
+                conflict_pid,
+                conflict_process,
+                port: Some(port),
+            });
         }
-        
-        statuses.push(ServiceStatus {
-            name: key.to_string(),
-            installed,
-            running,
-            port_conflict,
-            path_conflict,
-            conflict_pid,
-            conflict_process,
-            port: Some(port),
-        });
-    }
-    
-    Ok(statuses)
+
+        Ok(statuses)
+    })
+    .await
+    .map_err(|e| format!("Gagal memeriksa status service: {}", e))?
 }
 
 #[tauri::command]
 pub fn control_service(service: String, action: String) -> Result<String, String> {
     let norm = normalize_service_name(&service);
-    
+
     // Check conflicts on start
     if action == "start" {
         let port = match norm {
@@ -409,14 +365,14 @@ pub fn control_service(service: String, action: String) -> Result<String, String
                     let server_dir = get_server_dir_path().to_string_lossy().to_lowercase();
                     let proc_path_lower = proc_path.to_lowercase();
                     let has_path_separator = proc_path_lower.contains('\\') || proc_path_lower.contains('/');
-                    
+
                     let running = match norm {
                         "apache" => is_service_running("Apache2.4"),
                         "mysql" => is_service_running("mysql-server"),
                         "redis" => is_service_running("redis-server"),
                         _ => false,
                     };
-                    
+
                     let is_our_proc = match norm {
                         "apache" => {
                             is_pid_in_systemd_service(pid, "apache") ||
@@ -542,5 +498,205 @@ pub fn clear_redis_cache() -> Result<String, String> {
             stderr.trim(),
             stdout.trim()
         ))
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ManagedPortItem {
+    pub port: u16,
+    pub service_label: String,
+    pub is_in_use: bool,
+    pub owner_pid: Option<u32>,
+    pub owner_process: Option<String>,
+    pub is_envku: bool,
+    pub can_kill: bool,
+}
+
+#[tauri::command]
+pub async fn get_managed_ports() -> Result<Vec<ManagedPortItem>, String> {
+    tokio::task::spawn_blocking(|| {
+        let server_dir = get_server_dir_path().to_string_lossy().to_lowercase();
+        let default_ports = vec![
+            (80, "Apache HTTP Web Server".to_string()),
+            (443, "Apache SSL / HTTPS".to_string()),
+            (3306, "MySQL Database Server".to_string()),
+            (6379, "Redis Cache Server".to_string()),
+            (8025, "Mailpit Web UI Sandbox".to_string()),
+            (1025, "Mailpit SMTP Relay".to_string()),
+        ];
+
+        let mut all_ports = default_ports;
+        if let Ok(hosts) = crate::commands::projects::get_virtual_hosts() {
+            for h in hosts {
+                if h.is_node {
+                    if let Some(p) = h.node_port {
+                        if !all_ports.iter().any(|(port, _)| *port == p) {
+                            all_ports.push((p, format!("Node.js ({})", h.domain)));
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut results = Vec::new();
+
+        for (port, label) in all_ports {
+            let in_use = is_port_in_use(port);
+            let mut owner_pid = None;
+            let mut owner_proc = None;
+            let mut is_envku = false;
+            let mut can_kill = false;
+
+            if in_use {
+                if let Some((pid, proc_name)) = find_port_owner(port) {
+                    let proc_lower = proc_name.to_lowercase();
+                    owner_pid = Some(pid);
+                    owner_proc = Some(proc_name);
+
+                    can_kill = pid != 0 && pid != 4;
+
+                    if proc_lower.contains(&server_dir) || proc_lower.contains("/opt/server") {
+                        is_envku = true;
+                    } else if port == 80 && proc_lower.contains("httpd") && is_service_running("Apache2.4") {
+                        is_envku = true;
+                    } else if port == 3306 && proc_lower.contains("mysqld") && is_service_running("mysql-server") {
+                        is_envku = true;
+                    } else if port == 6379 && proc_lower.contains("redis") && is_service_running("redis-server") {
+                        is_envku = true;
+                    } else if (port == 8025 || port == 1025) && proc_lower.contains("mailpit") {
+                        is_envku = true;
+                    }
+                }
+            }
+
+            results.push(ManagedPortItem {
+                port,
+                service_label: label,
+                is_in_use: in_use,
+                owner_pid,
+                owner_process: owner_proc,
+                is_envku,
+                can_kill,
+            });
+        }
+
+        Ok(results)
+    })
+    .await
+    .map_err(|e| format!("Gagal memindai status port: {}", e))?
+}
+
+#[tauri::command]
+pub async fn scan_custom_port(port: u16) -> Result<ManagedPortItem, String> {
+    tokio::task::spawn_blocking(move || {
+        let server_dir = get_server_dir_path().to_string_lossy().to_lowercase();
+        let in_use = is_port_in_use(port);
+        let mut owner_pid = None;
+        let mut owner_proc = None;
+        let mut is_envku = false;
+        let mut can_kill = false;
+
+        if in_use {
+            if let Some((pid, proc_name)) = find_port_owner(port) {
+                let proc_lower = proc_name.to_lowercase();
+                owner_pid = Some(pid);
+                owner_proc = Some(proc_name);
+                can_kill = pid != 0 && pid != 4;
+
+                if proc_lower.contains(&server_dir) || proc_lower.contains("/opt/server") {
+                    is_envku = true;
+                }
+            }
+        }
+
+        Ok(ManagedPortItem {
+            port,
+            service_label: format!("Custom Port {}", port),
+            is_in_use: in_use,
+            owner_pid,
+            owner_process: owner_proc,
+            is_envku,
+            can_kill,
+        })
+    })
+    .await
+    .map_err(|e| format!("Gagal memindai port {}: {}", port, e))?
+}
+
+#[tauri::command]
+pub fn terminate_port_pid(pid: u32) -> Result<String, String> {
+    if pid == 0 {
+        return Err("PID 0 adalah System Idle Process dan tidak dapat dihentikan.".to_string());
+    }
+    if pid == 4 {
+        return Err(
+            "PID 4 adalah kernel sistem Windows (biasanya diduduki oleh service IIS atau HTTP.sys). Untuk membebaskannya, jalankan 'iisreset /stop' di CMD Administrator atau nonaktifkan World Wide Web Publishing Service.".to_string()
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // 1. Coba taskkill standar
+        let out = crate::create_hidden_command("taskkill")
+            .args(&["/F", "/PID", &pid.to_string()])
+            .output();
+
+        if let Ok(res) = out {
+            if res.status.success() {
+                return Ok(format!("Proses PID {} berhasil dihentikan (Port telah dibebaskan).", pid));
+            }
+        }
+
+        // 2. Jika ditolak / butuh admin, eskalasi via UAC
+        let ps_cmd = format!(
+            "Start-Process taskkill -ArgumentList '/F', '/PID', '{}' -Verb RunAs -WindowStyle Hidden -Wait",
+            pid
+        );
+
+        let elevated = crate::create_hidden_command("powershell.exe")
+            .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_cmd])
+            .output()
+            .map_err(|e| format!("Gagal memicu UAC: {}", e))?;
+
+        if elevated.status.success() {
+            Ok(format!("Proses PID {} berhasil dihentikan dengan hak Administrator.", pid))
+        } else {
+            Err(format!(
+                "Gagal menghentikan proses PID {}. Silakan matikan melalui Task Manager.",
+                pid
+            ))
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let status = std::process::Command::new("kill")
+            .args(&["-9", &pid.to_string()])
+            .status();
+
+        if let Ok(st) = status {
+            if st.success() {
+                return Ok(format!("Proses PID {} berhasil dihentikan.", pid));
+            }
+        }
+
+        let elevated = std::process::Command::new("pkexec")
+            .args(&["kill", "-9", &pid.to_string()])
+            .output()
+            .map_err(|e| format!("Gagal memicu pkexec: {}", e))?;
+
+        if elevated.status.success() {
+            Ok(format!("Proses PID {} berhasil dihentikan via pkexec.", pid))
+        } else {
+            let stderr = String::from_utf8_lossy(&elevated.stderr);
+            Err(format!("Gagal menghentikan proses PID {}: {}", pid, stderr.trim()))
+        }
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        let _ = pid;
+        Err("Sistem operasi tidak didukung untuk penghentian proses.".to_string())
     }
 }

@@ -48,11 +48,15 @@ pub fn register_system_paths() -> Result<(), String> {
         use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS, KEY_READ};
         use winreg::RegKey;
 
+        let apache_bin_path = server_dir.join("Apache24").join("bin");
         let composer_path = server_dir.join("composer");
         let mysql_bin_path = server_dir.join("mysql").join("bin");
         let redis_path = server_dir.join("redis");
 
         let mut paths_to_add = Vec::new();
+        if apache_bin_path.exists() {
+            paths_to_add.push(apache_bin_path.to_string_lossy().to_string());
+        }
         if composer_path.exists() {
             paths_to_add.push(composer_path.to_string_lossy().to_string());
         }

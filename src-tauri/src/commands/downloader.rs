@@ -127,8 +127,25 @@ pub fn extract_zip(zip_path: &Path, target_dir: &Path) -> Result<(), String> {
                         .map_err(|e| format!("Gagal membuat sub-direktori zip: {}", e))?;
                 }
             }
+            if outpath.exists() {
+                if let Ok(meta) = fs::metadata(&outpath) {
+                    let mut perms = meta.permissions();
+                    if perms.readonly() {
+                        perms.set_readonly(false);
+                        let _ = fs::set_permissions(&outpath, perms);
+                    }
+                }
+            }
             let mut outfile =
-                File::create(&outpath).map_err(|e| format!("Gagal membuat file output: {}", e))?;
+                match File::create(&outpath) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        std::thread::sleep(std::time::Duration::from_millis(250));
+                        File::create(&outpath).map_err(|e2| {
+                            format!("Gagal membuat file output {}: {} (retry: {})", outpath.display(), e, e2)
+                        })?
+                    }
+                };
             std::io::copy(&mut file, &mut outfile)
                 .map_err(|e| format!("Gagal menyalin data zip: {}", e))?;
         }
@@ -145,7 +162,13 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
     }
 
     let urls = get_component_urls(&component_id)?;
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(600))
+        .connect_timeout(std::time::Duration::from_secs(20))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
     let response = fetch_response_with_fallback(&client, &urls).await?;
 
     let total_size = response.content_length().unwrap_or(0);
@@ -193,25 +216,47 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
     file.flush().unwrap_or(());
     drop(file);
 
-    // Stop services to release file locks before extraction
-    if component_id == "apache" || component_id == "php85" || component_id == "php84" || component_id == "php83" || component_id == "php82" {
-        let _ =
-            crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
-        std::thread::sleep(std::time::Duration::from_millis(800));
+    // Stop services & forcefully terminate any lingering processes to release file locks
+    #[cfg(target_os = "windows")]
+    {
+        if component_id == "apache" || component_id == "php85" || component_id == "php84" || component_id == "php83" || component_id == "php82" {
+            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "httpd.exe"]).output();
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "php-cgi.exe"]).output();
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+
+        if component_id == "mysql" {
+            let _ = crate::commands::services::control_service("mysql-server".to_string(), "stop".to_string());
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "mysqld.exe"]).output();
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+
+        if component_id == "redis" {
+            let _ = crate::commands::services::control_service("redis-server".to_string(), "stop".to_string());
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "redis-server.exe"]).output();
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+
+        if component_id == "mailpit" {
+            let _ = crate::commands::services::control_service("mailpit".to_string(), "stop".to_string());
+            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "mailpit.exe"]).output();
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
     }
-    if component_id == "mysql" {
-        let _ = crate::commands::services::control_service(
-            "mysql-server".to_string(),
-            "stop".to_string(),
-        );
-        std::thread::sleep(std::time::Duration::from_millis(800));
-    }
-    if component_id == "redis" {
-        let _ = crate::commands::services::control_service(
-            "redis-server".to_string(),
-            "stop".to_string(),
-        );
-        std::thread::sleep(std::time::Duration::from_millis(800));
+    #[cfg(target_os = "linux")]
+    {
+        if component_id == "apache" || component_id == "php85" || component_id == "php84" || component_id == "php83" || component_id == "php82" {
+            let _ = crate::commands::services::control_service("apache".to_string(), "stop".to_string());
+        }
+
+        if component_id == "mysql" {
+            let _ = crate::commands::services::control_service("mysql".to_string(), "stop".to_string());
+        }
+
+        if component_id == "redis" {
+            let _ = crate::commands::services::control_service("redis".to_string(), "stop".to_string());
+        }
     }
 
     if is_zip {
@@ -230,7 +275,13 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
         fs::create_dir_all(&extract_dest)
             .map_err(|e| format!("Gagal membuat folder tujuan: {}", e))?;
 
-        extract_zip(&file_path, &extract_dest)?;
+        let zip_file_clone = file_path.clone();
+        let dest_clone = extract_dest.clone();
+        tokio::task::spawn_blocking(move || {
+            extract_zip(&zip_file_clone, &dest_clone)
+        })
+        .await
+        .map_err(|e| format!("Eksekusi ekstraksi gagal dijadwalkan: {}", e))??;
 
         // Post-extraction: restructuring directories
         match component_id.as_str() {
@@ -319,6 +370,20 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
 
                     let vhosts_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-vhosts.conf");
                     crate::commands::projects::clean_dummy_vhosts_file(&vhosts_path);
+
+                    let extra_dir = server_dir.join("Apache24").join("conf").join("extra");
+                    let _ = fs::create_dir_all(&extra_dir);
+                    let php_conf_file = extra_dir.join("httpd-php.conf");
+                    if !php_conf_file.exists() {
+                        let _ = fs::write(&php_conf_file, "# Envku Modular PHP Configuration\n# Diperbarui secara otomatis saat memilih versi PHP di PHP Switcher\n");
+                    }
+                    let all_php = vec!["php85", "php84", "php83", "php82"];
+                    for php_ver in all_php {
+                        if server_dir.join(php_ver).exists() {
+                            let _ = crate::commands::php::switch_php_version(php_ver.to_string());
+                            break;
+                        }
+                    }
                 }
             }
             "mysql" => {
@@ -357,13 +422,13 @@ default_authentication_plugin=mysql_native_password
 "#,
                         server_dir_slash, server_dir_slash
                     );
-                    let _ = fs::write(&my_ini_path, config);
+             fs::write(&my_ini_path, config);
 
                     // Automatically initialize datadir if it does not exist
                     let data_dir = dest.join("data");
                     if !data_dir.exists() {
                         let mysqld_path = dest.join("bin").join("mysqld.exe");
-                        let _ = crate::create_hidden_command(&mysqld_path.to_string_lossy())
+                 crate::create_hidden_command(&mysqld_path.to_string_lossy())
                             .args(&["--initialize-insecure", "--user=mysql"])
                             .output();
                     }
@@ -492,7 +557,7 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
 
     // Cleanup Zip & Temp dir
     if is_zip {
-        fs::remove_file(&file_path).unwrap_or(());
+        let _ = fs::remove_file(&file_path);
     } else {
         let _ = fs::remove_file(&file_path);
     }
@@ -510,6 +575,13 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
 
     // Automatically register newly downloaded paths to system PATH
     let _ = crate::platform::env_path::register_system_paths();
+
+    if component_id == "php85" || component_id == "php84" || component_id == "php83" || component_id == "php82" {
+        let active = crate::commands::php::get_active_php_version().unwrap_or_default();
+        if active == "unknown" || active.is_empty() {
+            let _ = crate::commands::php::switch_php_version(component_id.clone());
+        }
+    }
 
     Ok(format!(
         "Komponen {} berhasil di-download dan di-ekstrak.",
@@ -533,7 +605,13 @@ fn emit_progress(app: &AppHandle, component_id: &str, percentage: u32) {
 
 #[cfg(target_os = "linux")]
 async fn download_file_direct(app: &AppHandle, component_id: &str, primary_url: &str, fallback_url: &str, dest_path: &Path) -> Result<(), String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(600))
+        .connect_timeout(std::time::Duration::from_secs(20))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
     let urls = ComponentUrls { primary: primary_url, fallback: fallback_url };
     let response = fetch_response_with_fallback(&client, &urls).await?;
 
@@ -625,7 +703,7 @@ async fn setup_php_repository() -> Result<(), String> {
             temp_sources.to_string_lossy()
         );
         let run_res = run_pkexec_command(&["bash", "-c", &cmd_str]);
-        let _ = fs::remove_file(temp_sources);
+ fs::remove_file(temp_sources);
         run_res?;
     } else {
         // Dapatkan nama codename sistem
@@ -635,10 +713,16 @@ async fn setup_php_repository() -> Result<(), String> {
             .unwrap_or("noble");
 
         // Periksa apakah Launchpad PPA memiliki folder rilis untuk codename ini secara asinkron
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(600))
+        .connect_timeout(std::time::Duration::from_secs(20))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
         let mut selected_codename = codename.to_string();
         let check_url = format!("https://ppa.launchpadcontent.net/ondrej/php/ubuntu/dists/{}/Release", codename);
-        
+
         let is_supported = if let Ok(res) = client.head(&check_url).send().await {
             res.status().is_success()
         } else {
@@ -770,20 +854,20 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
                 install_args.push(pkg);
             }
             run_pkexec_command(&install_args)?;
-             
+
             // Pastikan modul PHP di-enable di Apache
             let enable_mod_cmd = format!("a2enmod php{} || true", php_version_dot);
-            let _ = run_pkexec_command(&["sh", "-c", &enable_mod_cmd]);
+     run_pkexec_command(&["sh", "-c", &enable_mod_cmd]);
 
             emit_progress(&app, &component_id, 80);
 
             let dest_php_dir = server_dir.join(&component_id).join("bin");
             fs::create_dir_all(&dest_php_dir).map_err(|e| format!("Gagal membuat folder PHP bin: {}", e))?;
-            
+
             let system_php_bin = format!("/usr/bin/php{}", php_version_dot);
             let local_php_bin = dest_php_dir.join("php");
             if local_php_bin.exists() || local_php_bin.is_symlink() {
-                let _ = fs::remove_file(&local_php_bin);
+         fs::remove_file(&local_php_bin);
             }
             std::os::unix::fs::symlink(&system_php_bin, &local_php_bin)
                 .map_err(|e| format!("Gagal membuat symlink PHP ke /usr/bin/php: {}", e))?;
@@ -792,9 +876,9 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
             if !local_ini.exists() {
                 let sys_ini = format!("/etc/php/{}/cli/php.ini", php_version_dot);
                 if Path::new(&sys_ini).exists() {
-                    let _ = fs::copy(&sys_ini, &local_ini);
+             fs::copy(&sys_ini, &local_ini);
                 } else {
-                    let _ = fs::write(&local_ini, "; Empty php.ini for envku\n");
+             fs::write(&local_ini, "; Empty php.ini for envku\n");
                 }
             }
 
@@ -806,8 +890,8 @@ IncludeOptional /opt/server/Apache24/conf/extra/httpd-vhosts.conf
             run_pkexec_command(&["sh", "-c", "apt-get update || true; apt-get install -y mysql-server"])?;
 
             // Konfigurasi otomatis: ubah otentikasi root agar bisa login tanpa password via phpMyAdmin
-            let _ = run_pkexec_command(&["systemctl", "start", "mysql"]);
-            let _ = run_pkexec_command(&[
+     run_pkexec_command(&["systemctl", "start", "mysql"]);
+     run_pkexec_command(&[
                 "mysql",
                 "-u",
                 "root",
@@ -847,9 +931,9 @@ mysqlx-bind-address=127.0.0.1
             fs::create_dir_all(&dest_bin_dir).unwrap_or(());
             let local_mysql = dest_bin_dir.join("mysql");
             if local_mysql.exists() || local_mysql.is_symlink() {
-                let _ = fs::remove_file(&local_mysql);
+         fs::remove_file(&local_mysql);
             }
-            let _ = std::os::unix::fs::symlink("/usr/bin/mysql", &local_mysql);
+     std::os::unix::fs::symlink("/usr/bin/mysql", &local_mysql);
 
             emit_progress(&app, &component_id, 100);
             Ok("MySQL Server berhasil diinstal di Linux.".to_string())
@@ -879,9 +963,9 @@ dir /var/lib/redis
             fs::create_dir_all(&dest_bin_dir).unwrap_or(());
             let local_redis_cli = dest_bin_dir.join("redis-cli");
             if local_redis_cli.exists() || local_redis_cli.is_symlink() {
-                let _ = fs::remove_file(&local_redis_cli);
+         fs::remove_file(&local_redis_cli);
             }
-            let _ = std::os::unix::fs::symlink("/usr/bin/redis-cli", &local_redis_cli);
+     std::os::unix::fs::symlink("/usr/bin/redis-cli", &local_redis_cli);
 
             emit_progress(&app, &component_id, 100);
             Ok("Redis Server berhasil diinstal di Linux.".to_string())
@@ -905,7 +989,7 @@ dir /var/lib/redis
                 .output()
                 .map_err(|e| format!("Gagal menjalankan tar untuk ekstrak mailpit: {}", e))?;
 
-            let _ = fs::remove_file(&temp_tar);
+     fs::remove_file(&temp_tar);
 
             if !output.status.success() {
                 return Err("Gagal mengekstrak Mailpit tar.gz".to_string());
@@ -927,7 +1011,7 @@ dir /var/lib/redis
             }
 
             // Auto register mailpit systemd service
-            let _ = crate::platform::services::install_service("mailpit");
+     crate::platform::services::install_service("mailpit");
 
             emit_progress(&app, &component_id, 100);
             Ok("Mailpit berhasil diinstal di Linux.".to_string())
@@ -947,7 +1031,7 @@ dir /var/lib/redis
             emit_progress(&app, &component_id, 60);
 
             extract_zip(&temp_zip, &www_dir)?;
-            let _ = fs::remove_file(&temp_zip);
+     fs::remove_file(&temp_zip);
 
             let entries = fs::read_dir(&www_dir).map_err(|e| format!("Gagal membaca www dir: {}", e))?;
             for entry in entries {
@@ -956,10 +1040,10 @@ dir /var/lib/redis
                     if name.starts_with("phpMyAdmin-") && entry.path().is_dir() {
                         let dest = www_dir.join("phpmyadmin");
                         if dest.exists() {
-                            let _ = fs::remove_dir_all(&dest);
+                     fs::remove_dir_all(&dest);
                         }
-                        let _ = fs::rename(entry.path(), &dest);
-                        
+                 fs::rename(entry.path(), &dest);
+
                         let config_path = dest.join("config.inc.php");
                         let pma_config = r#"<?php
 $cfg['blowfish_secret'] = 'envku_orchestrator_secret_32_cha';
@@ -991,7 +1075,7 @@ $cfg['Servers'][$i]['central_columns'] = 'pma__central_columns';
 $cfg['Servers'][$i]['designer_settings'] = 'pma__designer_settings';
 $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
 "#;
-                        let _ = fs::write(&config_path, pma_config);
+                 fs::write(&config_path, pma_config);
                         break;
                     }
                 }
@@ -1005,11 +1089,11 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
                     pma_path.to_string_lossy(),
                     server_dir.join("www").to_string_lossy()
                 );
-                let _ = crate::execute_elevated_command(&["sh", "-c", &chmod_cmd]);
+         crate::execute_elevated_command(&["sh", "-c", &chmod_cmd]);
             }
 
             let pma_path = server_dir.join("www").join("phpmyadmin");
-            let _ = crate::commands::projects::add_project(
+     crate::commands::projects::add_project(
                 "phpmyadmin.test".to_string(),
                 pma_path.to_string_lossy().to_string(),
                 false,
@@ -1030,8 +1114,8 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
             download_file_direct(&app, &component_id, urls.primary, urls.fallback, &temp_composer).await?;
             emit_progress(&app, &component_id, 80);
 
-            let _ = crate::platform::env_path::register_system_paths();
-            let _ = crate::platform::env_path::set_php_symlink("php83");
+     crate::platform::env_path::register_system_paths();
+     crate::platform::env_path::set_php_symlink("php83");
 
             emit_progress(&app, &component_id, 100);
             Ok("Composer berhasil diinstal di Linux.".to_string())
@@ -1049,7 +1133,7 @@ pub fn delete_component(component_id: String) -> Result<String, String> {
             let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
             #[cfg(target_os = "windows")]
             let _ = crate::create_hidden_command("taskkill").args(&["/F", "/IM", "httpd.exe"]).output();
-            
+
             let path = server_dir.join("Apache24");
             if path.exists() {
                 fs::remove_dir_all(&path).map_err(|e| format!("Gagal menghapus folder Apache24: {}", e))?;
@@ -1063,6 +1147,18 @@ pub fn delete_component(component_id: String) -> Result<String, String> {
                 let other_installed = all.into_iter().find(|id| *id != component_id && server_dir.join(id).exists());
                 if let Some(other_id) = other_installed {
                     let _ = crate::commands::php::switch_php_version(other_id.to_string());
+                } else {
+                    #[cfg(target_os = "windows")]
+                    {
+                        let php_conf_path = server_dir.join("Apache24").join("conf").join("extra").join("httpd-php.conf");
+                        if php_conf_path.exists() {
+                            let _ = fs::write(&php_conf_path, "# Envku Modular PHP Configuration\n# Tidak ada modul PHP yang aktif saat ini\n");
+                        }
+                        if crate::commands::services::check_service_installed("Apache2.4".to_string()).unwrap_or(false) {
+                            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
+                            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+                        }
+                    }
                 }
             }
 

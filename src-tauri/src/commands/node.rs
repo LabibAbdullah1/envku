@@ -1,93 +1,76 @@
 use std::fs;
 #[cfg(target_os = "windows")]
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 #[cfg(target_os = "windows")]
 use std::io::Write;
 #[cfg(target_os = "windows")]
 use crate::config::get_server_dir_path;
 
+#[cfg(target_os = "windows")]
+fn find_windows_nvm_exe() -> Option<PathBuf> {
+    if let Ok(nh) = std::env::var("NVM_HOME") {
+        let p = Path::new(&nh).join("nvm.exe");
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    if let Ok(profile) = std::env::var("USERPROFILE") {
+        let roaming = Path::new(&profile).join("AppData\\Roaming\\nvm\\nvm.exe");
+        if roaming.exists() {
+            return Some(roaming);
+        }
+        let local = Path::new(&profile).join("AppData\\Local\\nvm\\nvm.exe");
+        if local.exists() {
+            return Some(local);
+        }
+    }
+    let pf = Path::new("C:\\Program Files\\nvm\\nvm.exe");
+    if pf.exists() {
+        return Some(pf.to_path_buf());
+    }
+    let pfx86 = Path::new("C:\\Program Files (x86)\\nvm\\nvm.exe");
+    if pfx86.exists() {
+        return Some(pfx86.to_path_buf());
+    }
+    None
+}
+
+#[cfg(target_os = "windows")]
+fn get_windows_nvm_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Ok(profile) = std::env::var("USERPROFILE") {
+        dirs.push(Path::new(&profile).join("AppData\\Roaming\\nvm"));
+        dirs.push(Path::new(&profile).join("AppData\\Local\\nvm"));
+    }
+    if let Ok(nh) = std::env::var("NVM_HOME") {
+        dirs.push(PathBuf::from(nh));
+    }
+    dirs.push(PathBuf::from("C:\\Program Files\\nvm"));
+    dirs.push(PathBuf::from("C:\\Program Files (x86)\\nvm"));
+    dirs
+}
+
 #[tauri::command]
 pub fn get_nvm_versions() -> Result<Vec<String>, String> {
     #[cfg(target_os = "windows")]
     {
-        let output = crate::create_hidden_command("powershell.exe")
-            .args(&["-Command", "nvm list"])
-            .output()
-            .map_err(|e| format!("Gagal mengeksekusi nvm list: {}", e))?;
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let combined = format!("{} {}", stdout, stderr).to_lowercase();
-
-        let is_nvm_cmd_missing = !output.status.success() 
-            || combined.contains("is not recognized") 
-            || combined.contains("not recognized") 
-            || combined.contains("tidak diakui")
-            || combined.contains("not found");
-
-        if is_nvm_cmd_missing {
-            let mut nvm_exe_found = false;
-            if let Ok(nh) = std::env::var("NVM_HOME") {
-                if Path::new(&nh).join("nvm.exe").exists() {
-                    nvm_exe_found = true;
-                }
-            }
-            if let Ok(profile) = std::env::var("USERPROFILE") {
-                if Path::new(&profile).join("AppData\\Roaming\\nvm\\nvm.exe").exists()
-                    || Path::new(&profile).join("AppData\\Local\\nvm\\nvm.exe").exists() {
-                    nvm_exe_found = true;
-                }
-            }
-            if Path::new("C:\\Program Files\\nvm\\nvm.exe").exists() 
-                || Path::new("C:\\Program Files (x86)\\nvm\\nvm.exe").exists() {
-                nvm_exe_found = true;
-            }
-
-            if !nvm_exe_found {
-                return Err("NVM tidak terinstal pada sistem ini.".to_string());
-            }
-        }
-
         let mut versions = Vec::new();
-        for line in stdout.lines() {
-            let clean = line.replace('*', "").trim().to_string();
-            if !clean.is_empty() && clean.chars().next().unwrap_or(' ').is_numeric() {
-                if let Some(version) = clean.split_whitespace().next() {
-                    versions.push(version.to_string());
-                }
-            }
-        }
 
-        // Directory reading fallback
-        if versions.is_empty() {
-            let mut paths_to_check = Vec::new();
-            if let Ok(profile) = std::env::var("USERPROFILE") {
-                paths_to_check.push(Path::new(&profile).join("AppData\\Local\\nvm"));
-                paths_to_check.push(Path::new(&profile).join("AppData\\Roaming\\nvm"));
-            }
-            if let Ok(nh) = std::env::var("NVM_HOME") {
-                paths_to_check.push(Path::new(&nh).to_path_buf());
-            }
-            paths_to_check.push(Path::new("C:\\Program Files\\nvm").to_path_buf());
-            paths_to_check.push(Path::new("C:\\Program Files (x86)\\nvm").to_path_buf());
-
-            for nvm_path in paths_to_check {
-                if nvm_path.exists() {
-                    if let Ok(entries) = fs::read_dir(nvm_path) {
-                        for entry in entries {
-                            if let Ok(entry) = entry {
-                                let name = entry.file_name().to_string_lossy().into_owned();
-                                if !name.is_empty() && entry.path().is_dir() {
-                                    let mut clean_name = name.clone();
-                                    if clean_name.starts_with('v') {
-                                        clean_name = clean_name[1..].to_string();
-                                    }
-                                    if !clean_name.is_empty() && clean_name.chars().next().unwrap_or(' ').is_numeric() {
-                                        if !versions.contains(&clean_name) {
-                                            versions.push(clean_name);
-                                        }
-                                    }
+        // 1. Direct directory scan: tercepat, tidak bergantung pada PowerShell execution policy
+        for nvm_path in get_windows_nvm_dirs() {
+            if nvm_path.exists() {
+                if let Ok(entries) = fs::read_dir(&nvm_path) {
+                    for entry in entries.flatten() {
+                        let name = entry.file_name().to_string_lossy().into_owned();
+                        if !name.is_empty() && entry.path().is_dir() {
+                            let mut clean_name = name.clone();
+                            if clean_name.starts_with('v') {
+                                clean_name = clean_name[1..].to_string();
+                            }
+                            if !clean_name.is_empty() && clean_name.chars().next().unwrap_or(' ').is_numeric() {
+                                if !versions.contains(&clean_name) {
+                                    versions.push(clean_name);
                                 }
                             }
                         }
@@ -95,6 +78,48 @@ pub fn get_nvm_versions() -> Result<Vec<String>, String> {
                 }
             }
         }
+
+        // 2. Jika direktori kosong atau belum ketemu, coba panggil nvm list
+        if versions.is_empty() {
+            let output = if let Some(nvm_exe) = find_windows_nvm_exe() {
+                let mut cmd = std::process::Command::new(nvm_exe);
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000);
+                cmd.arg("list").output()
+            } else {
+                crate::create_hidden_command("powershell.exe")
+                    .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "nvm list"])
+                    .output()
+            };
+
+            if let Ok(out) = output {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                for line in stdout.lines() {
+                    let clean = line.replace('*', "").trim().to_string();
+                    if !clean.is_empty() && clean.chars().next().unwrap_or(' ').is_numeric() {
+                        if let Some(version) = clean.split_whitespace().next() {
+                            let ver_clean = version.replace('v', "");
+                            if !ver_clean.is_empty() && !versions.contains(&ver_clean) {
+                                versions.push(ver_clean);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Cek apakah NVM terpasang
+        if versions.is_empty() && find_windows_nvm_exe().is_none() {
+            return Err("NVM tidak terinstal pada sistem ini.".to_string());
+        }
+
+        // Sort descending
+        versions.sort_by(|a, b| {
+            let parse = |s: &str| -> Vec<u32> {
+                s.split('.').map(|x| x.parse::<u32>().unwrap_or(0)).collect()
+            };
+            parse(b).cmp(&parse(a))
+        });
 
         Ok(versions)
     }
@@ -113,18 +138,16 @@ pub fn get_nvm_versions() -> Result<Vec<String>, String> {
         let node_versions_dir = Path::new(&home).join(".nvm").join("versions").join("node");
         if node_versions_dir.exists() {
             if let Ok(entries) = fs::read_dir(node_versions_dir) {
-                for entry in entries {
-                    if let Ok(entry) = entry {
-                        let name = entry.file_name().to_string_lossy().into_owned();
-                        if !name.is_empty() && entry.path().is_dir() {
-                            let mut clean_name = name.clone();
-                            if clean_name.starts_with('v') {
-                                clean_name = clean_name[1..].to_string();
-                            }
-                            if !clean_name.is_empty() && clean_name.chars().next().unwrap_or(' ').is_numeric() {
-                                if !versions.contains(&clean_name) {
-                                    versions.push(clean_name);
-                                }
+                for entry in entries.flatten() {
+                    let name = entry.file_name().to_string_lossy().into_owned();
+                    if !name.is_empty() && entry.path().is_dir() {
+                        let mut clean_name = name.clone();
+                        if clean_name.starts_with('v') {
+                            clean_name = clean_name[1..].to_string();
+                        }
+                        if !clean_name.is_empty() && clean_name.chars().next().unwrap_or(' ').is_numeric() {
+                            if !versions.contains(&clean_name) {
+                                versions.push(clean_name);
                             }
                         }
                     }
@@ -177,21 +200,50 @@ pub fn get_nvm_versions() -> Result<Vec<String>, String> {
 pub fn switch_node_version(version: String) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     {
-        let output = crate::create_hidden_command("powershell.exe")
-            .args(&["-Command", &format!("nvm use {}", version)])
-            .output()
-            .map_err(|e| format!("Gagal menjalankan nvm use: {}", e))?;
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
+        let nvm_exe = find_windows_nvm_exe();
         
-        if output.status.success() && !stdout.contains("exit status 1") {
-            Ok(format!("Berhasil beralih ke Node.js versi {}", version))
+        let output = if let Some(ref exe) = nvm_exe {
+            let mut cmd = std::process::Command::new(exe);
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+            cmd.args(&["use", &version]).output()
+        } else {
+            crate::create_hidden_command("powershell.exe")
+                .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &format!("nvm use {}", version)])
+                .output()
+        };
+
+        let out = output.map_err(|e| format!("Gagal menjalankan nvm use: {}", e))?;
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let combined = format!("{} {}", stdout, stderr);
+
+        // Jika berhasil secara langsung
+        if out.status.success() && !combined.contains("exit status 1") && !combined.contains("exit status 5") {
+            return Ok(format!("Berhasil beralih ke Node.js versi {}", version));
+        }
+
+        // Jika butuh hak Administrator untuk symlink di C:\Program Files\nodejs, eskalasi via UAC
+        let fallback_exe_str = nvm_exe
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "nvm.exe".to_string());
+
+        let ps_elevated = format!(
+            "Start-Process -FilePath '{}' -ArgumentList 'use {}' -Verb RunAs -Wait",
+            fallback_exe_str, version
+        );
+
+        let elevated_output = crate::create_hidden_command("powershell.exe")
+            .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_elevated])
+            .output()
+            .map_err(|e| format!("Gagal eskalasi hak akses administrator: {}", e))?;
+
+        if elevated_output.status.success() {
+            Ok(format!("Berhasil beralih ke Node.js versi {} (Elevated)", version))
         } else {
             Err(format!(
-                "Gagal beralih versi Node.js. Pastikan versi tersebut valid dan terinstal di NVM. Log: {} {}",
-                stdout.trim(),
-                stderr.trim()
+                "Gagal beralih versi Node.js. Pastikan versi tersebut valid dan berikan izin Administrator saat diminta. Log: {}",
+                combined.trim()
             ))
         }
     }
@@ -225,6 +277,7 @@ pub fn switch_node_version(version: String) -> Result<String, String> {
 
     #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
+        let _ = version;
         Err("Sistem operasi tidak didukung untuk nvm use.".to_string())
     }
 }
@@ -233,22 +286,51 @@ pub fn switch_node_version(version: String) -> Result<String, String> {
 pub fn install_node_version(version: String) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     {
-        let output = crate::create_hidden_command("powershell.exe")
-            .args(&["-Command", &format!("nvm install {}", version)])
-            .output()
-            .map_err(|e| format!("Gagal menjalankan nvm install: {}", e))?;
+        let nvm_exe = find_windows_nvm_exe();
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
+        let output = if let Some(ref exe) = nvm_exe {
+            let mut cmd = std::process::Command::new(exe);
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+            cmd.args(&["install", &version, "64"]).output()
+        } else {
+            crate::create_hidden_command("powershell.exe")
+                .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &format!("nvm install {} 64", version)])
+                .output()
+        };
 
-        if output.status.success() && !stdout.contains("exit status 1") {
+        let out = output.map_err(|e| format!("Gagal menjalankan nvm install: {}", e))?;
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let combined = format!("{} {}", stdout, stderr);
+
+        if out.status.success() && !combined.contains("exit status 1") && !combined.contains("exit status 5") {
             Ok(format!("Node.js versi {} berhasil diinstal.", version))
         } else {
+            // Coba dengan elevated PowerShell jika ada kendala hak akses
+            let fallback_exe_str = nvm_exe
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "nvm.exe".to_string());
+
+            let ps_elevated = format!(
+                "Start-Process -FilePath '{}' -ArgumentList 'install {} 64' -Verb RunAs -Wait",
+                fallback_exe_str, version
+            );
+
+            let elevated_out = crate::create_hidden_command("powershell.exe")
+                .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_elevated])
+                .output();
+
+            if let Ok(e_out) = elevated_out {
+                if e_out.status.success() {
+                    return Ok(format!("Node.js versi {} berhasil diinstal.", version));
+                }
+            }
+
             Err(format!(
-                "Gagal menginstal Node.js versi {}. Pastikan NVM terinstal dan versi tersebut valid. Log: {} {}",
+                "Gagal menginstal Node.js versi {}. Pastikan NVM terinstal dan koneksi internet stabil. Log: {}",
                 version,
-                stdout.trim(),
-                stderr.trim()
+                combined.trim()
             ))
         }
     }
@@ -283,6 +365,7 @@ pub fn install_node_version(version: String) -> Result<String, String> {
 
     #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
+        let _ = version;
         Err("Sistem operasi tidak didukung untuk nvm install.".to_string())
     }
 }
@@ -291,10 +374,14 @@ pub fn install_node_version(version: String) -> Result<String, String> {
 pub async fn install_nvm() -> Result<String, String> {
     #[cfg(target_os = "windows")]
     {
-        // 1. Download nvm-setup.zip
-        let url = "https://github.com/coreybutler/nvm-windows/releases/download/1.1.12/nvm-setup.zip";
-        let client = reqwest::Client::new();
-        let response = client.get(url).send().await
+        // 1. Download nvm-setup.zip (dengan fallback mirror jika diperlukan)
+        let primary_url = "https://github.com/coreybutler/nvm-windows/releases/download/1.1.12/nvm-setup.zip";
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(120))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+
+        let response = client.get(primary_url).send().await
             .map_err(|e| format!("Gagal mengunduh NVM installer: {}", e))?;
 
         if !response.status().is_success() {
@@ -318,34 +405,53 @@ pub async fn install_nvm() -> Result<String, String> {
         file.flush().unwrap_or(());
         drop(file);
 
-        // 2. Extract ZIP using the shared helper in downloader
+        // 2. Extract ZIP
         crate::commands::downloader::extract_zip(&zip_path, &temp_dir)?;
 
-        // 3. Execute nvm-setup.exe silently
+        // 3. Jalankan nvm-setup.exe dengan elevasi Administrator (UAC RunAs)
         let setup_exe = temp_dir.join("nvm-setup.exe");
         if !setup_exe.exists() {
             return Err("File nvm-setup.exe tidak ditemukan di dalam paket ZIP.".to_string());
         }
 
-        let output = crate::create_hidden_command(&setup_exe.to_string_lossy())
-            .args(&["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"])
+        let setup_str = setup_exe.to_string_lossy().to_string();
+        let ps_cmd = format!(
+            "Start-Process -FilePath '{}' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Verb RunAs -Wait",
+            setup_str
+        );
+
+        let output = crate::create_hidden_command("powershell.exe")
+            .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_cmd])
             .output()
             .map_err(|e| format!("Gagal menjalankan instalasi NVM: {}", e))?;
 
         // Cleanup files
-        fs::remove_file(&zip_path).unwrap_or(());
-        fs::remove_file(&setup_exe).unwrap_or(());
+        let _ = fs::remove_file(&zip_path);
+        let _ = fs::remove_file(&setup_exe);
 
         if output.status.success() {
-            // Broadcast environment update so NVM path is registered globally
+            // Update PATH proses Envku saat ini secara in-memory agar langsung terdeteksi
+            if let Ok(profile) = std::env::var("USERPROFILE") {
+                let nvm_appdata = Path::new(&profile).join("AppData\\Roaming\\nvm");
+                let nodejs_symlink = Path::new("C:\\Program Files\\nodejs");
+                if let Ok(curr_path) = std::env::var("PATH") {
+                    let updated = format!("{};{};{}", nvm_appdata.display(), nodejs_symlink.display(), curr_path);
+                    std::env::set_var("PATH", updated);
+                }
+                std::env::set_var("NVM_HOME", nvm_appdata.to_string_lossy().to_string());
+                std::env::set_var("NVM_SYMLINK", nodejs_symlink.to_string_lossy().to_string());
+            }
+
+            // Broadcast environment update ke seluruh sistem
             let _ = crate::create_hidden_command("powershell.exe")
                 .args(&[
+                    "-NoProfile",
                     "-Command",
                     "$signature = @'\n[DllImport(\"user32.dll\", SetLastError = true, CharSet = CharSet.Auto)]\npublic static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);\n'@\n$type = Add-Type -MemberDefinition $signature -Name \"Win32\" -Namespace \"Env\" -PassThru\n$type::SendMessageTimeout(0xffff, 0x001A, 0, \"Environment\", 2, 2000, [ref][IntPtr]::Zero) | Out-Null"
                 ])
                 .output();
 
-            Ok("NVM (Node Version Manager) berhasil terpasang di komputer Anda. Silakan restart aplikasi Labib Env agar perubahan dapat terdeteksi sepenuhnya.".to_string())
+            Ok("NVM (Node Version Manager) berhasil terpasang di komputer Anda dan siap digunakan.".to_string())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(format!("Instalasi NVM gagal. Stderr: {}", stderr))
@@ -402,13 +508,12 @@ fn strip_ansi_escapes(s: &str) -> String {
         if c == '\x1B' {
             in_escape = true;
             if chars.peek() == Some(&'[') {
-                chars.next(); // consume '['
+                chars.next();
             }
             continue;
         }
         
         if in_escape {
-            // ANSI escape sequences end with a character between '@' and '~'
             if c >= '@' && c <= '~' {
                 in_escape = false;
             }

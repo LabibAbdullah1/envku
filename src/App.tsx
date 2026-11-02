@@ -15,6 +15,7 @@ import Toast from "./components/Toast";
 import DashboardTab from "./components/DashboardTab";
 import DownloaderTab from "./components/DownloaderTab";
 import ServicesTab from "./components/ServicesTab";
+import PortManagerTab from "./components/PortManagerTab";
 import ProjectWizardTab from "./components/ProjectWizardTab";
 import PhpSwitcherTab from "./components/PhpSwitcherTab";
 import NodeManagerTab from "./components/NodeManagerTab";
@@ -42,7 +43,7 @@ export default function App() {
   const isSplash = typeof window !== "undefined" && window.location.search.includes("splash=true");
 
   // Navigation
-  const [activeTab, setActiveTab] = useState<"dashboard" | "downloader" | "services" | "wizard" | "php" | "node" | "support">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "downloader" | "services" | "ports" | "wizard" | "php" | "node" | "support">("dashboard");
 
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -122,10 +123,10 @@ export default function App() {
 
   // Modul 2 State (Services status)
   const [services, setServices] = useState<{
-    Apache: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string };
-    MySQL: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string };
-    Redis: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string };
-    Mailpit: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string };
+    Apache: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string; conflictPid?: number };
+    MySQL: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string; conflictPid?: number };
+    Redis: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string; conflictPid?: number };
+    Mailpit: { installed: boolean; running: boolean; checking: boolean; conflict?: boolean; conflictMessage?: string; conflictPid?: number };
   }>({
     Apache: { installed: false, running: false, checking: true },
     MySQL: { installed: false, running: false, checking: true },
@@ -208,6 +209,20 @@ export default function App() {
       setServices(newServices);
     } catch (err) {
       console.warn("Gagal memperbarui status layanan:", err);
+    }
+  };
+
+  // Cut Off process occupying port
+  const handleCutOffPid = async (pid: number) => {
+    setLoading(true);
+    try {
+      const res = await invoke<string>("terminate_port_pid", { pid });
+      showToastMsg(res, "success");
+      await updateServiceStates();
+    } catch (err) {
+      showToastMsg(String(err), "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -598,6 +613,14 @@ export default function App() {
               isLinux={isLinux}
               dirsStatus={dirsStatus}
               baseDir={baseDir}
+              onCutOffPid={handleCutOffPid}
+            />
+          )}
+
+          {activeTab === "ports" && (
+            <PortManagerTab
+              showToastMsg={showToastMsg}
+              onPortResolved={updateServiceStates}
             />
           )}
 
