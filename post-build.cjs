@@ -9,11 +9,12 @@
  *   3. Salin keduanya ke website/downloads/
  *   4. Baca isi .sig → tempel ke website/update.json
  *   5. Hitung SHA-256 dari .exe yang nyata
- *   6. Update website/index.html (versi, URL, ukuran, hash, tanggal)
+ *   6. Update website/index.html & website/download.html (versi, URL, ukuran, hash, tanggal)
  *   7. Tampilkan ringkasan upload cPanel
  *
  * Cara pakai:
  *   node post-build.cjs
+ *   atau: npm run post-build
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -22,13 +23,15 @@ const path   = require("path");
 const crypto = require("crypto");
 
 // ── Path konfigurasi ──────────────────────────────────────────
-const ROOT        = __dirname;
-const TAURI_CONF  = path.join(ROOT, "src-tauri", "tauri.conf.json");
-const BUNDLE_DIR  = path.join(ROOT, "src-tauri", "target", "release", "bundle", "nsis");
-const WEBSITE_DIR = path.join(ROOT, "website");
-const DOWNLOADS   = path.join(WEBSITE_DIR, "downloads");
-const UPDATE_JSON = path.join(WEBSITE_DIR, "update.json");
-const INDEX_HTML  = path.join(WEBSITE_DIR, "index.html");
+const ROOT          = __dirname;
+const TAURI_CONF    = path.join(ROOT, "src-tauri", "tauri.conf.json");
+const BUNDLE_DIR    = path.join(ROOT, "src-tauri", "target", "release", "bundle", "nsis");
+const WEBSITE_DIR   = path.join(ROOT, "website");
+const DOWNLOADS     = path.join(WEBSITE_DIR, "downloads");
+const UPDATE_JSON   = path.join(WEBSITE_DIR, "update.json");
+const INDEX_HTML    = path.join(WEBSITE_DIR, "index.html");
+const DOWNLOAD_HTML = path.join(WEBSITE_DIR, "download.html");
+const GALERI_HTML   = path.join(WEBSITE_DIR, "galeri.html");
 
 const https = require("https");
 
@@ -57,7 +60,7 @@ function getLiveUpdateJson() {
 
 // ── Baca versi dari tauri.conf.json ───────────────────────────
 const tauriConf = JSON.parse(fs.readFileSync(TAURI_CONF, "utf8"));
-const VERSION   = tauriConf.version; // contoh: "1.1.0"
+const VERSION   = tauriConf.version; // contoh: "1.4.6"
 
 async function main() {
   console.log("\n🚀 Envku Post-Build Script");
@@ -143,91 +146,81 @@ async function main() {
 
   fs.writeFileSync(UPDATE_JSON, JSON.stringify(updateJson, null, 2), "utf8");
 
-console.log(`\n📝 update.json diperbarui:`);
-console.log(`   Versi    : ${oldVersion} → ${VERSION}`);
-console.log(`   URL      : https://envku.subly.my.id/downloads/${EXE_NAME}`);
-if (hasSig) {
-  console.log(`   Signature: ✅ Diisi otomatis dari file .sig`);
-} else {
-  console.log(`   Signature: ⚠️ Dikosongkan (kunci privat tanda tangan tidak tersedia)`);
+  console.log(`\n📝 update.json diperbarui:`);
+  console.log(`   Versi    : ${oldVersion} → ${VERSION}`);
+  console.log(`   URL      : https://envku.subly.my.id/downloads/${EXE_NAME}`);
+  if (hasSig) {
+    console.log(`   Signature: ✅ Diisi otomatis dari file .sig`);
+  } else {
+    console.log(`   Signature: ⚠️ Dikosongkan (kunci privat tanda tangan tidak tersedia)`);
+  }
+
+  // ── Update file HTML website (index.html, download.html, galeri.html) ─────
+  const BULAN_ID = [
+    "Januari","Februari","Maret","April","Mei","Juni",
+    "Juli","Agustus","September","Oktober","November","Desember"
+  ];
+  const now      = new Date();
+  const tglRilis = `${now.getDate()} ${BULAN_ID[now.getMonth()]} ${now.getFullYear()}`;
+
+  function updateHtmlFile(filePath) {
+    if (!fs.existsSync(filePath)) return;
+    const relName = path.relative(ROOT, filePath);
+    console.log(`\n🌐 Memperbarui ${relName}...`);
+    let html = fs.readFileSync(filePath, "utf8");
+
+    // Cache-bust style.css
+    html = html.replace(/style\.css\?v=[\d.]+/g, `style.css?v=${VERSION}`);
+
+    // 1. Badge versi di Hero (misal: V1.4.5 STABLE atau V1.4.5 STABLE RELEASE)
+    html = html.replace(/V[\d]+\.[\d]+\.[\d]+\s*STABLE(\s*RELEASE)?/g, (match, p1) => {
+      return `V${VERSION} STABLE${p1 || ""}`;
+    });
+
+    // 2. Version-tag di download card (misal: V1.4.5 (STABLE))
+    html = html.replace(/V[\d]+\.[\d]+\.[\d]+\s*\(STABLE\)/g, `V${VERSION} (STABLE)`);
+
+    // 3. URL tombol download Windows
+    html = html.replace(/href="downloads\/Envku_[\d.]+_x64-setup\.exe"/g, `href="downloads/${EXE_NAME}"`);
+
+    // 4. Nama file di panduan install
+    html = html.replace(/`Envku_[\d.]+_x64-setup\.exe`/g, `\`${EXE_NAME}\``);
+    html = html.replace(/<code class="code-inline">Envku_[\d.]+_x64-setup\.exe<\/code>/g, `<code class="code-inline">${EXE_NAME}</code>`);
+
+    // 5. Ukuran file nyata (Windows)
+    html = html.replace(/(<li id="file-size-win"><strong>Ukuran:<\/strong> ?)~?[\d.]+ MB(<\/li>)/, `$1~${exeSizeMB} MB$2`);
+
+    // 6. Tanggal rilis (Windows)
+    html = html.replace(/(<li id="file-release-win"><strong>Rilis:<\/strong> ?).*?(<\/li>)/, `$1${tglRilis}$2`);
+
+    // 7. SHA-256 hash (Windows)
+    html = html.replace(/(<span class="hash-text" id="hash-win">).*?(<\/span>)/, `$1${sha256Show}$2`);
+
+    fs.writeFileSync(filePath, html, "utf8");
+    console.log(`   ✅ Selesai memperbarui ${path.basename(filePath)}`);
+  }
+
+  updateHtmlFile(INDEX_HTML);
+  updateHtmlFile(DOWNLOAD_HTML);
+  updateHtmlFile(GALERI_HTML);
+
+  console.log(`\n${"━".repeat(50)}`);
+  console.log(`🌐 File yang perlu diupload ke cPanel (envku.subly.my.id):`);
+  console.log(`\n   📂 Root subdomain:`);
+  console.log(`      ✦ website/index.html            ← BARU`);
+  console.log(`      ✦ website/download.html         ← BARU`);
+  console.log(`      ✦ website/galeri.html`);
+  console.log(`      ✦ website/style.css`);
+  console.log(`      ✦ website/update.json`);
+  console.log(`\n   📂 Folder /downloads/:`);
+  console.log(`      ✦ website/downloads/${EXE_NAME}`);
+  console.log(`\n   📂 Folder /packages/ (Installer Pendukung):`);
+  console.log(`      ✦ website/packages/win/ (apache2.4, php8.2, php8.3, php8.4, php8.5, mysql8.0, redis, mailpit)`);
+  console.log(`      ✦ website/packages/linux/ (mailpit.tar.gz)`);
+  console.log(`      ✦ website/packages/common/ (phpmyadmin, composer.phar)`);
+  console.log(`      (Jalankan 'npm run sync-packages' untuk menyinkronkan installer pendukung)`);
+  console.log(`${"━".repeat(50)}`);
+  console.log(`\n✅ Post-build selesai! Aplikasi siap didistribusikan.\n`);
 }
 
-// ── Update index.html ─────────────────────────────────────────
-console.log(`\n🌐 Memperbarui website/index.html...`);
-
-const BULAN_ID = [
-  "Januari","Februari","Maret","April","Mei","Juni",
-  "Juli","Agustus","September","Oktober","November","Desember"
-];
-const now      = new Date();
-const tglRilis = `${now.getDate()} ${BULAN_ID[now.getMonth()]} ${now.getFullYear()}`;
-
-let html = fs.readFileSync(INDEX_HTML, "utf8");
-
-// 1. Badge versi di Hero (misal: V1.0.0 STABLE)
-html = html.replace(
-  /V[\d]+\.[\d]+\.[\d]+\s*STABLE/g,
-  `V${VERSION} STABLE`
-);
-
-// 2. Version-tag di download card (misal: V1.0.0 (STABLE))
-html = html.replace(
-  /V[\d]+\.[\d]+\.[\d]+\s*\(STABLE\)/g,
-  `V${VERSION} (STABLE)`
-);
-
-// 3. URL tombol download
-html = html.replace(
-  /href="downloads\/Envku_[\d.]+_x64-setup\.exe"/g,
-  `href="downloads/${EXE_NAME}"`
-);
-
-// 4. Nama file di panduan install step 1
-html = html.replace(
-  /`Envku_[\d.]+_x64-setup\.exe`/g,
-  `\`${EXE_NAME}\``
-);
-
-// 5. Ukuran file nyata (Windows)
-html = html.replace(
-  /(<li id="file-size-win"><strong>Ukuran:<\/strong> ?)~?[\d.]+ MB(<\/li>)/,
-  `$1~${exeSizeMB} MB$2`
-);
-
-// 6. Tanggal rilis (Windows)
-html = html.replace(
-  /(<li id="file-release-win"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
-  `$1${tglRilis}$2`
-);
-
-// 7. SHA-256 hash (Windows)
-html = html.replace(
-  /(<span class="hash-text" id="hash-win">).*?(<\/span>)/,
-  `$1${sha256Show}$2`
-);
-
-fs.writeFileSync(INDEX_HTML, html, "utf8");
-
-console.log(`   ✅ Versi badge    : V${VERSION} STABLE`);
-console.log(`   ✅ URL download   : downloads/${EXE_NAME}`);
-console.log(`   ✅ Ukuran file    : ~${exeSizeMB} MB`);
-console.log(`   ✅ Tanggal rilis  : ${tglRilis}`);
-console.log(`   ✅ SHA-256        : ${sha256Show}`);
-
-// ── Ringkasan file yang perlu diupload ke cPanel ──────────────
-console.log(`\n${"━".repeat(50)}`);
-console.log(`🌐 File yang perlu diupload ke cPanel (envku.subly.my.id):`);
-console.log(`\n   📂 Root subdomain:`);
-console.log(`      ✦ website/index.html            ← BARU`);
-console.log(`      ✦ website/update.json`);
-console.log(`\n   📂 Folder /downloads/:`);
-console.log(`      ✦ website/downloads/${EXE_NAME}`);
-console.log(`\n   📂 Folder /packages/ (Installer Pendukung):`);
-console.log(`      ✦ website/packages/win/ (apache2.4, php8.2, php8.3, php8.4, php8.5, mysql8.0, redis, mailpit)`);
-console.log(`      ✦ website/packages/linux/ (mailpit.tar.gz)`);
-console.log(`      ✦ website/packages/common/ (phpmyadmin, composer.phar)`);
-console.log(`      (Jalankan 'npm run sync-packages' untuk menyinkronkan installer pendukung)`);
-console.log(`${"━".repeat(50)}`);
-console.log(`\n✅ Post-build selesai! Aplikasi siap didistribusikan.\n`);
-}
 main();

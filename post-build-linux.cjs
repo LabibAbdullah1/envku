@@ -2,6 +2,7 @@
  * post-build-linux.cjs
  * ─────────────────────────────────────────────────────────────
  * Jalankan script ini SETELAH `npx tauri build` selesai di runner Linux.
+ * Mendukung pembaruan multi-halaman struktur website baru (index.html, download.html, galeri.html)
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -11,14 +12,16 @@ const crypto = require("crypto");
 const https  = require("https");
 
 // ── Path konfigurasi ──────────────────────────────────────────
-const ROOT        = __dirname;
-const TAURI_CONF  = path.join(ROOT, "src-tauri", "tauri.conf.json");
-const BUNDLE_DIR  = path.join(ROOT, "src-tauri", "target", "release", "bundle", "appimage");
+const ROOT          = __dirname;
+const TAURI_CONF    = path.join(ROOT, "src-tauri", "tauri.conf.json");
+const BUNDLE_DIR    = path.join(ROOT, "src-tauri", "target", "release", "bundle", "appimage");
 const DEB_BUNDLE_DIR = path.join(ROOT, "src-tauri", "target", "release", "bundle", "deb");
-const WEBSITE_DIR = path.join(ROOT, "website");
-const DOWNLOADS   = path.join(WEBSITE_DIR, "downloads");
-const UPDATE_JSON = path.join(WEBSITE_DIR, "update.json");
-const INDEX_HTML  = path.join(WEBSITE_DIR, "index.html");
+const WEBSITE_DIR   = path.join(ROOT, "website");
+const DOWNLOADS     = path.join(WEBSITE_DIR, "downloads");
+const UPDATE_JSON   = path.join(WEBSITE_DIR, "update.json");
+const INDEX_HTML    = path.join(WEBSITE_DIR, "index.html");
+const DOWNLOAD_HTML = path.join(WEBSITE_DIR, "download.html");
+const GALERI_HTML   = path.join(WEBSITE_DIR, "galeri.html");
 
 // Helper to fetch live update.json from server to prevent overwriting other platforms
 function getLiveUpdateJson() {
@@ -45,7 +48,7 @@ function getLiveUpdateJson() {
 
 // ── Baca versi dari tauri.conf.json ───────────────────────────
 const tauriConf = JSON.parse(fs.readFileSync(TAURI_CONF, "utf8"));
-const VERSION   = tauriConf.version; // contoh: "1.3.7"
+const VERSION   = tauriConf.version; // contoh: "1.4.6"
 
 async function main() {
   console.log("\n🚀 Envku Linux Post-Build Script (AppImage & DEB)");
@@ -123,7 +126,7 @@ async function main() {
     fs.copyFileSync(DEB_SRC, DEB_DEST);
     debSizeMB = (fs.statSync(DEB_DEST).size / 1024 / 1024).toFixed(1);
     console.log(`   ✅ Berhasil! (${debSizeMB} MB)`);
-    
+
     // Hitung SHA-256 untuk DEB
     const bufferDeb = fs.readFileSync(DEB_DEST);
     const debSha256Full = crypto.createHash("sha256").update(bufferDeb).digest("hex");
@@ -186,9 +189,7 @@ async function main() {
     fs.writeFileSync(UPDATE_JSON, JSON.stringify(updateJson, null, 2), "utf8");
   }
 
-  // ── Update index.html ─────────────────────────────────────────
-  console.log(`\n🌐 Memperbarui website/index.html untuk Linux...`);
-
+  // ── Update file HTML website (index.html, download.html, galeri.html) ─────
   const BULAN_ID = [
     "Januari","Februari","Maret","April","Mei","Juni",
     "Juli","Agustus","September","Oktober","November","Desember"
@@ -196,72 +197,100 @@ async function main() {
   const now      = new Date();
   const tglRilis = `${now.getDate()} ${BULAN_ID[now.getMonth()]} ${now.getFullYear()}`;
 
-  let html = fs.readFileSync(INDEX_HTML, "utf8");
+  function updateLinuxHtml(filePath) {
+    if (!fs.existsSync(filePath)) return;
+    const relName = path.relative(ROOT, filePath);
+    console.log(`\n🌐 Memperbarui ${relName} untuk Linux...`);
+    let html = fs.readFileSync(filePath, "utf8");
 
-  // 1. URL tombol download Linux (.AppImage)
-  html = html.replace(
-    /href="downloads\/[eE]nvku_[\d.]+_amd64\.AppImage"/g,
-    `href="downloads/${appImageFile}"`
-  );
+    // Cache-bust style.css
+    html = html.replace(/style\.css\?v=[\d.]+/g, `style.css?v=${VERSION}`);
 
-  // 1b. URL tombol download Linux (.deb)
-  if (debFile) {
+    // Update version badge & card tags jika ada
+    html = html.replace(/V[\d]+\.[\d]+\.[\d]+\s*STABLE(\s*RELEASE)?/g, (match, p1) => {
+      return `V${VERSION} STABLE${p1 || ""}`;
+    });
+    html = html.replace(/V[\d]+\.[\d]+\.[\d]+\s*\(STABLE\)/g, `V${VERSION} (STABLE)`);
+
+    // 1. URL tombol download Linux (.AppImage)
     html = html.replace(
-      /href="downloads\/[eE]nvku_[\d.]+_amd64\.deb"/g,
-      `href="downloads/${debFile}"`
+      /href="downloads\/[eE]nvku_[\d.]+_amd64\.AppImage"/g,
+      `href="downloads/${appImageFile}"`
     );
-  }
 
-  // 2. Ukuran file nyata (Linux AppImage)
-  html = html.replace(
-    /(<li id="file-size-appimage"><strong>Ukuran:<\/strong> ?).*?(<\/li>)/,
-    `$1~${appImageSizeMB} MB$2`
-  );
+    // 1b. URL tombol download Linux (.deb)
+    if (debFile) {
+      html = html.replace(
+        /href="downloads\/[eE]nvku_[\d.]+_amd64\.deb"/g,
+        `href="downloads/${debFile}"`
+      );
+    }
 
-  // 2b. Ukuran file nyata (Linux DEB)
-  if (debFile) {
+    // 2. Ukuran file nyata (Linux AppImage)
     html = html.replace(
-      /(<li id="file-size-deb"><strong>Ukuran:<\/strong> ?).*?(<\/li>)/,
-      `$1~${debSizeMB} MB$2`
+      /(<li id="file-size-appimage"><strong>Ukuran:<\/strong> ?).*?(<\/li>)/,
+      `$1~${appImageSizeMB} MB$2`
     );
-  }
 
-  // 3. Tanggal rilis (Linux AppImage)
-  html = html.replace(
-    /(<li id="file-release-appimage"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
-    `$1${tglRilis}$2`
-  );
+    // 2b. Ukuran file nyata (Linux DEB)
+    if (debFile) {
+      html = html.replace(
+        /(<li id="file-size-deb"><strong>Ukuran:<\/strong> ?).*?(<\/li>)/,
+        `$1~${debSizeMB} MB$2`
+      );
+    }
 
-  // 3b. Tanggal rilis (Linux DEB)
-  if (debFile) {
+    // 3. Tanggal rilis (Linux AppImage)
     html = html.replace(
-      /(<li id="file-release-deb"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
+      /(<li id="file-release-appimage"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
       `$1${tglRilis}$2`
     );
-  }
 
-  // 4. SHA-256 hash (Linux AppImage)
-  html = html.replace(
-    /(<span class="hash-text" id="hash-appimage">).*?(<\/span>)/,
-    `$1${sha256Show}$2`
-  );
+    // 3b. Tanggal rilis (Linux DEB)
+    if (debFile) {
+      html = html.replace(
+        /(<li id="file-release-deb"><strong>Rilis:<\/strong> ?).*?(<\/li>)/,
+        `$1${tglRilis}$2`
+      );
+    }
 
-  // 4b. SHA-256 hash (Linux DEB)
-  if (debFile) {
+    // 4. SHA-256 hash (Linux AppImage)
     html = html.replace(
-      /(<span class="hash-text" id="hash-deb">).*?(<\/span>)/,
-      `$1${debSha256Show}$2`
+      /(<span class="hash-text" id="hash-appimage">).*?(<\/span>)/,
+      `$1${sha256Show}$2`
     );
+
+    // 4b. SHA-256 hash (Linux DEB)
+    if (debFile) {
+      html = html.replace(
+        /(<span class="hash-text" id="hash-deb">).*?(<\/span>)/,
+        `$1${debSha256Show}$2`
+      );
+    }
+
+    fs.writeFileSync(filePath, html, "utf8");
+    console.log(`   ✅ Selesai memperbarui ${path.basename(filePath)}`);
   }
 
-  fs.writeFileSync(INDEX_HTML, html, "utf8");
+  updateLinuxHtml(INDEX_HTML);
+  updateLinuxHtml(DOWNLOAD_HTML);
+  updateLinuxHtml(GALERI_HTML);
 
-  console.log(`   ✅ URL download Linux: downloads/${appImageFile}`);
-  console.log(`   ✅ Ukuran AppImage   : ~${appImageSizeMB} MB`);
-  console.log(`   ✅ Ukuran DEB        : ~${debSizeMB} MB`);
-  console.log(`   ✅ Tanggal rilis Linux: ${tglRilis}`);
-  console.log(`   ✅ SHA-256 AppImage  : ${sha256Show}`);
-  console.log(`   ✅ SHA-256 DEB       : ${debSha256Show}`);
+  console.log(`\n${"━".repeat(50)}`);
+  console.log(`   ✅ URL download AppImage: downloads/${appImageFile}`);
+  if (debFile) {
+    console.log(`   ✅ URL download DEB     : downloads/${debFile}`);
+  }
+  console.log(`   ✅ Ukuran AppImage      : ~${appImageSizeMB} MB`);
+  if (debFile) {
+    console.log(`   ✅ Ukuran DEB           : ~${debSizeMB} MB`);
+  }
+  console.log(`   ✅ Tanggal rilis Linux  : ${tglRilis}`);
+  console.log(`   ✅ SHA-256 AppImage     : ${sha256Show}`);
+  if (debFile) {
+    console.log(`   ✅ SHA-256 DEB          : ${debSha256Show}`);
+  }
+  console.log(`${"━".repeat(50)}`);
   console.log(`\n✅ Post-build Linux selesai!`);
 }
 

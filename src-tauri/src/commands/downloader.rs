@@ -422,13 +422,13 @@ default_authentication_plugin=mysql_native_password
 "#,
                         server_dir_slash, server_dir_slash
                     );
-             fs::write(&my_ini_path, config);
+                    let _ = fs::write(&my_ini_path, config);
 
                     // Automatically initialize datadir if it does not exist
                     let data_dir = dest.join("data");
                     if !data_dir.exists() {
                         let mysqld_path = dest.join("bin").join("mysqld.exe");
-                 crate::create_hidden_command(&mysqld_path.to_string_lossy())
+                    let _ = crate::create_hidden_command(&mysqld_path.to_string_lossy())
                             .args(&["--initialize-insecure", "--user=mysql"])
                             .output();
                     }
