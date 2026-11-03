@@ -1,11 +1,11 @@
 {
-  "version": "1.4.7",
+  "version": "1.4.8",
   "notes": "Penambahan splash screen loading saat aplikasi pertama dibuka, logo baru Envku (Ev) di seluruh tampilan dan icon desktop, serta peningkatan stabilitas.",
-  "pub_date": "2026-11-02T22:58:01.893Z",
+  "pub_date": "2026-11-03T23:49:28.326Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://envku.subly.my.id/downloads/Envku_1.4.7_x64-setup.exe",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTd3A4ZE1HbktnaENQeGVsYmM2elhGSEtnbEVIZ0ZSVlM0S0hRRUVRSTB5V1Z1QTJsc3d0bmg0Mm1rT0tGbHRjWTF2L0ZCckUzOTNtaWJ3SHBsWFRYdmhVNXRZbjNMd2dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNjYwMjgxCWZpbGU6RW52a3VfMS40LjdfeDY0LXNldHVwLmV4ZQpBeUxwZGlUQUJYZUZlVThzeFkvMG01U3hhaXFGNy83UHlIOG5wZVJ2ZnhEUnFGRkhBeXYwZ2dTQUdnZHJ2cjROWjU4bGQwSHNOeTBQMG1NZEZnajJEUT09Cg=="
+      "url": "https://envku.subly.my.id/downloads/Envku_1.4.8_x64-setup.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTd3A4ZE1HbktnaEhFTGdhMjM1TWxWbzdDRm1uNVVUeFBkdW5rbU1MS1hnTlNQcjNOVkwvamtMcWt4WW5kZlVjSm50ZlhxM1ZZNkNLMkk5c3dUNXhKUkg3bkE4UUhESmdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzQ5NzY3CWZpbGU6RW52a3VfMS40LjhfeDY0LXNldHVwLmV4ZQpqYWlCYW9xaElYeUVnWjE5dUxXOU9qTnJBVkp6SS85SmYvZjNDZ1ROQkVGMTlOdkh4bzhjelZkVEt0TzRXdFpmUVIvdVhzdjdZODduazdHdVI3MElCZz09Cg=="
     }
   }
 }
