@@ -543,6 +543,9 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
                         content = content.replace("Listen 80", "Listen 80\nListen 443");
                     }
 
+                    // Set ServerName to localhost:80 to suppress FQDN warning
+                    content = content.replace("#ServerName www.example.com:80", "ServerName localhost:80");
+
                     // Enable vhosts config file inclusion
                     content = content.replace(
                         "#Include conf/extra/httpd-vhosts.conf",
@@ -554,6 +557,15 @@ pub async fn download_and_extract(app: AppHandle, component_id: String) -> Resul
                         "DirectoryIndex index.html",
                         "DirectoryIndex index.php index.html",
                     );
+
+                    // Add phpMyAdmin global alias if not present
+                    if !content.contains("Alias /phpmyadmin") {
+                        let pma_alias = format!(
+                            "\n# phpMyAdmin Global Alias\nAlias /phpmyadmin \"{}/www/phpmyadmin\"\n<Directory \"{}/www/phpmyadmin\">\n    Options Indexes FollowSymLinks\n    AllowOverride All\n    Require all granted\n</Directory>\n",
+                            server_dir_slash, server_dir_slash
+                        );
+                        content.push_str(&pma_alias);
+                    }
 
                     fs::write(&httpd_conf_path, content).map_err(|e| {
                         format!("Gagal memperbarui httpd.conf setelah ekstraksi: {}", e)
@@ -650,6 +662,10 @@ default_authentication_plugin=mysql_native_password
                     // Automatically create config.inc.php with AllowNoPassword enabled
                     let config_path = dest.join("config.inc.php");
                     let pma_config = r#"<?php
+// Suppress PHP 8.4+ deprecation warnings to preserve header and session integrity
+@ini_set('display_errors', '0');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_NOTICE);
+
 $cfg['blowfish_secret'] = 'envku_orchestrator_secret_32_cha';
 $i = 0;
 $i++;
@@ -702,30 +718,8 @@ $cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
                     }
                 }
 
-                let php_ini_path = php_dir.join("php.ini");
-                if !php_ini_path.exists() {
-                    let dev_ini = php_dir.join("php.ini-development");
-                    if dev_ini.exists() {
-                        let mut content = fs::read_to_string(&dev_ini)
-                            .map_err(|e| format!("Gagal membaca php.ini-development: {}", e))?;
-
-                        // Enable extension_dir
-                        content =
-                            content.replace(";extension_dir = \"ext\"", "extension_dir = \"ext\"");
-
-                        // Enable common extensions
-                        content = content.replace(";extension=curl", "extension=curl");
-                        content = content.replace(";extension=gd", "extension=gd");
-                        content = content.replace(";extension=mbstring", "extension=mbstring");
-                        content = content.replace(";extension=mysqli", "extension=mysqli");
-                        content = content.replace(";extension=openssl", "extension=openssl");
-                        content = content.replace(";extension=pdo_mysql", "extension=pdo_mysql");
-
-                        fs::write(&php_ini_path, content).map_err(|e| {
-                            format!("Gagal menulis php.ini baru setelah ekstraksi: {}", e)
-                        })?;
-                    }
-                }
+                // Konfigurasi php.ini otomatis dengan path absolut & kompatibilitas phpMyAdmin
+                let _ = crate::commands::php::configure_php_ini_for_version(&server_dir, &component_id);
             }
             _ => {}
         }
@@ -1198,6 +1192,10 @@ dir /var/lib/redis
 
                         let config_path = dest.join("config.inc.php");
                         let pma_config = r#"<?php
+// Suppress PHP 8.4+ deprecation warnings to preserve header and session integrity
+@ini_set('display_errors', '0');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_NOTICE);
+
 $cfg['blowfish_secret'] = 'envku_orchestrator_secret_32_cha';
 $i = 0;
 $i++;
@@ -1316,8 +1314,7 @@ pub fn delete_component(component_id: String) -> Result<String, String> {
                             let _ = fs::write(&php_conf_path, "# Envku Modular PHP Configuration\n# Tidak ada modul PHP yang aktif saat ini\n");
                         }
                         if crate::commands::services::check_service_installed("Apache2.4".to_string()).unwrap_or(false) {
-                            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
-                            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+                            let _ = crate::commands::services::control_service("Apache2.4".to_string(), "restart".to_string());
                         }
                     }
                 }

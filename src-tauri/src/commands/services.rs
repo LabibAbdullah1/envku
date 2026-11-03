@@ -349,6 +349,35 @@ pub async fn get_detailed_services_status() -> Result<Vec<ServiceStatus>, String
 pub fn control_service(service: String, action: String) -> Result<String, String> {
     let norm = normalize_service_name(&service);
 
+    // Tangani aksi "restart" secara anggun:
+    // Hentikan layanan, tunggu hingga port (dan port SSL 443 untuk Apache) benar-benar bebas dari proses lama,
+    // baru kemudian panggil "start" dengan verifikasi port penuh.
+    if action == "restart" {
+        let _ = control_service(service.clone(), "stop".to_string());
+
+        let port = match norm {
+            "apache" => Some(80),
+            "mysql" => Some(3306),
+            "redis" => Some(6379),
+            "mailpit" => Some(8025),
+            _ => None,
+        };
+
+        if let Some(p) = port {
+            for _ in 0..15 {
+                let p_free = !is_port_in_use(p);
+                let ssl_free = if norm == "apache" { !is_port_in_use(443) } else { true };
+                if p_free && ssl_free {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(200));
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(300));
+
+        return control_service(service, "start".to_string());
+    }
+
     // Check conflicts on start
     if action == "start" {
         let port = match norm {
@@ -373,35 +402,62 @@ pub fn control_service(service: String, action: String) -> Result<String, String
                         _ => false,
                     };
 
-                    let is_our_proc = match norm {
-                        "apache" => {
-                            is_pid_in_systemd_service(pid, "apache") ||
-                            ((proc_path_lower.contains("httpd.exe") || proc_path_lower.contains("apache2") || proc_path_lower.contains("httpd")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
-                        },
-                        "mysql" => {
-                            is_pid_in_systemd_service(pid, "mysql") ||
-                            ((proc_path_lower.contains("mysqld.exe") || proc_path_lower.contains("mysqld")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
-                        },
-                        "redis" => {
-                            is_pid_in_systemd_service(pid, "redis") ||
-                            ((proc_path_lower.contains("redis-server.exe") || proc_path_lower.contains("redis-server")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || (running && !has_path_separator)))
-                        },
-                        "mailpit" => {
-                            is_pid_in_systemd_service(pid, "mailpit") ||
-                            ((proc_path_lower.contains("mailpit.exe") || proc_path_lower.contains("mailpit")) &&
-                            (proc_path_lower.contains(&server_dir) || proc_path_lower.contains("/opt/server") || !has_path_separator))
-                        },
-                        _ => false,
-                    };
+                    // Khusus Apache: Jika port diduduki httpd.exe tapi status service sedang tidak running,
+                    // ini adalah proses Apache Envku yang tertinggal atau sedang menyelesaikan shutdown.
+                    if norm == "apache" && (proc_path_lower.contains("httpd") || proc_path_lower.contains("apache2")) && !running {
+                        let mut cleared = false;
+                        for _ in 0..10 {
+                            std::thread::sleep(std::time::Duration::from_millis(200));
+                            if !is_port_in_use(p) {
+                                cleared = true;
+                                break;
+                            }
+                        }
+                        // Jika masih mengunci port setelah 2 detik, bunuh proses zombie lama
+                        if !cleared {
+                            #[cfg(target_os = "windows")]
+                            let _ = crate::create_hidden_command("taskkill").args(&["/F", "/PID", &pid.to_string()]).output();
+                            #[cfg(target_os = "linux")]
+                            let _ = Command::new("kill").args(&["-9", &pid.to_string()]).output();
+                            std::thread::sleep(std::time::Duration::from_millis(300));
+                        }
+                    }
 
-                    if !is_our_proc {
-                        return Err(format!(
-                            "Gagal memulai: Port {} sudah digunakan oleh PID {} ({}) yang bukan bagian dari Envku. Silakan matikan aplikasi tersebut terlebih dahulu.",
-                            p, pid, proc_path
-                        ));
+                    // Periksa kembali setelah proses pembersihan
+                    if is_port_in_use(p) {
+                        if let Some((curr_pid, curr_proc)) = find_port_owner(p) {
+                            let curr_proc_lower = curr_proc.to_lowercase();
+                            let is_our_proc = match norm {
+                                "apache" => {
+                                    is_pid_in_systemd_service(curr_pid, "apache") ||
+                                    ((curr_proc_lower.contains("httpd.exe") || curr_proc_lower.contains("apache2") || curr_proc_lower.contains("httpd")) &&
+                                    (curr_proc_lower.contains(&server_dir) || curr_proc_lower.contains("/opt/server") || !has_path_separator))
+                                },
+                                "mysql" => {
+                                    is_pid_in_systemd_service(curr_pid, "mysql") ||
+                                    ((curr_proc_lower.contains("mysqld.exe") || curr_proc_lower.contains("mysqld")) &&
+                                    (curr_proc_lower.contains(&server_dir) || curr_proc_lower.contains("/opt/server") || (running && !has_path_separator)))
+                                },
+                                "redis" => {
+                                    is_pid_in_systemd_service(curr_pid, "redis") ||
+                                    ((curr_proc_lower.contains("redis-server.exe") || curr_proc_lower.contains("redis-server")) &&
+                                    (curr_proc_lower.contains(&server_dir) || curr_proc_lower.contains("/opt/server") || (running && !has_path_separator)))
+                                },
+                                "mailpit" => {
+                                    is_pid_in_systemd_service(curr_pid, "mailpit") ||
+                                    ((curr_proc_lower.contains("mailpit.exe") || curr_proc_lower.contains("mailpit")) &&
+                                    (curr_proc_lower.contains(&server_dir) || curr_proc_lower.contains("/opt/server") || !has_path_separator))
+                                },
+                                _ => false,
+                            };
+
+                            if !is_our_proc {
+                                return Err(format!(
+                                    "Gagal memulai: Port {} sudah digunakan oleh PID {} ({}) yang bukan bagian dari Envku. Silakan matikan aplikasi tersebut terlebih dahulu.",
+                                    p, curr_pid, curr_proc
+                                ));
+                            }
+                        }
                     }
                 } else {
                     return Err(format!(

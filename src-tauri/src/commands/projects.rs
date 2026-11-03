@@ -455,8 +455,7 @@ DNS.2               = *.{domain}
     }
 
     // 3. Restart Apache to apply changes
-    let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
-    let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+    let _ = crate::commands::services::control_service("Apache2.4".to_string(), "restart".to_string());
 
     if let Some(warning) = ssl_warning_msg {
         Ok(format!("Proyek {} berhasil dibuat. ⚠️ {}", domain, warning))
@@ -546,8 +545,7 @@ pub fn delete_project(domain: String) -> Result<String, String> {
     };
 
     if is_apache_downloaded {
-        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
-        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
+        let _ = crate::commands::services::control_service("Apache2.4".to_string(), "restart".to_string());
     }
 
     Ok(format!("Proyek {} berhasil dihapus.", domain))

@@ -1,6 +1,102 @@
 use std::fs;
 use crate::config::get_server_dir_path;
 
+/// Mengkonfigurasi php.ini agar kompatibel secara sempurna dengan Apache dan phpMyAdmin:
+/// 1. Mengatur extension_dir ke absolute path (mencegah mysqli/mbstring gagal dimuat di Apache).
+/// 2. Mengabaikan E_DEPRECATED agar phpMyAdmin tidak crash di PHP 8.4+.
+/// 3. Memastikan ekstensi penting (mysqli, mbstring, openssl, curl, pdo_mysql, fileinfo, intl, zip) aktif.
+/// 4. Mengarahkan session.save_path ke folder temp internal Envku.
+pub fn configure_php_ini_for_version(server_dir: &std::path::Path, version_id: &str) -> Result<(), String> {
+    let php_dir = server_dir.join(version_id);
+    if !php_dir.exists() {
+        return Ok(());
+    }
+
+    let php_ini_path = php_dir.join("php.ini");
+    let mut content = if php_ini_path.exists() {
+        fs::read_to_string(&php_ini_path).unwrap_or_default()
+    } else {
+        let dev_ini = php_dir.join("php.ini-development");
+        let prod_ini = php_dir.join("php.ini-production");
+        if dev_ini.exists() {
+            fs::read_to_string(&dev_ini).unwrap_or_default()
+        } else if prod_ini.exists() {
+            fs::read_to_string(&prod_ini).unwrap_or_default()
+        } else {
+            String::new()
+        }
+    };
+
+    if content.is_empty() {
+        return Ok(());
+    }
+
+    let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
+    let ext_dir_slash = format!("{}/{}/ext", server_dir_slash, version_id);
+
+    // 1. Set absolute extension_dir (karena Apache menjalankan proses dari Apache24/bin)
+    if content.contains(";extension_dir = \"ext\"") {
+        content = content.replace(";extension_dir = \"ext\"", &format!("extension_dir = \"{}\"", ext_dir_slash));
+    } else if content.contains("extension_dir = \"ext\"") {
+        content = content.replace("extension_dir = \"ext\"", &format!("extension_dir = \"{}\"", ext_dir_slash));
+    } else if !content.contains(&format!("extension_dir = \"{}\"", ext_dir_slash)) {
+        let mut replaced = false;
+        let mut lines: Vec<String> = Vec::new();
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if (trimmed.starts_with("extension_dir =") || trimmed.starts_with(";extension_dir =")) && !replaced {
+                lines.push(format!("extension_dir = \"{}\"", ext_dir_slash));
+                replaced = true;
+            } else {
+                lines.push(line.to_string());
+            }
+        }
+        if !replaced {
+            lines.push(format!("extension_dir = \"{}\"", ext_dir_slash));
+        }
+        content = lines.join("\n");
+    }
+
+    // 2. Meredam peringatan E_DEPRECATED agar tidak merusak session & header phpMyAdmin di PHP 8.4+
+    if content.contains("error_reporting = E_ALL") && !content.contains("& ~E_DEPRECATED") {
+        content = content.replace(
+            "error_reporting = E_ALL",
+            "error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_NOTICE"
+        );
+    }
+
+    // 3. Aktifkan modul-modul esensial untuk phpMyAdmin dan Laravel
+    let extensions = vec![
+        "curl", "gd", "mbstring", "mysqli", "openssl", "pdo_mysql", "fileinfo", "intl", "zip"
+    ];
+    for ext in extensions {
+        let commented = format!(";extension={}", ext);
+        let uncommented = format!("extension={}", ext);
+        if content.contains(&commented) {
+            content = content.replace(&commented, &uncommented);
+        }
+    }
+
+    // 4. Pastikan session.save_path mengarah ke folder temp yang valid
+    let temp_dir = server_dir.join("temp");
+    let _ = fs::create_dir_all(&temp_dir);
+    let temp_dir_slash = temp_dir.to_string_lossy().replace('\\', "/");
+    if content.contains(";session.save_path = \"/tmp\"") {
+        content = content.replace(
+            ";session.save_path = \"/tmp\"",
+            &format!("session.save_path = \"{}\"", temp_dir_slash)
+        );
+    } else if content.contains(";session.save_path = \"N;/path\"") {
+        content = content.replace(
+            ";session.save_path = \"N;/path\"",
+            &format!("session.save_path = \"{}\"", temp_dir_slash)
+        );
+    }
+
+    let _ = fs::write(&php_ini_path, content);
+    Ok(())
+}
+
 #[tauri::command]
 pub fn switch_php_version(version_id: String) -> Result<String, String> {
     let server_dir = get_server_dir_path();
@@ -15,6 +111,9 @@ pub fn switch_php_version(version_id: String) -> Result<String, String> {
         use winreg::RegKey;
         let target_php_dir = target_php_path.to_string_lossy().to_string();
 
+        // 1. Perbarui dan validasi konfigurasi php.ini untuk versi target
+        let _ = configure_php_ini_for_version(&server_dir, &version_id);
+
         let apache_dir = server_dir.join("Apache24");
         let httpd_conf_path = apache_dir.join("conf").join("httpd.conf");
         if !httpd_conf_path.exists() {
@@ -26,14 +125,24 @@ pub fn switch_php_version(version_id: String) -> Result<String, String> {
         let php_conf_path = extra_dir.join("httpd-php.conf");
 
         let server_dir_slash = server_dir.to_string_lossy().replace('\\', "/");
+
+        // Muat php8ts.dll secara eksplisit terlebih dahulu dengan LoadFile agar Apache
+        // tidak mencari dari PATH (yang mungkin masih menunjuk ke versi lama dalam memori service Windows).
+        let php_ts_dll = target_php_path.join("php8ts.dll");
+        let load_file_line = if php_ts_dll.exists() {
+            format!("LoadFile \"{}/{}/php8ts.dll\"\n", server_dir_slash, version_id)
+        } else {
+            String::new()
+        };
+
         let php_module_block = format!(
             r#"# Envku Modular PHP Configuration
 # Diperbarui secara otomatis saat memilih versi PHP di PHP Switcher
-LoadModule php_module "{}/{}/php8apache2_4.dll"
+{}LoadModule php_module "{}/{}/php8apache2_4.dll"
 AddHandler application/x-httpd-php .php
 PHPIniDir "{}/{}"
 "#,
-            server_dir_slash, version_id, server_dir_slash, version_id
+            load_file_line, server_dir_slash, version_id, server_dir_slash, version_id
         );
 
         // Tulis konfigurasi PHP ke berkas modular httpd-php.conf
@@ -51,7 +160,8 @@ PHPIniDir "{}/{}"
                 let trimmed = line.trim();
                 if trimmed.contains("LoadModule php_module") 
                     || (trimmed.starts_with("PHPIniDir") && trimmed.contains("php8")) 
-                    || (trimmed.contains("php8apache2_4.dll")) {
+                    || (trimmed.contains("php8apache2_4.dll"))
+                    || (trimmed.starts_with("LoadFile") && trimmed.contains("php8ts.dll")) {
                     modified = true;
                     continue;
                 }
@@ -103,6 +213,13 @@ PHPIniDir "{}/{}"
         env_key.set_value("Path", &new_path_val)
             .map_err(|e| format!("Gagal menulis PATH baru ke registry: {}", e))?;
 
+        // Update PATH in-memory proses saat ini agar tool CLI seperti composer langsung melihat versi baru
+        if let Ok(curr_path) = std::env::var("PATH") {
+            let mut p_list: Vec<String> = curr_path.split(';').map(|s| s.to_string()).filter(|s| !s.to_lowercase().contains(&check_pattern)).collect();
+            p_list.insert(0, target_php_dir);
+            std::env::set_var("PATH", p_list.join(";"));
+        }
+
         // Refresh Windows environment
         let _ = crate::create_hidden_command("powershell.exe")
             .args(&[
@@ -111,9 +228,19 @@ PHPIniDir "{}/{}"
             ])
             .output();
 
-        // Restart Apache jika service terinstal
+        // Restart Apache dengan aman jika service terinstal
         if crate::commands::services::check_service_installed("Apache2.4".to_string()).unwrap_or(false) {
             let _ = crate::commands::services::control_service("Apache2.4".to_string(), "stop".to_string());
+            
+            // Tunggu hingga proses httpd benar-benar berhenti dan port 80/443 bersih
+            for _ in 0..15 {
+                if !crate::commands::services::is_port_in_use(80) && !crate::commands::services::is_port_in_use(443) {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(200));
+            }
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            
             let _ = crate::commands::services::control_service("Apache2.4".to_string(), "start".to_string());
         }
     }

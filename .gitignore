@@ -45,3 +45,4 @@ website/packages/common/*.phar
 
 # Ignore additional text file
 tambahan.txt
+powershell.cmd
