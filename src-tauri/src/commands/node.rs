@@ -51,6 +51,272 @@ fn get_windows_nvm_dirs() -> Vec<PathBuf> {
     dirs
 }
 
+#[cfg(target_os = "windows")]
+fn get_primary_nvm_root() -> PathBuf {
+    if let Ok(nh) = std::env::var("NVM_HOME") {
+        let p = PathBuf::from(nh);
+        if p.exists() {
+            return p;
+        }
+    }
+    if let Ok(profile) = std::env::var("USERPROFILE") {
+        let roaming = Path::new(&profile).join("AppData\\Roaming\\nvm");
+        if roaming.exists() {
+            return roaming;
+        }
+    }
+    for d in get_windows_nvm_dirs() {
+        if d.exists() {
+            return d;
+        }
+    }
+    if let Ok(profile) = std::env::var("USERPROFILE") {
+        Path::new(&profile).join("AppData\\Roaming\\nvm")
+    } else {
+        PathBuf::from("C:\\Program Files\\nvm")
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn get_nodejs_symlink_path() -> PathBuf {
+    if let Ok(ns) = std::env::var("NVM_SYMLINK") {
+        return PathBuf::from(ns);
+    }
+    let nvm_root = get_primary_nvm_root();
+    let settings_file = nvm_root.join("settings.txt");
+    if settings_file.exists() {
+        if let Ok(content) = fs::read_to_string(&settings_file) {
+            for line in content.lines() {
+                let parts: Vec<&str> = line.splitn(2, ':').collect();
+                if parts.len() == 2 && parts[0].trim().eq_ignore_ascii_case("path") {
+                    let p = parts[1].trim();
+                    if !p.is_empty() {
+                        return PathBuf::from(p);
+                    }
+                }
+            }
+        }
+    }
+    PathBuf::from("C:\\Program Files\\nodejs")
+}
+
+#[cfg(target_os = "windows")]
+fn extract_node_zip(zip_path: &Path, target_dir: &Path) -> Result<(), String> {
+    use zip::ZipArchive;
+    let file = File::open(zip_path).map_err(|e| format!("Gagal membuka file ZIP Node.js: {}", e))?;
+    let mut archive = ZipArchive::new(file).map_err(|e| format!("Gagal membaca arsip ZIP Node.js: {}", e))?;
+
+    fs::create_dir_all(target_dir).map_err(|e| format!("Gagal membuat direktori target: {}", e))?;
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| format!("Gagal membaca index file ZIP: {}", e))?;
+        let raw_name = match file.enclosed_name() {
+            Some(p) => p.to_path_buf(),
+            None => continue,
+        };
+
+        // Hilangkan nama folder induk dalam zip (contoh: "node-v22.14.0-win-x64/")
+        let relative_path: PathBuf = raw_name.components().skip(1).collect();
+        if relative_path.as_os_str().is_empty() {
+            continue;
+        }
+
+        let outpath = target_dir.join(&relative_path);
+
+        if file.name().ends_with('/') || file.is_dir() {
+            fs::create_dir_all(&outpath).map_err(|e| format!("Gagal membuat direktori: {}", e))?;
+        } else {
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(p).map_err(|e| format!("Gagal membuat direktori induk: {}", e))?;
+                }
+            }
+            let mut outfile = File::create(&outpath).map_err(|e| format!("Gagal membuat file tujuan: {}", e))?;
+            std::io::copy(&mut file, &mut outfile).map_err(|e| format!("Gagal mengekstrak file {}: {}", relative_path.display(), e))?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+async fn download_and_extract_windows_node(version: &str, target_dir: &Path) -> Result<(), String> {
+    use std::fs::OpenOptions;
+    use futures_util::StreamExt;
+
+    let primary_url = format!("https://nodejs.org/dist/v{}/node-v{}-win-x64.zip", version, version);
+    let fallback_url = format!("https://cdn.npmmirror.com/binaries/node/v{}/node-v{}-win-x64.zip", version, version);
+
+    let temp_dir = get_server_dir_path().join("temp");
+    fs::create_dir_all(&temp_dir).map_err(|e| format!("Gagal membuat direktori temp: {}", e))?;
+
+    let zip_path = temp_dir.join(format!("node-v{}-win-x64.zip", version));
+    let part_path = temp_dir.join(format!("node-v{}-win-x64.part", version));
+
+    let is_valid_zip = |p: &Path| -> bool {
+        if let Ok(f) = File::open(p) {
+            zip::ZipArchive::new(f).is_ok()
+        } else {
+            false
+        }
+    };
+
+    if !zip_path.exists() || !is_valid_zip(&zip_path) {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(180))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+
+        let mut download_success = false;
+        let mut last_err = String::new();
+
+        for url in &[primary_url.as_str(), fallback_url.as_str()] {
+            for attempt in 1..=3 {
+                let existing_bytes = if part_path.exists() {
+                    fs::metadata(&part_path).map(|m| m.len()).unwrap_or(0)
+                } else {
+                    0
+                };
+
+                let mut req = client.get(*url);
+                if existing_bytes > 0 {
+                    req = req.header("Range", format!("bytes={}-", existing_bytes));
+                }
+
+                let response = match req.send().await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        last_err = format!("Koneksi gagal: {}", e);
+                        tokio::time::sleep(std::time::Duration::from_millis(500 * attempt)).await;
+                        continue;
+                    }
+                };
+
+                let status = response.status();
+                let mut file = if status == reqwest::StatusCode::PARTIAL_CONTENT {
+                    match OpenOptions::new().create(true).append(true).open(&part_path) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            last_err = format!("Gagal membuka file part: {}", e);
+                            continue;
+                        }
+                    }
+                } else if status.is_success() {
+                    match File::create(&part_path) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            last_err = format!("Gagal membuat file part: {}", e);
+                            continue;
+                        }
+                    }
+                } else {
+                    last_err = format!("HTTP {}", status);
+                    continue;
+                };
+
+                let mut stream = response.bytes_stream();
+                let mut stream_err = false;
+                while let Some(chunk_res) = stream.next().await {
+                    match chunk_res {
+                        Ok(chunk) => {
+                            if let Err(e) = file.write_all(&chunk) {
+                                last_err = format!("Gagal menulis stream: {}", e);
+                                stream_err = true;
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            last_err = format!("Stream terputus: {}", e);
+                            stream_err = true;
+                            break;
+                        }
+                    }
+                }
+
+                if !stream_err {
+                    let _ = file.flush();
+                    drop(file);
+                    if let Err(e) = fs::rename(&part_path, &zip_path) {
+                        last_err = format!("Gagal menyimpan zip final: {}", e);
+                    } else if is_valid_zip(&zip_path) {
+                        download_success = true;
+                        break;
+                    } else {
+                        let _ = fs::remove_file(&zip_path);
+                    }
+                }
+            }
+
+            if download_success {
+                break;
+            }
+        }
+
+        if !download_success {
+            let _ = fs::remove_file(&part_path);
+            return Err(format!(
+                "Gagal mengunduh Node.js v{}. Pastikan koneksi internet stabil. Detail: {}",
+                version, last_err
+            ));
+        }
+    }
+
+    // Ekstrak ZIP ke target directory
+    extract_node_zip(&zip_path, target_dir)?;
+
+    // Bersihkan file zip sementara
+    let _ = fs::remove_file(&zip_path);
+
+    if !target_dir.join("node.exe").exists() {
+        return Err(format!("Instalasi gagal: node.exe tidak ditemukan setelah ekstraksi di {}", target_dir.display()));
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn switch_windows_node_symlink(target_dir: &Path, symlink_path: &Path) -> Result<(), String> {
+    // 1. Coba hapus symlink lama jika ada
+    if symlink_path.exists() || symlink_path.is_symlink() {
+        let _ = fs::remove_dir(symlink_path);
+        let _ = fs::remove_file(symlink_path);
+    }
+
+    // 2. Coba buat symlink secara langsung (berhasil jika aplikasi berjalan sebagai Administrator atau Developer Mode aktif)
+    if std::os::windows::fs::symlink_dir(target_dir, symlink_path).is_ok() {
+        return Ok(());
+    }
+
+    // 3. Jika gagal, jalankan elevated PowerShell (UAC RunAs) untuk menghapus dan memperbarui symlink
+    let target_str = target_dir.to_string_lossy();
+    let symlink_str = symlink_path.to_string_lossy();
+
+    let ps_cmd = format!(
+        "if (Test-Path -LiteralPath '{}') {{ (Get-Item -LiteralPath '{}').Delete() }}; New-Item -ItemType SymbolicLink -Path '{}' -Target '{}' -Force",
+        symlink_str, symlink_str, symlink_str, target_str
+    );
+
+    let ps_elevated = format!(
+        "Start-Process powershell.exe -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"{}\"'",
+        ps_cmd.replace('"', "\"\"")
+    );
+
+    let output = crate::create_hidden_command("powershell.exe")
+        .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_elevated])
+        .output()
+        .map_err(|e| format!("Gagal eskalasi hak akses administrator: {}", e))?;
+
+    if symlink_path.exists() && symlink_path.join("node.exe").exists() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!(
+            "Gagal memperbarui symlink Node.js di {}. Pastikan Anda menyetujui izin Administrator saat diminta. Log: {}",
+            symlink_path.display(),
+            stderr.trim()
+        ))
+    }
+}
+
 #[tauri::command]
 pub async fn get_nvm_versions() -> Result<Vec<String>, String> {
     tokio::task::spawn_blocking(move || {
@@ -80,37 +346,8 @@ pub async fn get_nvm_versions() -> Result<Vec<String>, String> {
                 }
             }
 
-            // 2. Jika direktori kosong atau belum ketemu, coba panggil nvm list
-            if versions.is_empty() {
-                let output = if let Some(nvm_exe) = find_windows_nvm_exe() {
-                    let mut cmd = std::process::Command::new(nvm_exe);
-                    use std::os::windows::process::CommandExt;
-                    cmd.creation_flags(0x08000000);
-                    cmd.arg("list").output()
-                } else {
-                    crate::create_hidden_command("powershell.exe")
-                        .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "nvm list"])
-                        .output()
-                };
-
-                if let Ok(out) = output {
-                    let stdout = String::from_utf8_lossy(&out.stdout);
-                    for line in stdout.lines() {
-                        let clean = line.replace('*', "").trim().to_string();
-                        if !clean.is_empty() && clean.chars().next().unwrap_or(' ').is_numeric() {
-                            if let Some(version) = clean.split_whitespace().next() {
-                                let ver_clean = version.replace('v', "");
-                                if !ver_clean.is_empty() && !versions.contains(&ver_clean) {
-                                    versions.push(ver_clean);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             // Cek apakah NVM terpasang
-            if versions.is_empty() && find_windows_nvm_exe().is_none() {
+            if versions.is_empty() && find_windows_nvm_exe().is_none() && !get_windows_nvm_dirs().iter().any(|d| d.exists()) {
                 return Err("NVM tidak terinstal pada sistem ini.".to_string());
             }
 
@@ -206,19 +443,20 @@ async fn resolve_node_version(input: &str) -> Result<String, String> {
         return Err("Versi Node.js tidak boleh kosong.".to_string());
     }
 
-    // 1. Jika sudah merupakan semantic version lengkap (misal: "20.18.3" atau "18.20.7")
+    // 1. Jika sudah merupakan semantic version lengkap (misal: "24.22.2", "20.18.3")
     let parts: Vec<&str> = clean.split('.').collect();
     if parts.len() == 3 && parts.iter().all(|p| p.chars().all(|c| c.is_ascii_digit())) {
         return Ok(clean);
     }
 
-    // 2. Pemetaan fallback offline (untuk rilis LTS stabil resmi nodejs.org)
+    // 2. Pemetaan fallback offline (untuk rilis stabil resmi nodejs.org)
     let fallback = match clean.as_str() {
-        "18" => Some("18.20.7"),
-        "20" => Some("20.18.3"),
-        "22" => Some("22.14.0"),
-        "lts" => Some("22.14.0"),
-        "latest" => Some("22.14.0"),
+        "18" => Some("18.20.8"),
+        "20" => Some("20.20.2"),
+        "22" => Some("22.23.4"),
+        "24" => Some("24.22.2"),
+        "lts" => Some("24.22.2"),
+        "latest" => Some("24.22.2"),
         _ => None,
     };
 
@@ -255,68 +493,57 @@ async fn resolve_node_version(input: &str) -> Result<String, String> {
         return Ok(fb.to_string());
     }
 
-    if clean == "24" {
-        return Err("Versi Node.js v24 belum tersedia sebagai rilis stabil di nodejs.org. Versi LTS resmi yang didukung saat ini adalah v22, v20, dan v18.".to_string());
-    }
-
     Ok(clean)
 }
 
 #[tauri::command]
 pub async fn switch_node_version(version: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        #[cfg(target_os = "windows")]
-        {
-            let nvm_exe = find_windows_nvm_exe();
-            
-            let output = if let Some(ref exe) = nvm_exe {
-                let mut cmd = std::process::Command::new(exe);
-                use std::os::windows::process::CommandExt;
-                cmd.creation_flags(0x08000000);
-                cmd.args(&["use", &version]).output()
-            } else {
-                crate::create_hidden_command("powershell.exe")
-                    .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &format!("nvm use {}", version)])
-                    .output()
+    #[cfg(target_os = "windows")]
+    {
+        tokio::task::spawn_blocking(move || {
+            let clean_ver = version.trim().trim_start_matches('v');
+
+            // Cari folder versi yang terinstal di direktori NVM
+            let mut target_dir_opt = None;
+            for nvm_dir in get_windows_nvm_dirs() {
+                if nvm_dir.exists() {
+                    let v_dir = nvm_dir.join(format!("v{}", clean_ver));
+                    let plain_dir = nvm_dir.join(clean_ver);
+                    if v_dir.exists() && v_dir.join("node.exe").exists() {
+                        target_dir_opt = Some(v_dir);
+                        break;
+                    } else if plain_dir.exists() && plain_dir.join("node.exe").exists() {
+                        target_dir_opt = Some(plain_dir);
+                        break;
+                    }
+                }
+            }
+
+            let target_dir = match target_dir_opt {
+                Some(p) => p,
+                None => return Err(format!("Versi Node.js {} belum terpasang. Silakan unduh terlebih dahulu.", version)),
             };
 
-            let out = output.map_err(|e| format!("Gagal menjalankan nvm use: {}", e))?;
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            let combined = format!("{} {}", stdout, stderr);
+            let symlink_path = get_nodejs_symlink_path();
+            switch_windows_node_symlink(&target_dir, &symlink_path)?;
 
-            // Jika berhasil secara langsung
-            if out.status.success() && !combined.contains("exit status 1") && !combined.contains("exit status 5") {
-                return Ok(format!("Berhasil beralih ke Node.js versi {}", version));
+            // Update PATH in-memory agar langsung aktif pada sesi aplikasi
+            if let Ok(curr_path) = std::env::var("PATH") {
+                let sym_str = symlink_path.to_string_lossy().to_string();
+                if !curr_path.to_lowercase().contains(&sym_str.to_lowercase()) {
+                    std::env::set_var("PATH", format!("{};{}", sym_str, curr_path));
+                }
             }
 
-            // Jika butuh hak Administrator untuk symlink di C:\Program Files\nodejs, eskalasi via UAC
-            let fallback_exe_str = nvm_exe
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|| "nvm.exe".to_string());
+            Ok(format!("Berhasil beralih ke Node.js versi {}", clean_ver))
+        })
+        .await
+        .map_err(|e| format!("Proses switch Node.js gagal: {}", e))?
+    }
 
-            let ps_elevated = format!(
-                "Start-Process -FilePath '{}' -ArgumentList 'use {}' -Verb RunAs -Wait",
-                fallback_exe_str, version
-            );
-
-            let elevated_output = crate::create_hidden_command("powershell.exe")
-                .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_elevated])
-                .output()
-                .map_err(|e| format!("Gagal eskalasi hak akses administrator: {}", e))?;
-
-            if elevated_output.status.success() {
-                Ok(format!("Berhasil beralih ke Node.js versi {} (Elevated)", version))
-            } else {
-                Err(format!(
-                    "Gagal beralih versi Node.js. Pastikan versi tersebut valid dan berikan izin Administrator saat diminta. Log: {}",
-                    combined.trim()
-                ))
-            }
-        }
-
-        #[cfg(target_os = "linux")]
-        {
+    #[cfg(target_os = "linux")]
+    {
+        tokio::task::spawn_blocking(move || {
             let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
             let nvm_sh = Path::new(&home).join(".nvm").join("nvm.sh");
             if !nvm_sh.exists() {
@@ -340,16 +567,16 @@ pub async fn switch_node_version(version: String) -> Result<String, String> {
                     stderr.trim()
                 ))
             }
-        }
+        })
+        .await
+        .map_err(|e| format!("Proses switch Node.js gagal: {}", e))?
+    }
 
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-        {
-            let _ = version;
-            Err("Sistem operasi tidak didukung untuk nvm use.".to_string())
-        }
-    })
-    .await
-    .map_err(|e| format!("Proses switch Node.js gagal: {}", e))?
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        let _ = version;
+        Err("Sistem operasi tidak didukung untuk nvm use.".to_string())
+    }
 }
 
 #[tauri::command]
@@ -357,91 +584,32 @@ pub async fn install_node_version(version: String) -> Result<String, String> {
     let resolved_version = resolve_node_version(&version).await?;
     let ver_to_install = resolved_version.clone();
 
-    tokio::task::spawn_blocking(move || {
-        #[cfg(target_os = "windows")]
-        {
-            // Cek apakah versi ini sudah terpasang di salah satu folder NVM
-            for nvm_dir in get_windows_nvm_dirs() {
-                if nvm_dir.exists() {
-                    let v_dir = nvm_dir.join(format!("v{}", ver_to_install));
-                    let plain_dir = nvm_dir.join(&ver_to_install);
-                    if (v_dir.exists() && v_dir.join("node.exe").exists())
-                        || (plain_dir.exists() && plain_dir.join("node.exe").exists())
-                    {
-                        return Ok(format!("Node.js v{} sudah terpasang pada sistem Anda.", ver_to_install));
-                    }
+    #[cfg(target_os = "windows")]
+    {
+        // Cek apakah versi ini sudah terpasang di salah satu folder NVM
+        for nvm_dir in get_windows_nvm_dirs() {
+            if nvm_dir.exists() {
+                let v_dir = nvm_dir.join(format!("v{}", ver_to_install));
+                let plain_dir = nvm_dir.join(&ver_to_install);
+                if (v_dir.exists() && v_dir.join("node.exe").exists())
+                    || (plain_dir.exists() && plain_dir.join("node.exe").exists())
+                {
+                    return Ok(format!("Node.js v{} sudah terpasang pada sistem Anda.", ver_to_install));
                 }
             }
-
-            let nvm_exe = find_windows_nvm_exe();
-
-            let output = if let Some(ref exe) = nvm_exe {
-                let mut cmd = std::process::Command::new(exe);
-                use std::os::windows::process::CommandExt;
-                cmd.creation_flags(0x08000000);
-                cmd.args(&["install", &ver_to_install, "64"]).output()
-            } else {
-                crate::create_hidden_command("powershell.exe")
-                    .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &format!("nvm install {} 64", ver_to_install)])
-                    .output()
-            };
-
-            let out = output.map_err(|e| format!("Gagal menjalankan nvm install: {}", e))?;
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            let combined = format!("{} {}", stdout, stderr);
-
-            // Verifikasi apakah folder versi berhasil terbentuk dan ada node.exe
-            let is_installed_on_disk = || -> bool {
-                for nvm_dir in get_windows_nvm_dirs() {
-                    if nvm_dir.exists() {
-                        let v_dir = nvm_dir.join(format!("v{}", ver_to_install));
-                        let plain_dir = nvm_dir.join(&ver_to_install);
-                        if (v_dir.exists() && v_dir.join("node.exe").exists())
-                            || (plain_dir.exists() && plain_dir.join("node.exe").exists())
-                        {
-                            return true;
-                        }
-                    }
-                }
-                false
-            };
-
-            if is_installed_on_disk() || combined.contains("Installation complete") || combined.contains("already installed") {
-                return Ok(format!("Node.js versi {} berhasil diinstal.", ver_to_install));
-            }
-
-            // Jika butuh izin Administrator (misal nvm di Program Files)
-            if combined.contains("exit status 1") || combined.contains("exit status 5") || combined.to_lowercase().contains("access is denied") {
-                let fallback_exe_str = nvm_exe
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "nvm.exe".to_string());
-
-                let ps_elevated = format!(
-                    "Start-Process -FilePath '{}' -ArgumentList 'install {} 64' -Verb RunAs -Wait",
-                    fallback_exe_str, ver_to_install
-                );
-
-                let elevated_out = crate::create_hidden_command("powershell.exe")
-                    .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_elevated])
-                    .output();
-
-                if let Ok(e_out) = elevated_out {
-                    if is_installed_on_disk() || e_out.status.success() {
-                        return Ok(format!("Node.js versi {} berhasil diinstal.", ver_to_install));
-                    }
-                }
-            }
-
-            Err(format!(
-                "Gagal menginstal Node.js versi {}. Log: {}",
-                ver_to_install,
-                combined.trim()
-            ))
         }
 
-        #[cfg(target_os = "linux")]
-        {
+        let nvm_root = get_primary_nvm_root();
+        let target_dir = nvm_root.join(format!("v{}", ver_to_install));
+
+        download_and_extract_windows_node(&ver_to_install, &target_dir).await?;
+
+        Ok(format!("Node.js versi {} berhasil diinstal.", ver_to_install))
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        tokio::task::spawn_blocking(move || {
             let home = std::env::var("HOME").map_err(|e| format!("Gagal mendapatkan HOME dir: {}", e))?;
             let nvm_sh = Path::new(&home).join(".nvm").join("nvm.sh");
             if !nvm_sh.exists() {
@@ -466,16 +634,16 @@ pub async fn install_node_version(version: String) -> Result<String, String> {
                     stderr.trim()
                 ))
             }
-        }
+        })
+        .await
+        .map_err(|e| format!("Proses instalasi Node.js gagal: {}", e))?
+    }
 
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-        {
-            let _ = ver_to_install;
-            Err("Sistem operasi tidak didukung untuk nvm install.".to_string())
-        }
-    })
-    .await
-    .map_err(|e| format!("Proses instalasi Node.js gagal: {}", e))?
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        let _ = ver_to_install;
+        Err("Sistem operasi tidak didukung untuk nvm install.".to_string())
+    }
 }
 
 #[tauri::command]

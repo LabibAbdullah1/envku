@@ -249,29 +249,28 @@ assert(
 function resolveNodeVersion(input) {
   const clean = input.trim().replace(/^v/, "").toLowerCase();
   const fallback = {
-    "18": "18.20.7",
-    "20": "20.18.3",
-    "22": "22.14.0",
-    "lts": "22.14.0",
-    "latest": "22.14.0",
+    "18": "18.20.8",
+    "20": "20.20.2",
+    "22": "22.23.4",
+    "24": "24.22.2",
+    "lts": "24.22.2",
+    "latest": "24.22.2",
   };
   if (fallback[clean]) return { ok: true, version: fallback[clean] };
   const parts = clean.split(".");
   if (parts.length === 3 && parts.every((p) => !isNaN(parseInt(p)))) {
     return { ok: true, version: clean };
   }
-  if (clean === "24") {
-    return { ok: false, message: "Node 24 belum stabil resmi" };
-  }
   return { ok: true, version: clean };
 }
 
-assert(resolveNodeVersion("22").version === "22.14.0", "Resolver '22' -> 22.14.0 (LTS Aktif)");
-assert(resolveNodeVersion("20").version === "20.18.3", "Resolver '20' -> 20.18.3 (LTS)");
-assert(resolveNodeVersion("18").version === "18.20.7", "Resolver '18' -> 18.20.7 (LTS)");
-assert(resolveNodeVersion("lts").version === "22.14.0", "Resolver 'lts' -> 22.14.0");
+assert(resolveNodeVersion("24").version === "24.22.2", "Resolver '24' -> 24.22.2 (LTS Aktif)");
+assert(resolveNodeVersion("22").version === "22.23.4", "Resolver '22' -> 22.23.4 (LTS)");
+assert(resolveNodeVersion("20").version === "20.20.2", "Resolver '20' -> 20.20.2 (LTS)");
+assert(resolveNodeVersion("18").version === "18.20.8", "Resolver '18' -> 18.20.8 (LTS)");
+assert(resolveNodeVersion("lts").version === "24.22.2", "Resolver 'lts' -> 24.22.2 (LTS)");
 assert(resolveNodeVersion("20.18.0").version === "20.18.0", "Resolver semver lengkap '20.18.0' -> 20.18.0");
-assert(!resolveNodeVersion("24").ok, "Resolver '24' terproteksi (ditolak karena belum stabil)");
+assert(resolveNodeVersion("22.14.0").version === "22.14.0", "Resolver semver lengkap '22.14.0' -> 22.14.0");
 
 // ─────────────────────────────────────────────────────────────
 // REKAPITULASI

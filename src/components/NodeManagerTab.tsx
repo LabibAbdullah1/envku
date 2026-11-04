@@ -136,13 +136,13 @@ export default function NodeManagerTab({
               <div>
                 <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">Unduh & Pasang Versi Node.js Baru</label>
                 <p className="text-[11px] text-[#71717a] font-medium mt-0.5">
-                  Mendukung rilis resmi. Masukkan versi utama (<strong className="text-[#09090b]">22</strong>, <strong className="text-[#09090b]">20</strong>, <strong className="text-[#09090b]">18</strong>, <strong className="text-[#09090b]">lts</strong>) atau semver lengkap (<strong className="text-[#09090b]">20.18.3</strong>).
+                  Mendukung rilis resmi. Masukkan versi utama (<strong className="text-[#09090b]">24</strong>, <strong className="text-[#09090b]">22</strong>, <strong className="text-[#09090b]">20</strong>, <strong className="text-[#09090b]">18</strong>, <strong className="text-[#09090b]">lts</strong>) atau semver lengkap (<strong className="text-[#09090b]">20.18.3</strong>).
                 </p>
               </div>
               <form onSubmit={handleInstallNode} className="flex space-x-3.5">
                 <input
                   type="text"
-                  placeholder="Contoh: 22, 20.18.3, 18, atau lts"
+                  placeholder="Contoh: 24, 22, 20.18.3, 18, atau lts"
                   value={nodeVersionToInstall}
                   onChange={(e) => setNodeVersionToInstall(e.target.value)}
                   className="flex-1 bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-3 text-xs text-[#09090b] outline-none font-mono font-black"
@@ -158,8 +158,8 @@ export default function NodeManagerTab({
               </form>
 
               {/* Quick Select LTS Buttons */}
-              <div className="flex gap-3">
-                {(["22", "20", "18"] as const).map((ver) => (
+              <div className="flex gap-2.5">
+                {(["24", "22", "20", "18"] as const).map((ver) => (
                   <button
                     key={ver}
                     type="button"
@@ -173,9 +173,11 @@ export default function NodeManagerTab({
                     <span>
                       {quickInstallingNode === ver
                         ? `Memasang Node ${ver}...`
-                        : ver === "22"
-                          ? `Node 22 (LTS Aktif)`
-                          : `Node ${ver} (LTS)`}
+                        : ver === "24"
+                          ? `Node 24 (LTS)`
+                          : ver === "22"
+                            ? `Node 22 (LTS)`
+                            : `Node ${ver}`}
                     </span>
                   </button>
                 ))}

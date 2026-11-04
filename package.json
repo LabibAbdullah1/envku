@@ -1,7 +1,7 @@
 {
   "name": "Envku-Orchestrator",
   "private": true,
-  "version": "1.4.8",
+  "version": "1.4.9",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
     "release": "node release.cjs",
     "tag-release": "node trigger-release.cjs",
     "sync-packages": "node sync-packages.cjs",
-    "test": "node tests/comprehensive-test.cjs && node tests/test-deep-features.cjs"
+    "test": "node tests/comprehensive-test.cjs && node tests/test-deep-features.cjs && node tests/test-node-install-switch.cjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
