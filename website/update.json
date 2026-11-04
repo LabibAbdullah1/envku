@@ -1,11 +1,11 @@
 {
-  "version": "1.4.8",
-  "notes": "Perbaikan kompatibilitas phpMyAdmin pada PHP 8.4+ (path ekstensi absolut & penanganan deprecation), perbaikan fatal crash saat switch versi PHP Apache (LoadFile php8ts.dll), polling restart aman pada port 80 & 443 tanpa bentrok palsu, optimasi async Node.js NVM manager, dan audit pengujian menyeluruh 80/80 tests lolos.",
-  "pub_date": "2026-11-04T00:19:17.870Z",
+  "version": "1.4.9",
+  "notes": "Pembaruan v1.4.9: Perbaikan menyeluruh Node.js manager & NVM (menghilangkan popup alert 'Terminal Only' Windows, unduhan resmi async resumable anti-freeze, dukungan Node v24 LTS, v22, v20, v18), perbaikan sinkronisasi updater keypair & catatan rilis otomatis, perbaikan fatal crash saat switch versi PHP Apache (LoadFile php8ts.dll), kompatibilitas phpMyAdmin pada PHP 8.4+, serta lolos audit pengujian otomatis.",
+  "pub_date": "2026-11-04T00:53:32.076Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://envku.subly.my.id/downloads/Envku_1.4.8_x64-setup.exe",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSZTdGbUNpVmx3ME1tSVFTWG4wc0VZNS80MmtGUW91c0NoSnN1SUQyb3pLbENKTjFpTGQ4bWhuMlA4QW50RXJEQmI0VVc0ZVhVZVlhZDZnRXYzbDZuTTUzSG1LOVlyV2dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzUxNTU2CWZpbGU6RW52a3VfMS40LjhfeDY0LXNldHVwLmV4ZQpXc29wNmdhQ2l2c1NlUjI4SHRqSXZ4M0NscEYyZ2ZaaDA3aDJDMXNGOXIreE9rVHduWXN1aEJod2IxRmlaM3IwQTdheVg0UjlYWkJaSnZvMC9zdHlDQT09Cg=="
+      "url": "https://envku.subly.my.id/downloads/Envku_1.4.9_x64-setup.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSZTdGbUNpVmx3MEhBc0VVSXF1OWsvKzJKTkVScEE1Rm16UHpvM1NWQzFTVEJrVGtMeUQyd1h6RVhNZzZUanY2Zml3NE5nTHhSeFZ4RW0rMjZYQmpUZXpXanBQU0ZLbnc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzUzNjEwCWZpbGU6RW52a3VfMS40LjlfeDY0LXNldHVwLmV4ZQpCd0M0SW9uNFNhckpXQUpSeDJ4aGRHQm5GbGZvNEMwV1BwOStNUEt2MTJ0czNINGhlMTl5amZOZGJ5a25WUUdRdmVrQnpYaFNlQjJVcGFHOUQ1aDlDQT09Cg=="
     }
   }
 }
