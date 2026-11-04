@@ -136,6 +136,14 @@ async function main() {
   updateJson.version   = VERSION;
   updateJson.pub_date  = new Date().toISOString();
 
+  // Sinkronisasi catatan rilis (changelog notes) agar tidak statis atau tertinggal
+  const notesFile = path.join(ROOT, "RELEASE_NOTES.txt");
+  if (fs.existsSync(notesFile)) {
+    updateJson.notes = fs.readFileSync(notesFile, "utf8").trim();
+  } else if (!updateJson.notes || updateJson.notes.includes("splash screen")) {
+    updateJson.notes = "Peningkatan stabilitas, perbaikan kompatibilitas phpMyAdmin pada PHP 8.4+, safe service restart tanpa bentrok port, dan optimasi Node.js NVM.";
+  }
+
   if (!updateJson.platforms) {
     updateJson.platforms = {};
   }

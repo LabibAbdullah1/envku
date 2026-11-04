@@ -1,6 +1,6 @@
 {
   "version": "1.4.8",
-  "notes": "Penambahan splash screen loading saat aplikasi pertama dibuka, logo baru Envku (Ev) di seluruh tampilan dan icon desktop, serta peningkatan stabilitas.",
+  "notes": "Perbaikan kompatibilitas phpMyAdmin pada PHP 8.4+ (path ekstensi absolut & penanganan deprecation), perbaikan fatal crash saat switch versi PHP Apache (LoadFile php8ts.dll), polling restart aman pada port 80 & 443 tanpa bentrok palsu, optimasi async Node.js NVM manager, dan audit pengujian menyeluruh 80/80 tests lolos.",
   "pub_date": "2026-11-03T23:49:28.326Z",
   "platforms": {
     "windows-x86_64": {

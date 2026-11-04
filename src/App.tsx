@@ -525,13 +525,30 @@ export default function App() {
       try {
         const update = await check();
         if (update && update.available) {
+          const notesText = update.body ? `\n\nCatatan Perubahan:\n${update.body}` : "";
           const yes = await ask(
-            `Versi baru (${update.version}) telah tersedia!\n\nApakah Anda ingin mengunduh dan melakukan pembaruan sekarang?`,
+            `Versi baru (${update.version}) telah tersedia!${notesText}\n\nApakah Anda ingin mengunduh dan melakukan pembaruan sekarang?`,
             { title: "Update Tersedia", kind: "info" }
           );
           if (yes) {
-            await update.downloadAndInstall();
-            await relaunch();
+            try {
+              showToastMsg("Sedang mengunduh dan memasang pembaruan...");
+              await update.downloadAndInstall();
+              showToastMsg("Pembaruan berhasil dipasang. Memuat ulang aplikasi...", "success");
+              await relaunch();
+            } catch (installErr: any) {
+              console.error("Gagal install update:", installErr);
+              const errMsg = installErr?.message || String(installErr);
+              const isKeyMismatch = errMsg.toLowerCase().includes("signature") || errMsg.toLowerCase().includes("key");
+              const fallbackMsg = isKeyMismatch
+                ? `Pembaruan otomatis tidak dapat dilanjutkan karena perbedaan kunci verifikasi versi lama (${errMsg}).\n\nApakah Anda ingin membuka halaman unduhan untuk mengunduh installer versi terbaru secara langsung?`
+                : `Gagal memasang pembaruan: ${errMsg}\n\nApakah Anda ingin membuka halaman unduhan untuk mengunduh installer secara manual?`;
+
+              const openBrowser = await ask(fallbackMsg, { title: "Pembaruan Gagal", kind: "warning" });
+              if (openBrowser) {
+                await invoke("open_in_browser", { url: "https://envku.subly.my.id/download.html" });
+              }
+            }
           }
         }
       } catch (err) {

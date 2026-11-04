@@ -101,7 +101,15 @@ export default function SupportTab({
       await relaunch();
     } catch (err: any) {
       console.error(err);
-      alert(`Gagal memasang pembaruan: ${err?.message || String(err)}`);
+      const errMsg = err?.message || String(err);
+      const isKeyMismatch = errMsg.toLowerCase().includes("signature") || errMsg.toLowerCase().includes("key");
+      if (isKeyMismatch) {
+        if (confirm(`Gagal memasang pembaruan otomatis: ${errMsg}\n\nKunci verifikasi rilis terbaru telah diperbarui. Apakah Anda ingin membuka browser untuk mengunduh installer resmi terbaru secara langsung?`)) {
+          invoke("open_in_browser", { url: "https://envku.subly.my.id/download.html" });
+        }
+      } else {
+        alert(`Gagal memasang pembaruan: ${errMsg}`);
+      }
       setDownloadProgress(null);
     } finally {
       setInstalling(false);

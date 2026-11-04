@@ -1,0 +1,1 @@
+Perbaikan kompatibilitas phpMyAdmin pada PHP 8.4+ (path ekstensi absolut & penanganan deprecation), perbaikan fatal crash saat switch versi PHP Apache (LoadFile php8ts.dll), polling restart aman pada port 80 & 443 tanpa bentrok palsu, optimasi async Node.js NVM manager, dan audit pengujian menyeluruh 80/80 tests lolos.
