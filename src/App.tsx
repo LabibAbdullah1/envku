@@ -652,6 +652,9 @@ export default function App() {
               loading={loading}
               setLoading={setLoading}
               isLinux={isLinux}
+              dirsStatus={dirsStatus}
+              activePhpVersion={activePhpVersion}
+              baseDir={baseDir}
             />
           )}
 

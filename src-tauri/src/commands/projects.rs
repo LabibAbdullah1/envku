@@ -20,18 +20,30 @@ pub async fn create_laravel_project(
     domain: String,
     parent_dir: String,
     enable_ssl: bool,
+    php_version: Option<String>,
 ) -> Result<String, String> {
     let server_dir = get_server_dir_path();
     let composer_phar = server_dir.join("composer").join("composer.phar");
     
+    let requested_php = php_version.unwrap_or_default().trim().to_lowercase();
     let active_php = crate::commands::php::get_active_php_version().unwrap_or_default();
-    let candidate_versions = if active_php != "unknown" && !active_php.is_empty() {
-        vec![active_php.clone(), "php85".to_string(), "php84".to_string(), "php83".to_string(), "php82".to_string()]
-    } else {
-        vec!["php85".to_string(), "php84".to_string(), "php83".to_string(), "php82".to_string()]
-    };
+    
+    // Urutkan prioritas versi PHP: requested -> active -> fallback php85..php82
+    let mut candidate_versions = Vec::new();
+    if !requested_php.is_empty() && requested_php != "unknown" {
+        candidate_versions.push(requested_php.clone());
+    }
+    if !active_php.is_empty() && active_php != "unknown" && !candidate_versions.contains(&active_php) {
+        candidate_versions.push(active_php.clone());
+    }
+    for fallback in &["php85", "php84", "php83", "php82"] {
+        let f = fallback.to_string();
+        if !candidate_versions.contains(&f) {
+            candidate_versions.push(f);
+        }
+    }
 
-    let mut selected_php_exe = None;
+    let mut selected_php_target = None;
     for ver in candidate_versions {
         let exe = if cfg!(target_os = "windows") {
             server_dir.join(&ver).join("php.exe")
@@ -39,13 +51,13 @@ pub async fn create_laravel_project(
             server_dir.join(&ver).join("bin").join("php")
         };
         if exe.exists() {
-            selected_php_exe = Some(exe);
+            selected_php_target = Some((ver, exe));
             break;
         }
     }
 
-    let php_exe = match selected_php_exe {
-        Some(exe) => exe,
+    let (selected_ver, php_exe) = match selected_php_target {
+        Some(pair) => pair,
         None => {
             return Err("Biner PHP tidak ditemukan. Silakan unduh PHP 8.5 / 8.4 / 8.3 di Katalog Komponen terlebih dahulu.".to_string());
         }
@@ -54,6 +66,9 @@ pub async fn create_laravel_project(
     if !composer_phar.exists() {
         return Err("PHP Composer tidak ditemukan. Silakan unduh PHP Composer di Katalog Komponen terlebih dahulu.".to_string());
     }
+
+    // Otomatis pastikan php.ini dan semua ekstensi esensial Laravel aktif
+    let _ = crate::commands::php::configure_php_ini_for_version(&server_dir, &selected_ver);
 
     let parent_path = std::path::PathBuf::from(&parent_dir);
     if !parent_path.exists() {
@@ -68,7 +83,27 @@ pub async fn create_laravel_project(
 
     let _ = app.emit("laravel_creation_log", format!("🚀 Memulai pembuatan proyek Laravel: {}", clean_name));
     let _ = app.emit("laravel_creation_log", format!("📂 Direktori induk: {}", parent_dir));
-    let _ = app.emit("laravel_creation_log", format!("⚙️ Menggunakan biner PHP: {}", php_exe.display()));
+    let _ = app.emit("laravel_creation_log", format!("⚙️ Menggunakan biner PHP: {} ({})", selected_ver.to_uppercase(), php_exe.display()));
+    let _ = app.emit("laravel_creation_log", "🔧 Ekstensi PHP esensial otomatis diverifikasi & diaktifkan (curl, mbstring, openssl, pdo_mysql, fileinfo, zip, intl)".to_string());
+
+    // Periksa versi Composer yang digunakan
+    let composer_version_output = if cfg!(target_os = "windows") {
+        let mut check_cmd = crate::create_hidden_command(&php_exe.to_string_lossy());
+        check_cmd.args(&[composer_phar.to_string_lossy().as_ref(), "--version", "--no-ansi"]);
+        check_cmd.output().ok()
+    } else {
+        let mut check_cmd = std::process::Command::new(&php_exe);
+        check_cmd.args(&[composer_phar.to_string_lossy().as_ref(), "--version", "--no-ansi"]);
+        check_cmd.output().ok()
+    };
+
+    if let Some(out) = composer_version_output {
+        let ver_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !ver_str.is_empty() {
+            let _ = app.emit("laravel_creation_log", format!("🎼 {}", ver_str));
+        }
+    }
+
     let _ = app.emit("laravel_creation_log", format!("📦 Mengeksekusi: php composer.phar create-project laravel/laravel {} --prefer-dist --no-ansi", clean_name));
     let _ = app.emit("laravel_creation_log", "--------------------------------------------------------------------------------".to_string());
 
@@ -83,8 +118,17 @@ pub async fn create_laravel_project(
             "--no-ansi",
         ])
         .current_dir(&parent_path)
+        .env("COMPOSER_MEMORY_LIMIT", "-1")
+        .env("COMPOSER_ALLOW_SUPERUSER", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+
+        if let Some(parent) = php_exe.parent() {
+            if let Ok(current_path) = std::env::var("PATH") {
+                cmd.env("PATH", format!("{};{}", parent.display(), current_path));
+            }
+        }
+
         cmd.spawn()
     } else {
         let mut cmd = std::process::Command::new(&php_exe);
@@ -97,6 +141,8 @@ pub async fn create_laravel_project(
             "--no-ansi",
         ])
         .current_dir(&parent_path)
+        .env("COMPOSER_MEMORY_LIMIT", "-1")
+        .env("COMPOSER_ALLOW_SUPERUSER", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
         cmd.spawn()

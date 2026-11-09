@@ -80,7 +80,7 @@ const PACKAGES = [
     name: "PHP Composer (Common)",
     destDir: path.join(PACKAGES_DIR, "common"),
     fileName: "composer.phar",
-    url: "https://getcomposer.org/composer.phar"
+    url: "https://getcomposer.org/download/latest-stable/composer.phar"
   }
 ];
 

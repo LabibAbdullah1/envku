@@ -51,7 +51,7 @@ fn get_component_urls(component_id: &str) -> Result<ComponentUrls<'static>, Stri
             fallback: "https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip",
         }),
         "composer" => Ok(ComponentUrls {
-            primary: "https://envku.subly.my.id/packages/common/composer.phar",
+            primary: "https://getcomposer.org/download/latest-stable/composer.phar",
             fallback: "https://getcomposer.org/composer.phar",
         }),
         "redis" => Ok(ComponentUrls {
@@ -78,7 +78,7 @@ fn get_linux_component_urls(component_id: &str) -> Result<ComponentUrls<'static>
             fallback: "https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip",
         }),
         "composer" => Ok(ComponentUrls {
-            primary: "https://envku.subly.my.id/packages/common/composer.phar",
+            primary: "https://getcomposer.org/download/latest-stable/composer.phar",
             fallback: "https://getcomposer.org/composer.phar",
         }),
         _ => Err(format!("ID komponen Linux tidak dikenal untuk download langsung: {}", component_id)),

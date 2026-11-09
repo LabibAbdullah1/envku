@@ -66,14 +66,44 @@ pub fn configure_php_ini_for_version(server_dir: &std::path::Path, version_id: &
     }
 
     // 3. Aktifkan modul-modul esensial untuk phpMyAdmin dan Laravel
-    let extensions = vec![
-        "curl", "gd", "mbstring", "mysqli", "openssl", "pdo_mysql", "fileinfo", "intl", "zip"
+    let required_extensions = [
+        "curl", "fileinfo", "gd", "intl", "mbstring", "mysqli", "openssl", "pdo_mysql", "zip"
     ];
-    for ext in extensions {
-        let commented = format!(";extension={}", ext);
-        let uncommented = format!("extension={}", ext);
-        if content.contains(&commented) {
-            content = content.replace(&commented, &uncommented);
+    for ext in required_extensions {
+        let is_already_active = content.lines().any(|l| {
+            let t = l.trim();
+            !t.starts_with(';') && is_real_extension_line(t, ext, false)
+        });
+
+        if !is_already_active {
+            let mut line_replaced = false;
+            let mut new_lines = Vec::new();
+            for l in content.lines() {
+                if !line_replaced && l.trim().starts_with(';') && is_real_extension_line(l, ext, false) {
+                    new_lines.push(format!("extension={}", ext));
+                    line_replaced = true;
+                } else {
+                    new_lines.push(l.to_string());
+                }
+            }
+            if line_replaced {
+                content = new_lines.join("\n");
+            } else {
+                content.push_str(&format!("\nextension={}\n", ext));
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let php_version_dot = match version_id {
+            "php85" => "8.5",
+            "php84" => "8.4",
+            "php83" => "8.3",
+            _ => "8.2",
+        };
+        for ext in &required_extensions {
+            let _ = crate::execute_elevated_command(&["phpenmod", "-v", php_version_dot, ext]);
         }
     }
 

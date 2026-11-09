@@ -22,6 +22,9 @@ interface ProjectWizardTabProps {
   loading: boolean;
   setLoading: (loading: boolean) => void;
   isLinux?: boolean;
+  dirsStatus?: { [key: string]: boolean };
+  activePhpVersion?: string;
+  baseDir?: string;
 }
 
 export default function ProjectWizardTab({
@@ -34,6 +37,9 @@ export default function ProjectWizardTab({
   loading,
   setLoading,
   isLinux = false,
+  dirsStatus = {},
+  activePhpVersion = "unknown",
+  baseDir = "C:\\server",
 }: ProjectWizardTabProps) {
   const [wizardMode, setWizardMode] = useState<"register" | "create_laravel">("register");
   const [projectName, setProjectName] = useState<string>("");
@@ -45,6 +51,31 @@ export default function ProjectWizardTab({
   const [nodePort, setNodePort] = useState<number>(3000);
   const [enableSsl, setEnableSsl] = useState<boolean>(false);
   const [editingDomain, setEditingDomain] = useState<string | null>(null);
+
+  // PHP Version Selector for Laravel Project
+  const allPhpVersions = [
+    { id: "php85", name: "PHP 8.5", label: "PHP 8.5 Engine (Rilis Terbaru)", badge: "PHP 8.5" },
+    { id: "php84", name: "PHP 8.4", label: "PHP 8.4 Engine (Standar Modern)", badge: "PHP 8.4" },
+    { id: "php83", name: "PHP 8.3", label: "PHP 8.3 Engine (Stable Thread-Safe)", badge: "PHP 8.3" },
+    { id: "php82", name: "PHP 8.2", label: "PHP 8.2 Engine (Legacy Thread-Safe)", badge: "PHP 8.2" },
+  ];
+
+  const installedPhpVersions = allPhpVersions.filter((ver) => {
+    const fullPath = isLinux ? `${baseDir}/${ver.id}` : `${baseDir}\\${ver.id}`;
+    return dirsStatus[fullPath] === true;
+  });
+
+  const [selectedPhpVersion, setSelectedPhpVersion] = useState<string>("");
+
+  useEffect(() => {
+    if (!selectedPhpVersion) {
+      if (activePhpVersion && activePhpVersion !== "unknown") {
+        setSelectedPhpVersion(activePhpVersion);
+      } else if (installedPhpVersions.length > 0) {
+        setSelectedPhpVersion(installedPhpVersions[0].id);
+      }
+    }
+  }, [activePhpVersion, installedPhpVersions, selectedPhpVersion]);
 
   // Terminal log modal states
   const [showTerminalModal, setShowTerminalModal] = useState<boolean>(false);
@@ -129,6 +160,7 @@ export default function ProjectWizardTab({
         domain: projectDomain.trim(),
         parentDir: parentPath.trim(),
         enableSsl: enableSsl,
+        phpVersion: selectedPhpVersion || (activePhpVersion !== "unknown" ? activePhpVersion : undefined),
       });
 
       setTerminalStatus("success");
@@ -451,6 +483,47 @@ export default function ProjectWizardTab({
                   Pilih Folder Induk...
                 </button>
               </div>
+            </div>
+
+            {/* Pilihan Versi PHP yang Kompatibel & Terinstall */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-[#09090b] uppercase tracking-widest block">
+                  Versi PHP (Untuk Eksekusi Composer & Laravel)
+                </label>
+                {activePhpVersion && activePhpVersion !== "unknown" && (
+                  <span className="text-[10px] font-bold text-[#52525b] bg-[#f4f4f5] px-2 py-0.5 border border-[#09090b]">
+                    Versi Aktif Apache: {activePhpVersion.toUpperCase()}
+                  </span>
+                )}
+              </div>
+
+              {installedPhpVersions.length > 0 ? (
+                <div className="relative">
+                  <select
+                    value={selectedPhpVersion || (activePhpVersion !== "unknown" ? activePhpVersion : installedPhpVersions[0].id)}
+                    onChange={(e) => setSelectedPhpVersion(e.target.value)}
+                    className="w-full bg-[#ffffff] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] px-4 py-2.5 text-xs font-bold text-[#18181b] outline-none cursor-pointer appearance-none pr-10"
+                  >
+                    {installedPhpVersions.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.label} {v.id === activePhpVersion ? "★ (Aktif Saat Ini)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-3.5 pointer-events-none text-[#09090b] font-black text-xs">
+                    ▼
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-[#fef2f2] border-2 border-[#ef4444] text-[#991b1b] text-xs font-bold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-[#ef4444]" />
+                  <span>Belum ada versi PHP terdeteksi. Silakan unduh PHP 8.5/8.4/8.3 di Katalog Komponen terlebih dahulu.</span>
+                </div>
+              )}
+              <p className="text-[11px] text-[#52525b] font-medium leading-relaxed">
+                💡 Envku otomatis memverifikasi & mengaktifkan ekstensi PHP yang dibutuhkan (<code className="font-mono bg-[#f4f4f5] px-1 py-0.5 border border-[#09090b] text-[#09090b]">curl</code>, <code className="font-mono bg-[#f4f4f5] px-1 py-0.5 border border-[#09090b] text-[#09090b]">mbstring</code>, <code className="font-mono bg-[#f4f4f5] px-1 py-0.5 border border-[#09090b] text-[#09090b]">openssl</code>, <code className="font-mono bg-[#f4f4f5] px-1 py-0.5 border border-[#09090b] text-[#09090b]">pdo_mysql</code>, <code className="font-mono bg-[#f4f4f5] px-1 py-0.5 border border-[#09090b] text-[#09090b]">fileinfo</code>, <code className="font-mono bg-[#f4f4f5] px-1 py-0.5 border border-[#09090b] text-[#09090b]">zip</code>, <code className="font-mono bg-[#f4f4f5] px-1 py-0.5 border border-[#09090b] text-[#09090b]">intl</code>) agar pembuatan proyek Laravel berjalan lancar.
+              </p>
             </div>
           </div>
         )}
