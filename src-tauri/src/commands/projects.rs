@@ -104,8 +104,7 @@ pub async fn create_laravel_project(
         }
     }
 
-    let _ = app.emit("laravel_creation_log", format!("📦 Mengeksekusi: php composer.phar create-project laravel/laravel {} --prefer-dist --no-ansi --optimize-autoloader", clean_name));
-    let _ = app.emit("laravel_creation_log", "⚡ Mengaktifkan optimasi classmap autoload (--optimize-autoloader) secara otomatis.".to_string());
+    let _ = app.emit("laravel_creation_log", format!("📦 Mengeksekusi: php composer.phar create-project laravel/laravel {} --prefer-dist --no-ansi", clean_name));
     let _ = app.emit("laravel_creation_log", "--------------------------------------------------------------------------------".to_string());
 
     let mut child = if cfg!(target_os = "windows") {
@@ -117,7 +116,6 @@ pub async fn create_laravel_project(
             &clean_name,
             "--prefer-dist",
             "--no-ansi",
-            "--optimize-autoloader",
         ])
         .current_dir(&parent_path)
         .env("COMPOSER_MEMORY_LIMIT", "-1")
@@ -141,7 +139,6 @@ pub async fn create_laravel_project(
             &clean_name,
             "--prefer-dist",
             "--no-ansi",
-            "--optimize-autoloader",
         ])
         .current_dir(&parent_path)
         .env("COMPOSER_MEMORY_LIMIT", "-1")
@@ -194,6 +191,37 @@ pub async fn create_laravel_project(
 
     let doc_root = project_dir.join("public").to_string_lossy().to_string();
     add_project(domain.clone(), doc_root, false, None, enable_ssl)?;
+
+    // Optimasi autoload classmap Composer (-o) dan cache Laravel awal
+    let _ = app.emit("laravel_creation_log", "⚡ Mengoptimalkan classmap autoload Composer (dump-autoload -o)...".to_string());
+    if cfg!(target_os = "windows") {
+        let mut dump_cmd = crate::create_hidden_command(&php_exe.to_string_lossy());
+        if let Some(parent) = php_exe.parent() {
+            if let Ok(current_path) = std::env::var("PATH") {
+                dump_cmd.env("PATH", format!("{};{}", parent.display(), current_path));
+            }
+        }
+        let _ = dump_cmd.args(&[
+            composer_phar.to_string_lossy().as_ref(),
+            "dump-autoload",
+            "-o",
+            "--no-ansi",
+        ])
+        .current_dir(&project_dir)
+        .env("COMPOSER_MEMORY_LIMIT", "-1")
+        .output();
+    } else {
+        let mut dump_cmd = std::process::Command::new(&php_exe);
+        let _ = dump_cmd.args(&[
+            composer_phar.to_string_lossy().as_ref(),
+            "dump-autoload",
+            "-o",
+            "--no-ansi",
+        ])
+        .current_dir(&project_dir)
+        .env("COMPOSER_MEMORY_LIMIT", "-1")
+        .output();
+    }
 
     // Jalankan php artisan optimize awal
     let artisan_file = project_dir.join("artisan");
