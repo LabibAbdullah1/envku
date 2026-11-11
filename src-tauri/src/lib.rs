@@ -143,6 +143,7 @@ pub fn run() {
             commands::services::terminate_port_pid,
             commands::projects::add_project,
             commands::projects::create_laravel_project,
+            commands::projects::optimize_laravel_project,
             commands::projects::edit_project,
             commands::projects::delete_project,
             commands::projects::get_virtual_hosts,

@@ -105,9 +105,65 @@ pub fn configure_php_ini_for_version(server_dir: &std::path::Path, version_id: &
         for ext in &required_extensions {
             let _ = crate::execute_elevated_command(&["phpenmod", "-v", php_version_dot, ext]);
         }
+        let _ = crate::execute_elevated_command(&["phpenmod", "-v", php_version_dot, "opcache"]);
     }
 
-    // 4. Pastikan session.save_path mengarah ke folder temp yang valid
+    // 4. Konfigurasi OPcache untuk performa maksimal autoload Laravel di Windows
+    let is_opcache_active = content.lines().any(|l| {
+        let t = l.trim();
+        !t.starts_with(';') && is_real_extension_line(t, "opcache", true)
+    });
+    if !is_opcache_active {
+        let mut line_replaced = false;
+        let mut new_lines = Vec::new();
+        for l in content.lines() {
+            if !line_replaced && l.trim().starts_with(';') && is_real_extension_line(l, "opcache", true) {
+                new_lines.push("zend_extension=opcache".to_string());
+                line_replaced = true;
+            } else {
+                new_lines.push(l.to_string());
+            }
+        }
+        if line_replaced {
+            content = new_lines.join("\n");
+        } else {
+            content.push_str("\nzend_extension=opcache\n");
+        }
+    }
+
+    let opcache_settings = [
+        ("opcache.enable", "1"),
+        ("opcache.enable_cli", "0"),
+        ("opcache.memory_consumption", "128"),
+        ("opcache.interned_strings_buffer", "16"),
+        ("opcache.max_accelerated_files", "10000"),
+        ("opcache.validate_timestamps", "1"),
+        ("opcache.revalidate_freq", "0"),
+    ];
+
+    for (key, val) in opcache_settings {
+        let prefix = format!("{} =", key);
+        let prefix_no_space = format!("{}=", key);
+        let mut found = false;
+        let mut new_lines = Vec::new();
+        for l in content.lines() {
+            let trimmed = l.trim();
+            let clean = trimmed.trim_start_matches(';').trim_start();
+            if clean.starts_with(&prefix) || clean.starts_with(&prefix_no_space) {
+                new_lines.push(format!("{} = {}", key, val));
+                found = true;
+            } else {
+                new_lines.push(l.to_string());
+            }
+        }
+        if found {
+            content = new_lines.join("\n");
+        } else {
+            content.push_str(&format!("\n{} = {}\n", key, val));
+        }
+    }
+
+    // 5. Pastikan session.save_path mengarah ke folder temp yang valid
     let temp_dir = server_dir.join("temp");
     let _ = fs::create_dir_all(&temp_dir);
     let temp_dir_slash = temp_dir.to_string_lossy().replace('\\', "/");

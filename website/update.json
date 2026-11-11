@@ -1,11 +1,11 @@
 {
-  "version": "1.5.0",
-  "notes": "Pembaruan v1.4.9: Perbaikan menyeluruh Node.js manager & NVM (menghilangkan popup alert 'Terminal Only' Windows, unduhan resmi async resumable anti-freeze, dukungan Node v24 LTS, v22, v20, v18), perbaikan sinkronisasi updater keypair & catatan rilis otomatis, perbaikan fatal crash saat switch versi PHP Apache (LoadFile php8ts.dll), kompatibilitas phpMyAdmin pada PHP 8.4+, serta lolos audit pengujian otomatis.",
-  "pub_date": "2026-11-09T16:06:14.948Z",
+  "version": "1.5.1",
+  "notes": "Pembaruan v1.5.1: Perbaikan critical bug Node.js (startup command error 'node' is not recognized' pada instalasi non-default NVM), pembaruan default NVM path ke C:\\NVM untuk kompatibilitas optimal Windows, peningkatan performa PHP-FPM restart, validasi path PHP server yang lebih ketat, serta perbaikan UI kecil.",
+  "pub_date": "2026-11-11T16:01:15.026Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://envku.subly.my.id/downloads/Envku_1.5.0_x64-setup.exe",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSZTdGbUNpVmx3MFBUdGQwY1hzdDJnVWc0QmJlMWppdFVRanBCOE80SG1lMEE3Ujh0aE12ZzB6a0dxbkxIYnJUMTYwcHFlOEdDSWV0bGRYMm1zbUxqUDZHMm5rUG45RXc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MjQwMzczCWZpbGU6RW52a3VfMS41LjBfeDY0LXNldHVwLmV4ZQp1WndEMzJWS3plaXlSQzU0bW1Eek9MdXd4WW92a1RNVWRXdWVianNNWm5QR2FVUXcrVUJtZlFnbVlWQ0xOUCtOZVE0eEhsUDhjQ3hXQi9iWUJMUWlEQT09Cg=="
+      "url": "https://envku.subly.my.id/downloads/Envku_1.5.1_x64-setup.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSZTdGbUNpVmx3ME9Ed3pBSytJWWpDb0dZOWpic0FldU5tWE5Rc0xTRWJhYTZLSmFtSTFhK1NRNHB3cVJJdEZIcElIaGZXajFsZlRwMWdab0piaUNrVTdoVDlIa3FYT2dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NDEyODczCWZpbGU6RW52a3VfMS41LjFfeDY0LXNldHVwLmV4ZQpxU3pkY3ZvZzhmM3NFV2cwM01VTXlseExjb2l5amw3OXVVNFBoNDUwdHFSOWFkcjh3cWZSOFR5R1Fyd0N5aVZLdFJhNnFJaGtuTUZGOWxWWm1KSFJBQT09Cg=="
     }
   }
 }

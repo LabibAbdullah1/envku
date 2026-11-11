@@ -104,7 +104,8 @@ pub async fn create_laravel_project(
         }
     }
 
-    let _ = app.emit("laravel_creation_log", format!("📦 Mengeksekusi: php composer.phar create-project laravel/laravel {} --prefer-dist --no-ansi", clean_name));
+    let _ = app.emit("laravel_creation_log", format!("📦 Mengeksekusi: php composer.phar create-project laravel/laravel {} --prefer-dist --no-ansi --optimize-autoloader", clean_name));
+    let _ = app.emit("laravel_creation_log", "⚡ Mengaktifkan optimasi classmap autoload (--optimize-autoloader) secara otomatis.".to_string());
     let _ = app.emit("laravel_creation_log", "--------------------------------------------------------------------------------".to_string());
 
     let mut child = if cfg!(target_os = "windows") {
@@ -116,6 +117,7 @@ pub async fn create_laravel_project(
             &clean_name,
             "--prefer-dist",
             "--no-ansi",
+            "--optimize-autoloader",
         ])
         .current_dir(&parent_path)
         .env("COMPOSER_MEMORY_LIMIT", "-1")
@@ -139,6 +141,7 @@ pub async fn create_laravel_project(
             &clean_name,
             "--prefer-dist",
             "--no-ansi",
+            "--optimize-autoloader",
         ])
         .current_dir(&parent_path)
         .env("COMPOSER_MEMORY_LIMIT", "-1")
@@ -192,9 +195,142 @@ pub async fn create_laravel_project(
     let doc_root = project_dir.join("public").to_string_lossy().to_string();
     add_project(domain.clone(), doc_root, false, None, enable_ssl)?;
 
+    // Jalankan php artisan optimize awal
+    let artisan_file = project_dir.join("artisan");
+    if artisan_file.exists() {
+        let _ = app.emit("laravel_creation_log", "⚡ Menjalankan optimasi cache Laravel awal (php artisan optimize)...".to_string());
+        if cfg!(target_os = "windows") {
+            let mut opt_cmd = crate::create_hidden_command(&php_exe.to_string_lossy());
+            if let Some(parent) = php_exe.parent() {
+                if let Ok(current_path) = std::env::var("PATH") {
+                    opt_cmd.env("PATH", format!("{};{}", parent.display(), current_path));
+                }
+            }
+            let _ = opt_cmd.args(&[artisan_file.to_string_lossy().as_ref(), "optimize", "--no-ansi"])
+                .current_dir(&project_dir)
+                .output();
+        } else {
+            let mut opt_cmd = std::process::Command::new(&php_exe);
+            let _ = opt_cmd.args(&[artisan_file.to_string_lossy().as_ref(), "optimize", "--no-ansi"])
+                .current_dir(&project_dir)
+                .output();
+        }
+        let _ = app.emit("laravel_creation_log", "✨ Autoload & Cache Laravel berhasil dioptimalkan!".to_string());
+    }
+
     let _ = app.emit("laravel_creation_log", format!("🎉 SELESAI: Proyek Laravel {} siap digunakan!", clean_name));
 
     Ok(format!("Proyek Laravel {} versi terbaru berhasil dibuat dan terdaftar di http://{}", clean_name, domain))
+}
+
+#[tauri::command]
+pub async fn optimize_laravel_project(document_root: String) -> Result<String, String> {
+    let doc_path = std::path::PathBuf::from(&document_root);
+    let project_dir = if doc_path.ends_with("public") {
+        doc_path.parent().unwrap_or(&doc_path).to_path_buf()
+    } else {
+        doc_path.clone()
+    };
+
+    let artisan_path = project_dir.join("artisan");
+    if !artisan_path.exists() {
+        return Err("File artisan tidak ditemukan. Fitur optimasi ini khusus untuk proyek Laravel.".to_string());
+    }
+
+    let server_dir = get_server_dir_path();
+    let composer_phar = server_dir.join("composer").join("composer.phar");
+
+    let active_php = crate::commands::php::get_active_php_version().unwrap_or_default();
+    let mut candidate_versions = Vec::new();
+    if !active_php.is_empty() && active_php != "unknown" {
+        candidate_versions.push(active_php);
+    }
+    for fallback in &["php85", "php84", "php83", "php82"] {
+        let f = fallback.to_string();
+        if !candidate_versions.contains(&f) {
+            candidate_versions.push(f);
+        }
+    }
+
+    let mut selected_php_target = None;
+    for ver in candidate_versions {
+        let exe = if cfg!(target_os = "windows") {
+            server_dir.join(&ver).join("php.exe")
+        } else {
+            server_dir.join(&ver).join("bin").join("php")
+        };
+        if exe.exists() {
+            selected_php_target = Some((ver, exe));
+            break;
+        }
+    }
+
+    let (_ver, php_exe) = match selected_php_target {
+        Some(pair) => pair,
+        None => {
+            return Err("Biner PHP tidak ditemukan. Pastikan PHP terpasang di katalog komponen.".to_string());
+        }
+    };
+
+    // 1. Eksekusi composer dump-autoload -o jika composer.phar ada
+    if composer_phar.exists() {
+        if cfg!(target_os = "windows") {
+            let mut c = crate::create_hidden_command(&php_exe.to_string_lossy());
+            if let Some(parent) = php_exe.parent() {
+                if let Ok(current_path) = std::env::var("PATH") {
+                    c.env("PATH", format!("{};{}", parent.display(), current_path));
+                }
+            }
+            let _ = c.args(&[
+                composer_phar.to_string_lossy().as_ref(),
+                "dump-autoload",
+                "-o",
+                "--no-ansi",
+            ])
+            .current_dir(&project_dir)
+            .env("COMPOSER_MEMORY_LIMIT", "-1")
+            .output();
+        } else {
+            let mut c = std::process::Command::new(&php_exe);
+            let _ = c.args(&[
+                composer_phar.to_string_lossy().as_ref(),
+                "dump-autoload",
+                "-o",
+                "--no-ansi",
+            ])
+            .current_dir(&project_dir)
+            .env("COMPOSER_MEMORY_LIMIT", "-1")
+            .output();
+        }
+    }
+
+    // 2. Eksekusi php artisan optimize
+    if cfg!(target_os = "windows") {
+        let mut c = crate::create_hidden_command(&php_exe.to_string_lossy());
+        if let Some(parent) = php_exe.parent() {
+            if let Ok(current_path) = std::env::var("PATH") {
+                c.env("PATH", format!("{};{}", parent.display(), current_path));
+            }
+        }
+        let _ = c.args(&[
+            artisan_path.to_string_lossy().as_ref(),
+            "optimize",
+            "--no-ansi",
+        ])
+        .current_dir(&project_dir)
+        .output();
+    } else {
+        let mut c = std::process::Command::new(&php_exe);
+        let _ = c.args(&[
+            artisan_path.to_string_lossy().as_ref(),
+            "optimize",
+            "--no-ansi",
+        ])
+        .current_dir(&project_dir)
+        .output();
+    }
+
+    Ok("Autoload classmap (-o) & cache Laravel berhasil dioptimalkan!".to_string())
 }
 
 #[tauri::command]

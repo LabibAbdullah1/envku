@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { RefreshCw, Plus, Play, X, Edit, Check, FolderPlus, Sparkles, Terminal, Copy, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { RefreshCw, Plus, Play, X, Edit, Check, FolderPlus, Sparkles, Terminal, Copy, CheckCircle2, AlertTriangle, Loader2, Zap } from "lucide-react";
 import { formatFriendlyError } from "../utils/formatError";
 
 interface VirtualHostInfo {
@@ -82,7 +82,22 @@ export default function ProjectWizardTab({
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
   const [terminalStatus, setTerminalStatus] = useState<"running" | "success" | "error">("running");
   const [copiedLogs, setCopiedLogs] = useState<boolean>(false);
+  const [optimizingDomain, setOptimizingDomain] = useState<string | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  const handleOptimizeLaravel = async (vh: VirtualHostInfo) => {
+    setOptimizingDomain(vh.domain);
+    try {
+      const res = await invoke<string>("optimize_laravel_project", {
+        documentRoot: vh.document_root,
+      });
+      showToastMsg(res, "success");
+    } catch (err) {
+      showToastMsg(formatFriendlyError(err), "error");
+    } finally {
+      setOptimizingDomain(null);
+    }
+  };
 
   useEffect(() => {
     if (showTerminalModal) {
@@ -736,6 +751,21 @@ export default function ProjectWizardTab({
                       <Play className="w-3.5 h-3.5 fill-current" />
                       <span>Buka</span>
                     </button>
+                    {!vh.is_node && (vh.document_root.toLowerCase().endsWith("/public") || vh.document_root.toLowerCase().endsWith("\\public")) && (
+                      <button
+                        onClick={() => handleOptimizeLaravel(vh)}
+                        disabled={optimizingDomain === vh.domain}
+                        className="py-2 px-3 bg-[#e0e7ff] text-[#3730a3] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#c7d2fe] text-xs font-black transition flex items-center justify-center space-x-1.5 cursor-pointer uppercase shrink-0"
+                        title="Optimasi Autoload (composer dump-autoload -o) & Cache Laravel (php artisan optimize)"
+                      >
+                        {optimizingDomain === vh.domain ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Zap className="w-3.5 h-3.5 text-[#4338ca] fill-current" />
+                        )}
+                        <span className="hidden sm:inline">Optimalkan</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleStartEdit(vh)}
                       className="py-2 px-3 bg-[#ffffff] text-[#18181b] border-2.5 border-[#09090b] shadow-[3px_3px_0px_0px_#09090b] hover:bg-[#7dd3fc] text-xs font-black transition flex items-center justify-center cursor-pointer shrink-0"
